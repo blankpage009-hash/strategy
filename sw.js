@@ -3,9 +3,12 @@
    ---------------------------------------------------------------------
    웹주소로 한 번 열어두면, 그 뒤로는 인터넷이 없어도 화면이 뜨게 해 줍니다.
    자료(PDF·회의록)는 여기서 다루지 않습니다. 그것은 기기 안 저장소에 있습니다.
-   프로그램을 고친 뒤에는 아래 CACHE 뒤의 번호를 1 올려 주세요.
+
+   화면(HTML)은 인터넷이 되면 늘 새것을 먼저 받아오므로, 프로그램을 고치면
+   다음에 열 때 바로 반영됩니다. pdf.js 같은 부품을 바꿨을 때만
+   아래 CACHE 뒤의 번호를 1 올려 주세요.
    ===================================================================== */
-const CACHE = "wts-v3";
+const CACHE = "wts-v4";
 
 const ASSETS = [
   "./",
@@ -48,16 +51,29 @@ self.addEventListener("fetch", e => {
   /* 제미나이 API 같은 바깥 주소는 손대지 않습니다 */
   if (url.origin !== self.location.origin) return;
 
+  /* 담아 둔 것을 새로 고쳐 둡니다 */
+  const keep = res => {
+    if (res && res.ok && res.type === "basic") {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+    }
+    return res;
+  };
+
+  /* 화면(HTML)은 인터넷이 되면 늘 새것을 먼저 받아옵니다.
+     그래야 프로그램을 고치면 다음에 열 때 바로 반영됩니다.
+     인터넷이 없으면 담아 둔 것을 씁니다. */
+  const isPage = req.mode === "navigate" || /\.html$/.test(url.pathname);
+  if (isPage) {
+    e.respondWith(
+      fetch(req).then(keep).catch(() =>
+        caches.match(req).then(hit => hit || caches.match("whats-the-strategy.html")))
+    );
+    return;
+  }
+
+  /* 나머지(pdf.js · 아이콘)는 잘 바뀌지 않으니 담아 둔 것을 먼저 씁니다 */
   e.respondWith(
-    caches.match(req).then(hit => {
-      if (hit) return hit;
-      return fetch(req).then(res => {
-        if (res && res.ok && res.type === "basic") {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
-        }
-        return res;
-      }).catch(() => caches.match("whats-the-strategy.html"));
-    })
+    caches.match(req).then(hit => hit || fetch(req).then(keep))
   );
 });
