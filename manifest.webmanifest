@@ -1,0 +1,17 @@
+{
+  "name": "What's the Strategy?",
+  "short_name": "Strategy",
+  "description": "회의자료·회의록 저장소",
+  "lang": "ko",
+  "start_url": "whats-the-strategy.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#2f6feb",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
