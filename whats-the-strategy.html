@@ -97,7 +97,11 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
   -webkit-overflow-scrolling:touch;padding-bottom:28px;}
 
 /* ---------- 왼쪽 ---------- */
-.grouphead{padding:10px 10px 4px;font-size:11px;font-weight:700;color:#9aa1ab;letter-spacing:.03em;}
+.grouphead{padding:10px 10px 4px;font-size:11px;font-weight:700;color:#9aa1ab;letter-spacing:.03em;
+  display:flex;align-items:center;gap:5px;}
+#btn-manage{margin-left:auto;border:1px solid var(--line);background:var(--bg);border-radius:5px;
+  font-size:11px;font-weight:700;color:var(--muted);padding:2px 8px;letter-spacing:0;}
+#btn-manage:hover{border-color:var(--accent);color:var(--accent);}
 #cats{padding:0 6px 6px;}
 .cat{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;cursor:pointer;user-select:none;}
 .cat:hover{background:var(--panel2);}
@@ -175,9 +179,11 @@ body.hide-doctitle #viewbar .doctitle{display:none;}
 body.tight-bar #viewbar .t{display:none;}
 body.tight-bar #viewbar .iconbtn{padding:0 6px;}
 
-#stage{flex:1 1 auto;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
-  padding:18px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;}
-#canvaswrap{flex:0 0 auto;background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.35);border-radius:2px;
+/* 자료가 최대한 꽉 차 보이도록 여백을 최소로 둡니다.
+   가운데 맞추기는 margin:auto 로 합니다 — 확대해서 넘칠 때도 잘리지 않습니다. */
+#stage{flex:1 1 auto;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:flex-start;
+  padding:3px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;}
+#canvaswrap{flex:0 0 auto;margin:auto;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.3);border-radius:1px;
   line-height:0;transform-origin:top center;}
 #pdfcanvas{display:block;}
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
@@ -200,9 +206,10 @@ body.rendering #spin{display:block;}
 #rtop{flex:0 0 auto;padding:10px 12px 0;background:var(--panel);border-bottom:1px solid var(--line);}
 .rtitle{font-size:14px;font-weight:700;line-height:1.4;margin:0 0 10px;}
 .rtabs{display:flex;gap:4px;}
-.rtab{flex:1 1 0;height:33px;margin-bottom:-1px;padding:0 8px;
+.rtab{flex:1 1 0;min-width:0;height:33px;margin-bottom:-1px;padding:0 6px;
   border:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:7px 7px 0 0;
-  background:var(--panel2);color:var(--muted);font-size:12.5px;font-weight:700;white-space:nowrap;}
+  background:var(--panel2);color:var(--muted);font-size:12px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rtab:hover{color:var(--text);}
 .rtab.on{background:var(--panel);color:var(--accent);border-bottom-color:var(--panel);}
 .rtab .num{font-weight:600;font-size:11px;color:var(--muted);margin-left:3px;}
@@ -226,6 +233,14 @@ body.rendering #spin{display:block;}
 textarea.sum{width:100%;min-height:84px;resize:vertical;padding:7px 8px;line-height:1.6;font-size:12.5px;
   border:1px solid var(--line);border-radius:6px;background:#fff;outline:none;}
 textarea.sum:focus{border-color:var(--accent);}
+/* 잠겨 있을 때 — 읽기만 됩니다 */
+textarea.sum[readonly]{background:var(--panel2);cursor:default;}
+textarea.sum[readonly]:focus{border-color:var(--line);}
+.sect > h4 .mini + .mini{margin-left:0;}
+/* Executive Summary 탭 — 요약 상자가 패널 전체를 채웁니다 */
+#rbody[data-tab="sum"]{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px;}
+#rbody[data-tab="sum"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
+#rbody[data-tab="sum"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
 .tip{font-size:10.5px;color:#9aa1ab;margin-top:3px;}
 .nonote{font-size:12px;color:var(--muted);background:#fff;border:1px dashed var(--line);
   border-radius:6px;padding:8px;line-height:1.5;}
@@ -247,9 +262,6 @@ textarea.sum:focus{border-color:var(--accent);}
 #taskadd input{flex:1 1 auto;height:28px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:#fff;outline:none;font-size:12.5px;}
 #taskadd button{height:28px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:12.5px;}
 .legend{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
-.dangerbtn{width:100%;height:30px;border:1px solid #f0cfcf;background:#fff5f5;color:var(--bad);
-  border-radius:6px;font-size:12px;margin-top:4px;}
-.dangerbtn:hover{background:#ffecec;}
 
 /* ---------- 전체화면 ---------- */
 body.full #topbar,body.full #left,body.full #right{display:none;}
@@ -289,6 +301,28 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
 .mrow .btnrow button{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:12.5px;}
 .mrow .chk{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;cursor:pointer;}
 .mrow .chk input{width:15px;height:15px;margin:0;}
+/* ---------- 자료 관리(Manage) ---------- */
+#mgtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+#mgsearch{flex:1 1 180px;min-width:0;height:32px;padding:0 9px;border:1px solid var(--line);
+  border-radius:6px;background:var(--panel);outline:none;font-size:13px;}
+#mgsearch:focus{border-color:var(--accent);}
+#mgtools .cnt{font-size:12px;color:var(--muted);margin-left:auto;}
+.mgrow{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:8px;margin-bottom:6px;}
+.mgrow.gone{opacity:.45;}
+.mgtop{display:flex;align-items:center;gap:7px;}
+.mgtop input[type=checkbox]{width:15px;height:15px;margin:0;flex:0 0 auto;}
+.mgname{flex:1 1 auto;min-width:0;height:30px;padding:0 8px;border:1px solid var(--line);
+  border-radius:6px;background:#fff;outline:none;font-size:13px;}
+.mgname:focus{border-color:var(--accent);}
+.mgdel{flex:0 0 auto;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;
+  background:var(--bg);color:#c8ccd3;font-size:13px;line-height:1;}
+.mgdel:hover{background:#fff5f5;border-color:#f0cfcf;color:var(--bad);}
+.mgbot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0 0 22px;}
+.mgbot select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:6px;
+  background:#fff;outline:none;font-size:12px;}
+.mgbot select.cat{flex:0 1 190px;min-width:110px;}
+.mgbot .meta{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap;}
+#mgempty{padding:30px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;}
 .subbox{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);}
 .subbox .lbl2{font-size:12px;font-weight:600;margin-top:8px;}
 .subbox .lbl2:first-child{margin-top:0;}
@@ -375,16 +409,17 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
 
   <aside id="left">
     <button class="rail" data-open="left" title="왼쪽 사이드바 열기">
-      <span class="arw">»</span><span class="lbl">자료 목록</span>
+      <span class="arw">»</span><span class="lbl">List</span>
     </button>
     <div class="side-inner">
-      <div class="side-head">자료 <button class="closebtn" data-close="left" title="접기">«</button></div>
+      <div class="side-head">Meeting Materials <button class="closebtn" data-close="left" title="접기">«</button></div>
       <div class="side-scroll">
         <div class="grouphead">회의 종류</div>
         <div id="cats"></div>
         <button id="addcat">＋ 종류 추가</button>
         <div class="divider"></div>
-        <div class="grouphead">자료 목록 <span id="listcount" style="font-weight:400"></span></div>
+        <div class="grouphead">List <span id="listcount" style="font-weight:400"></span>
+          <button id="btn-manage" title="자료 이름 바꾸기 · 옮기기 · 삭제">Manage</button></div>
         <div id="tree"></div>
       </div>
     </div>
@@ -428,10 +463,10 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
 
   <aside id="right">
     <button class="rail" data-open="right" title="오른쪽 사이드바 열기">
-      <span class="arw">«</span><span class="lbl">Summary · Tasks</span>
+      <span class="arw">«</span><span class="lbl">Summary · Notes · Tasks</span>
     </button>
     <div class="side-inner">
-      <div class="side-head">선택한 자료 <button class="closebtn" data-close="right" title="접기">»</button></div>
+      <div class="side-head">Summary <button class="closebtn" data-close="right" title="접기">»</button></div>
       <div id="rtop"></div>
       <div class="side-scroll" id="rbody"></div>
     </div>
@@ -486,6 +521,31 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
       <span class="left" id="upleft"></span>
       <button class="ghostbtn" id="upcancel">닫기</button>
       <button class="primarybtn" id="upstart" disabled>등록 시작</button>
+    </footer>
+  </div>
+</div>
+
+<!-- 자료 관리 -->
+<div class="modalbg" id="managebg">
+  <div class="modal wide" role="dialog" aria-label="자료 관리">
+    <header>자료 관리 <button class="x" id="mgclose">✕</button></header>
+    <div class="content">
+      <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
+        이름·회의 종류·날짜는 <b>고치는 즉시 저장</b>됩니다.
+        종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
+      </div>
+      <div id="mgtools">
+        <input id="mgsearch" type="search" placeholder="이름으로 걸러내기" autocomplete="off">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="mgall" style="width:15px;height:15px;margin:0"> 전체 선택</label>
+        <span class="cnt" id="mgcount"></span>
+      </div>
+      <div id="mglist"></div>
+    </div>
+    <footer>
+      <button class="ghostbtn" id="mgdelsel" style="margin-right:auto;color:var(--bad);border-color:#f0cfcf" disabled>
+        선택 삭제</button>
+      <button class="ghostbtn" id="mgdone">닫기</button>
     </footer>
   </div>
 </div>
@@ -740,9 +800,13 @@ function indexDoc(d){
    3) 화면 상태
    ========================================================= */
 const S = {
-  sel:null, q:"", zoom:1, page:1, rtab:"sum",   /* 오른쪽 탭 : sum(핵심 요약) · task(할 일) */
+  sel:null, q:"", zoom:1, page:1, rtab:"sum",
+  /* 오른쪽 탭 : sum(회의자료 요약) · note(회의록) · task(할 일) */
+  editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   offCats:new Set(), open:new Set(),
-  pdf:null, renderTask:null, renderSeq:0, baseScale:1, fitMode:"width",
+  pdf:null, renderTask:null, renderSeq:0, baseScale:1,
+  fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 */
+  fitPref:"page",                           /* 기본은 한 페이지 전체 — 장표가 늘 다 보이게 */
   aiBusy:null, aiErr:"", aiErrId:null       /* AI 요약 진행/오류 상태 */
 };
 
@@ -875,7 +939,7 @@ async function loadPdfFor(doc){
     if(seq !== S.renderSeq){ try{ S.pdf.destroy(); }catch(e){} return; }
     showViewer(true);
     S.page = 1;
-    await fitTo(S.fitMode);
+    await fitTo(S.fitPref);
   }catch(err){
     setNoView("PDF를 열지 못했습니다", esc(err.message || String(err)), null, null);
   }finally{
@@ -931,17 +995,35 @@ async function renderPage(){
   }
 }
 
+/* 세로 스크롤 막대가 차지하는 폭 — 한 번만 재 둡니다 (겹쳐 뜨는 기기는 0) */
+let SBW = null;
+function scrollbarW(){
+  if(SBW !== null) return SBW;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll;";
+  document.body.appendChild(probe);
+  SBW = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+  return SBW;
+}
+
 async function fitTo(mode){
   if(!S.pdf) return;
   S.fitMode = mode;
   const page = await S.pdf.getPage(S.page);
   const vp1 = page.getViewport({ scale: 1 });
   const st  = $("#stage");
-  const availW = st.clientWidth  - 36;
-  const availH = st.clientHeight - 36;
-  S.baseScale = mode === "page"
-    ? Math.min(availW / vp1.width, availH / vp1.height)
-    : availW / vp1.width;
+  let availW   = st.clientWidth  - 6;   /* #stage 좌우 여백(3px+3px) */
+  const availH = st.clientHeight - 6;   /* #stage 위아래 여백 */
+  if(mode === "page"){
+    S.baseScale = Math.min(availW / vp1.width, availH / vp1.height);
+  }else{
+    /* 폭 맞춤은 대개 세로로 넘칩니다. 아직 세로 막대가 없다면 그 폭을 미리 빼야
+       가로 막대까지 같이 생기는 일을 막을 수 있습니다. */
+    const sbNow = st.offsetWidth - st.clientWidth;
+    if(sbNow === 0 && vp1.height * (availW / vp1.width) > availH) availW -= scrollbarW();
+    S.baseScale = availW / vp1.width;
+  }
   S.zoom = 1;
   await renderPage();
 }
@@ -988,34 +1070,51 @@ function renderRight(){
   const err   = (S.aiErrId === d.id && S.aiErr) ? S.aiErr : "";
   const sug   = (mine.sug || []).filter(t => !used.has(t));
 
-  const tab = S.rtab === "task" ? "task" : "sum";
+  const tab = (S.rtab === "task" || S.rtab === "note") ? S.rtab : "sum";
+
+  /* 잠금/풀기 단추 — 잠겨 있으면 Add(내용 없음) · Edit(내용 있음), 풀려 있으면 완료 */
+  const lockBtn = (id, has, editing) => editing
+    ? `<button class="mini" data-lock="${id}">✓ 완료</button>`
+    : `<button class="mini" data-lock="${id}">${has ? "✎ Edit" : "＋ Add"}</button>`;
 
   /* 위쪽 고정 — 자료 이름과 탭 */
   top.innerHTML = `
     <div class="rtitle" title="${esc(d.cat)} · ${fmtYMW(d)} · ${d.pages}쪽">${esc(d.title)}</div>
     <div class="rtabs">
-      <button class="rtab ${tab==="sum"?"on":""}" data-tab="sum">Executive Summary</button>
-      <button class="rtab ${tab==="task"?"on":""}" data-tab="task">Tasks<span class="num">${tasks.length}</span></button>
+      <button class="rtab ${tab==="sum" ?"on":""}" data-tab="sum" title="Executive Summary">Executive Summary</button>
+      <button class="rtab ${tab==="note"?"on":""}" data-tab="note" title="Meeting Notes">Meeting Notes</button>
+      <button class="rtab ${tab==="task"?"on":""}" data-tab="task" title="Tasks">Tasks<span class="num">${tasks.length}</span></button>
     </div>`;
 
-  /* ── 탭 1 : 핵심 요약 (요약 + 회의록) ───────────────────────── */
+  /* ── 탭 1 : Executive Summary — 회의자료 요약이 창 전체를 채웁니다 ─── */
   const paneSum = `
-    <div class="sect">
-      <h4>Executive Summary
+    <div class="sect grow">
+      <h4>회의자료 요약
         ${ aiOn ? `<span class="aion">AI 켜짐 · 제미나이</span>`
                 : `<span class="aioff">AI 꺼짐 · 직접 입력</span>` }
         ${ aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
-             busy ? "만드는 중…" : (a||b ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" }
+             busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" }
+        ${ lockBtn("A", !!a, S.editA) }
       </h4>
       ${ busy ? `<div class="aibusy">요약을 만드는 중입니다… (10~30초)</div>` : "" }
       ${ err  ? `<div class="aierr">${esc(err)}<br><button id="airetry">다시 시도</button></div>` : "" }
       ${ mine.by === "ai" && mine.at
-          ? `<div class="tip">AI가 ${esc(fmtWhen(mine.at))}에 만든 요약입니다. 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
-      <div class="sumlabel">회의자료 요약</div>
-      <textarea class="sum" id="sumA" placeholder="ㆍ핵심만 한 줄씩">${esc(a)}</textarea>
-      <div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다.</div>
-      <div class="sumlabel">회의록 요약</div>
-      <textarea class="sum" id="sumB" placeholder="ㆍ회의에서 정해진 것만 한 줄씩">${esc(b)}</textarea>
+          ? `<div class="tip">AI가 ${esc(fmtWhen(mine.at))}에 만든 요약입니다. <b>✎ Edit</b> 로 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
+      <textarea class="sum fill" id="sumA" ${S.editA?"":"readonly"}
+        placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "＋ Add 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
+      ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
+    </div>
+  `;
+
+  /* ── 탭 2 : Meeting Notes — 회의록 요약과 회의록 원문 ───────────── */
+  const paneNote = `
+    <div class="sect">
+      <h4>회의록 요약
+        ${ lockBtn("B", !!b, S.editB) }
+      </h4>
+      <textarea class="sum" id="sumB" ${S.editB?"":"readonly"}
+        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "＋ Add 를 눌러 회의록 요약을 적으세요"}">${esc(b)}</textarea>
+      ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
     </div>
 
     <div class="sect">
@@ -1030,13 +1129,9 @@ function renderRight(){
            위 <b>＋ 등록</b> 으로 붙여넣거나 파일에서 가져오세요.</div>` }
       ${ note ? `<div class="tip">문장 옆 <b>＋</b> 를 누르면 <b>Tasks</b> 탭으로 들어갑니다.</div>` : "" }
     </div>
-
-    <div class="sect">
-      <button class="dangerbtn" id="deldoc">이 자료 삭제</button>
-    </div>
   `;
 
-  /* ── 탭 2 : 할 일 (AI 후보 + 할 일 목록) ────────────────────── */
+  /* ── 탭 3 : 할 일 (AI 후보 + 할 일 목록) ────────────────────── */
   const paneTask = `
     ${ sug.length ? `
     <div class="sect">
@@ -1070,9 +1165,19 @@ function renderRight(){
 
   /* 같은 탭을 다시 그릴 때는 보던 위치를 그대로 둡니다 */
   const keep = (body.dataset.tab === tab) ? body.scrollTop : 0;
-  body.innerHTML = tab === "task" ? paneTask : paneSum;
+  body.innerHTML = tab === "task" ? paneTask : (tab === "note" ? paneNote : paneSum);
   body.dataset.tab = tab;
   body.scrollTop = keep;
+
+  /* 방금 잠금을 푼 상자로 바로 들어갑니다 (비어 있으면 ㆍ 를 하나 놓아 둡니다) */
+  if(S.focusSum){
+    const t = $("#" + S.focusSum); S.focusSum = null;
+    if(t){
+      if(t.value === "") t.value = BULLET;
+      t.focus();
+      t.selectionStart = t.selectionEnd = t.value.length;
+    }
+  }
 }
 
 /* 탭 바꾸기 — 어느 탭을 보고 있었는지 기억합니다 */
@@ -1080,6 +1185,7 @@ $("#rtop").addEventListener("click", e => {
   const t = e.target.closest("[data-tab]"); if(!t) return;
   if(S.rtab === t.dataset.tab) return;
   S.rtab = t.dataset.tab; KV.rtab = S.rtab; saveKV("rtab");
+  S.editA = S.editB = false;          /* 탭을 옮기면 다시 잠급니다 */
   renderRight();
 });
 
@@ -1088,11 +1194,24 @@ function renderAll(){ renderCats(); renderTree(); renderRight(); updateBars(); }
 /* =========================================================
    7) 사이드바
    ========================================================= */
+/* 장표는 언제나 한 장 전체가 보이는 것이 기본입니다.
+   패널을 여닫거나 전체화면을 오갈 때마다 '한 페이지 전체'로 되돌려,
+   넓어진 자리를 그대로 채우면서도 장표가 잘리지 않게 합니다.
+   (툴바에서 '화면 너비에 맞추기'를 직접 고르면 다음 여닫기 전까지는 그대로 둡니다) */
+function autoFit(){
+  if(!S.pdf) return;
+  S.fitPref = "page";
+  fitTo("page");
+}
+
 function toggleSide(which, force){
   const cls = which + "-closed";
   const closed = (force !== undefined) ? !force : !document.body.classList.contains(cls);
+  const was = document.body.classList.contains(cls);
   document.body.classList.toggle(cls, closed);
   KV[which] = !closed; saveKV(which);
+  /* 폭이 .16s 에 걸쳐 바뀌므로 다 바뀐 뒤에 다시 맞춥니다 */
+  if(was !== closed && S.pdf) setTimeout(autoFit, 200);
 }
 $$(".rail").forEach(b => b.onclick = () => toggleSide(b.dataset.open, true));
 $$(".closebtn").forEach(b => b.onclick = () => toggleSide(b.dataset.close, false));
@@ -1249,8 +1368,157 @@ $("#addcat").onclick = () => {
   renderCats(); renderTree(); toast(`'${name}' 종류를 추가했습니다`);
 };
 
+/* =========================================================
+   4-2) 자료 관리(Manage) — 이름 바꾸기 · 종류/날짜 옮기기 · 삭제
+      고친 값은 바로 저장합니다. 확인 단추가 따로 없습니다.
+   ========================================================= */
+/* 없어진 종류로 등록된 옛 자료도 고를 수 있게 목록에 끼워 넣습니다 */
+const mgCatOptions = cur =>
+  (cur && !KV.cats.includes(cur) ? sel(cur, cur, cur + " (없는 종류)") : "") + catOptions(cur);
+/* 기본 연도 칸(올해 ±)에 없는 옛 자료면 그 연도를 끼워 넣습니다 */
+const mgYearOptions = cur => {
+  const now = new Date().getFullYear(), y = parseInt(cur, 10);
+  const extra = (y && (y > now + 1 || y < now - 5)) ? sel(y, cur, y + "년") : "";
+  return extra + yearOptions(cur);
+};
+const mgMeta = d =>
+  `${d.pages || 1}쪽${d.hasPdf ? "" : " · 글자만"}${noteOf(d) ? " · 회의록 있음" : ""}`;
+
+function mgRows(){
+  const q = ($("#mgsearch").value || "").trim().toLowerCase();
+  return DOCS
+    .filter(d => !q || (d.title || "").toLowerCase().includes(q)
+                    || (d.cat   || "").toLowerCase().includes(q))
+    .slice()
+    .sort((a,b) => (b.date||"").localeCompare(a.date||"")
+                || (a.title||"").localeCompare(b.title||""));
+}
+
+function mgChecked(){
+  return $$("#mglist .mgchk").filter(c => c.checked)
+    .map(c => c.closest(".mgrow").dataset.id);
+}
+function mgSyncSel(){
+  const n = mgChecked().length;
+  const btn = $("#mgdelsel");
+  btn.disabled = !n;
+  btn.textContent = n ? `선택 삭제 (${n}개)` : "선택 삭제";
+}
+
+function mgRender(){
+  const rows = mgRows();
+  $("#mgcount").textContent = `자료 ${DOCS.length}개${rows.length !== DOCS.length ? ` · ${rows.length}개 표시` : ""}`;
+  $("#mglist").innerHTML = rows.length
+    ? rows.map(d => `
+      <div class="mgrow" data-id="${d.id}">
+        <div class="mgtop">
+          <input type="checkbox" class="mgchk" title="선택">
+          <input type="text" class="mgname" data-f="title" value="${esc(d.title)}" placeholder="자료 이름">
+          <button class="mgdel" title="이 자료 지우기">✕</button>
+        </div>
+        <div class="mgbot">
+          <select class="cat" data-f="cat">${mgCatOptions(d.cat)}</select>
+          <select data-f="year">${mgYearOptions(yearOf(d))}</select>
+          <select data-f="month">${monthOptions(monthOf(d))}</select>
+          <select data-f="week">${weekOptions(weekOf(d))}</select>
+          <span class="meta">${esc(mgMeta(d))}</span>
+        </div>
+      </div>`).join("")
+    : `<div id="mgempty">${ DOCS.length
+        ? "찾는 이름의 자료가 없습니다."
+        : "아직 등록된 자료가 없습니다.<br>오른쪽 위 <b>＋ Upload</b> 로 먼저 등록하세요." }</div>`;
+  $("#mgall").checked = false;
+  mgSyncSel();
+}
+
+/* 고친 자료 하나를 저장합니다. 실패하면 저장된 내용으로 되돌립니다. */
+async function mgSaveDoc(d){
+  indexDoc(d);                                  /* 이름이 바뀌면 짧은 이름·검색어도 다시 만듭니다 */
+  try{
+    await dbPut("docs", stripDoc(d));
+  }catch(err){
+    alert("저장하지 못했습니다 — " + storeErrMsg(err) + "\n원래 상태로 되돌립니다.");
+    await loadAll(); renderAll(); mgRender();
+    return false;
+  }
+  renderTree(); renderRight(); updateBars();
+  return true;
+}
+
+function openManage(){
+  $("#mgsearch").value = "";
+  mgRender();
+  $("#managebg").classList.add("on");
+}
+function closeManage(){
+  /* 고치던 칸이 있으면 먼저 빠져나와야 change 가 일어나 저장됩니다 */
+  const a = document.activeElement;
+  if(a && a.closest && a.closest("#mglist")) a.blur();
+  $("#managebg").classList.remove("on");
+}
+$("#btn-manage").onclick = openManage;
+$("#mgclose").onclick    = closeManage;
+$("#mgdone").onclick     = closeManage;
+$("#managebg").addEventListener("click", e => { if(e.target.id === "managebg") closeManage(); });
+$("#mgsearch").addEventListener("input", mgRender);
+$("#mgall").onchange = () => {
+  const on = $("#mgall").checked;
+  $$("#mglist .mgchk").forEach(c => c.checked = on);
+  mgSyncSel();
+};
+
+$("#mglist").addEventListener("change", async e => {
+  const row = e.target.closest(".mgrow"); if(!row) return;
+  if(e.target.classList.contains("mgchk")){ mgSyncSel(); return; }
+  const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
+  const f = e.target.dataset.f;
+
+  if(f === "title"){
+    const v = e.target.value.trim();
+    if(!v){ e.target.value = d.title; toast("이름은 비워 둘 수 없습니다"); return; }
+    if(v === d.title) return;
+    d.title = v;
+  }else if(f === "cat"){
+    if(e.target.value === d.cat) return;
+    d.cat = e.target.value;
+  }else if(f === "year" || f === "month" || f === "week"){
+    const y = +row.querySelector('[data-f="year"]').value;
+    const m = +row.querySelector('[data-f="month"]').value;
+    const w = +row.querySelector('[data-f="week"]').value;
+    const date = mkDate(y, m, w);
+    if(date === d.date && w === weekOf(d)) return;
+    d.date = date; d.week = w;
+  }else return;
+
+  if(await mgSaveDoc(d)){
+    row.querySelector(".meta").textContent = mgMeta(d);   /* 회의록 연결이 바뀔 수 있습니다 */
+    toast("저장했습니다");
+  }
+});
+
+$("#mglist").addEventListener("click", async e => {
+  const del = e.target.closest(".mgdel"); if(!del) return;
+  const row = del.closest(".mgrow");
+  const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
+  if(!confirm(`'${d.title}' 을(를) 지울까요?\n요약과 할 일도 함께 지워집니다. 되돌릴 수 없습니다.`)) return;
+  await removeDoc(d.id);
+  saveKV("tasks"); saveKV("sums");
+  renderAll(); mgRender();
+  toast("자료를 지웠습니다");
+});
+
+$("#mgdelsel").onclick = async () => {
+  const ids = mgChecked(); if(!ids.length) return;
+  if(!confirm(`고른 자료 ${ids.length}개를 지울까요?\n요약과 할 일도 함께 지워집니다. 되돌릴 수 없습니다.`)) return;
+  for(const id of ids) await removeDoc(id);
+  saveKV("tasks"); saveKV("sums");
+  renderAll(); mgRender();
+  toast(`자료 ${ids.length}개를 지웠습니다`);
+};
+
 async function selectDoc(id){
   S.sel = id; revealDoc(id);
+  S.editA = S.editB = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
   renderTree(); renderRight();
   if(isNarrow()) toggleSide("left", false);
@@ -1278,8 +1546,9 @@ $("#tree").addEventListener("click", e => {
 const clampZoom = z => Math.min(4, Math.max(0.25, Math.round(z*100)/100));
 $("#zoom-in").onclick  = () => { S.zoom = clampZoom(S.zoom + 0.15); renderPage(); };
 $("#zoom-out").onclick = () => { S.zoom = clampZoom(S.zoom - 0.15); renderPage(); };
-$("#fit-width").onclick = () => fitTo("width");
-$("#fit-page").onclick  = () => fitTo("page");
+/* 직접 고른 방식은 기억해 두었다가, 패널을 다시 열 때 그대로 돌아갑니다 */
+$("#fit-width").onclick = () => { S.fitPref = "width"; fitTo("width"); };
+$("#fit-page").onclick  = () => { S.fitPref = "page";  fitTo("page");  };
 
 function goPage(n){
   if(!S.pdf) return;
@@ -1297,7 +1566,7 @@ function setFull(on){
     ? `<span class="ic">⛶</span><span class="t">나가기 (Esc)</span>`
     : `<span class="ic">⛶</span><span class="t">전체화면</span>`;
   $("#btn-full").title = on ? "전체화면 나가기 (Esc)" : "전체화면 (Esc로 나가기)";
-  setTimeout(() => { if(S.pdf) fitTo(S.fitMode); }, 200);
+  setTimeout(autoFit, 200);
 }
 $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full"));
 
@@ -1354,13 +1623,13 @@ $("#rbody").addEventListener("input", e => {
 });
 $("#rbody").addEventListener("focusin", e => {
   const t = e.target;
-  if((t.id==="sumA"||t.id==="sumB") && t.value===""){
+  if((t.id==="sumA"||t.id==="sumB") && !t.readOnly && t.value===""){
     t.value = BULLET; t.dispatchEvent(new Event("input",{bubbles:true}));
   }
 });
 $("#rbody").addEventListener("keydown", e => {
   const t = e.target;
-  if((t.id==="sumA"||t.id==="sumB") && e.key==="Enter"){
+  if((t.id==="sumA"||t.id==="sumB") && !t.readOnly && e.key==="Enter"){
     e.preventDefault();
     const i = t.selectionStart, ins = "\n" + BULLET;
     t.value = t.value.slice(0,i) + ins + t.value.slice(t.selectionEnd);
@@ -1383,6 +1652,15 @@ function addTask(text){
 }
 
 $("#rbody").addEventListener("click", async e => {
+  /* Add / Edit — 잠금을 풀거나 다시 잠급니다 */
+  const lk = e.target.closest("[data-lock]");
+  if(lk){
+    const which = lk.dataset.lock === "B" ? "editB" : "editA";
+    S[which] = !S[which];
+    if(S[which]) S.focusSum = lk.dataset.lock === "B" ? "sumB" : "sumA";
+    renderRight();
+    return;
+  }
   const line = e.target.closest("[data-line]");
   if(line){ addTask(line.dataset.line); return; }
   const st = e.target.closest("[data-i]");
@@ -1399,20 +1677,19 @@ $("#rbody").addEventListener("click", async e => {
     const cur = KV.sums[S.sel]; if(cur){ cur.sug = []; saveKV("sums"); renderRight(); }
     return;
   }
-  if(e.target.id === "deldoc"){ await deleteDoc(); return; }
 });
 
-async function deleteDoc(){
-  const d = DOCS.find(x => x.id === S.sel); if(!d) return;
-  if(!confirm(`'${d.title}' 을(를) 지울까요?\n요약과 할 일도 함께 지워집니다. 되돌릴 수 없습니다.`)) return;
-  await dbDel("docs", d.id);
-  await dbDel("files", d.id).catch(()=>{});
-  delete KV.tasks[d.id]; delete KV.sums[d.id];
-  saveKV("tasks"); saveKV("sums");
-  DOCS = DOCS.filter(x => x.id !== d.id);
-  S.sel = null; S.aiErr = ""; S.aiErrId = null;
-  renderAll(); await loadPdfFor(null);
-  toast("자료를 지웠습니다");
+/* 자료 하나를 실제로 지웁니다 (물어보지 않습니다 — 부르는 쪽에서 확인하세요).
+   보고 있던 자료였다면 화면도 비웁니다. */
+async function removeDoc(id){
+  await dbDel("docs", id);
+  await dbDel("files", id).catch(()=>{});
+  delete KV.tasks[id]; delete KV.sums[id];
+  DOCS = DOCS.filter(x => x.id !== id);
+  if(S.sel === id){
+    S.sel = null; S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = false;
+    await loadPdfFor(null);
+  }
 }
 
 /* =========================================================
@@ -2266,6 +2543,7 @@ window.addEventListener("beforeunload", e => {
 document.addEventListener("keydown", e => {
   if(e.key === "Escape"){
     if($("#searchpop").classList.contains("on")) closePop();
+    else if($("#managebg").classList.contains("on")) closeManage();
     else if($("#notebg").classList.contains("on")) $("#notebg").classList.remove("on");
     else if($("#uploadbg").classList.contains("on")) closeUpload();
     else if($("#modalbg").classList.contains("on")) $("#modalbg").classList.remove("on");
@@ -2339,7 +2617,7 @@ function registerSW(){
 
   S.offCats = new Set(KV.offcats || []);
   S.open    = new Set(KV.folders || defaultFolders());
-  S.rtab    = KV.rtab === "task" ? "task" : "sum";
+  S.rtab    = (KV.rtab === "task" || KV.rtab === "note") ? KV.rtab : "sum";
   $("#set-store").value = KV.storeMode || "full";
   syncAiRow();
 
