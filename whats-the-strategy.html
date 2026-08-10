@@ -1479,8 +1479,21 @@ function aiErrMsg(status, j, model){
   if(status === 400 && /api.?key/i.test(raw))
     return "API 키가 올바르지 않습니다. 설정에서 키를 다시 붙여넣어 주세요.";
   if(status === 400) return "요청이 거절되었습니다: " + (raw || "내용을 확인해 주세요");
-  if(status === 401 || status === 403)
-    return "이 키로는 사용할 수 없습니다(권한). 키를 새로 발급받아 넣어 주세요.";
+  if(status === 401 || status === 403){
+    /* 403 은 이유가 여러 가지라, 구글이 보내 준 사유를 그대로 보여 줍니다 */
+    if(/referer|referrer/i.test(raw))
+      return "이 키는 이 주소에서 쓸 수 없게 막혀 있습니다(웹사이트 제한). " +
+             "키를 만든 곳에서 '애플리케이션 제한'을 없음으로 바꾸거나, " +
+             "이 사이트 주소를 허용 목록에 넣어 주세요. — " + raw;
+    if(/has not been used in project|SERVICE_DISABLED|disabled/i.test(raw))
+      return "키가 속한 프로젝트에서 제미나이 API가 켜져 있지 않습니다. " +
+             "aistudio.google.com 에서 키를 새로 발급받으면 가장 간단합니다. — " + raw;
+    if(/SERVICE_BLOCKED|not allowed to use|restricted/i.test(raw))
+      return "이 키는 제미나이 API 사용이 허용되어 있지 않습니다(API 제한). " +
+             "키를 새로 발급받아 넣어 주세요. — " + raw;
+    return "이 키로는 사용할 수 없습니다(권한). 키를 새로 발급받아 넣어 주세요." +
+           (raw ? " — " + raw : "");
+  }
   if(status === 404 || /no longer available|not found|not supported/i.test(raw))
     return (model ? `'${model}' 은(는) 지금 쓸 수 없는 모델입니다. ` : "쓸 수 없는 모델입니다. ") +
            "설정에서 <쓸 수 있는 모델 보기> 를 눌러 목록에서 골라 주세요. " +
