@@ -169,6 +169,50 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .res .where{font-size:10.5px;color:#9aa1ab;margin-top:3px;}
 #popempty{padding:34px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;}
 
+/* ---------- Agenda 팝업 ---------- */
+#agendapop{position:fixed;inset:0;background:rgba(20,22,26,.35);display:none;z-index:75;
+  justify-content:center;align-items:flex-start;padding:14px;}
+#agendapop.on{display:flex;}
+#agendapop .pop{background:var(--bg);border-radius:10px;width:100%;max-width:min(96vw,1200px);
+  margin-top:28px;max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 12px 44px rgba(0,0,0,.28);overflow:hidden;}
+#agendapop .pophead{flex-wrap:wrap;gap:10px;}
+#agendapop .yr{display:flex;align-items:center;gap:6px;font-weight:700;}
+#agendapop .yr button{width:24px;height:24px;border:1px solid var(--line);border-radius:5px;
+  background:var(--bg);color:var(--muted);line-height:1;font-size:11px;}
+#agendapop .yr button:hover{border-color:var(--accent);color:var(--accent);}
+#agyear{min-width:56px;text-align:center;}
+#agsearch{flex:1 1 150px;min-width:110px;height:30px;padding:0 12px;border:1px solid var(--line);
+  border-radius:15px;background:var(--panel);outline:none;font-size:13px;}
+#agsearch:focus{background:var(--bg);border-color:var(--accent);}
+#agtoggles{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;
+  border-bottom:1px solid var(--line);background:var(--panel);}
+.agtog{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:14px;
+  font-size:11.5px;font-weight:700;padding:3px 10px;white-space:nowrap;}
+.agtog.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.agnote{font-size:12px;color:var(--muted);}
+#agbody{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;}
+table.agtable{border-collapse:separate;border-spacing:0;width:100%;font-size:11.5px;}
+table.agtable th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-size:10.5px;
+  font-weight:700;padding:6px 4px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  white-space:nowrap;z-index:1;}
+table.agtable th.wkh{left:0;z-index:3;min-width:40px;}
+table.agtable td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  vertical-align:top;padding:2px;min-width:118px;}
+table.agtable td.agcell:hover{background:var(--accent-soft);}
+table.agtable tbody th.wkh{position:sticky;left:0;z-index:2;background:var(--panel2);
+  text-align:center;vertical-align:middle;}
+.agitem{display:block;width:100%;text-align:left;border:none;background:none;padding:4px 5px;
+  border-radius:4px;line-height:1.35;cursor:pointer;color:var(--text);}
+.agitem + .agitem{border-top:1px solid var(--line);}
+.agitem:hover{background:#fff;box-shadow:0 0 0 1px var(--accent) inset;}
+.agcat{display:block;font-size:9.5px;font-weight:700;color:var(--accent);}
+.agtext{white-space:pre-wrap;word-break:break-word;}
+.agtext.agempty{color:#9aa1ab;font-style:italic;}
+.agdocs{font-size:9.5px;color:var(--muted);margin-left:4px;}
+.agadd{width:100%;min-height:40px;border:none;background:none;color:#d0d5dd;font-size:15px;border-radius:4px;}
+table.agtable td.agcell:hover .agadd{color:var(--accent);}
+
 /* ---------- 가운데 ---------- */
 #center{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;background:#5b6068;}
 #viewbar{flex:0 0 auto;height:40px;display:flex;align-items:center;gap:6px;padding:0 8px;
@@ -489,6 +533,13 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
     <input id="search" type="search" placeholder="파일명 또는 자료 안의 단어로 검색" autocomplete="off">
     <button id="clearsearch" title="지우기">✕</button>
   </div>
+  <button class="plainbtn" id="btn-agenda" title="회의 Agenda" aria-label="회의 Agenda">
+    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+      <rect x="3" y="4" width="14" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M3 8h14M7 2.5v3M13 2.5v3M6.5 11.5h4M6.5 14.5h7" fill="none" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
   <div id="topright">
     <button class="plainbtn" id="btn-settings" title="설정" aria-label="설정">
       <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
@@ -577,6 +628,49 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
     <div class="pophead"><b>검색 결과</b><span class="cnt" id="popcount"></span>
       <button class="x" id="popclose" title="닫기 (Esc)">✕</button></div>
     <div id="popbody"></div>
+  </div>
+</div>
+
+<!-- 회의 Agenda -->
+<div id="agendapop">
+  <div class="pop" role="dialog" aria-label="회의 Agenda">
+    <div class="pophead">
+      <b>회의 Agenda</b>
+      <span class="yr">
+        <button id="agprev" title="이전 해">◀</button>
+        <span id="agyear">2026년</span>
+        <button id="agnext" title="다음 해">▶</button>
+      </span>
+      <input id="agsearch" type="search" placeholder="Agenda 검색" autocomplete="off">
+      <button class="x" id="agclose" title="닫기 (Esc)">✕</button>
+    </div>
+    <div id="agtoggles"></div>
+    <div id="agbody"></div>
+  </div>
+</div>
+
+<!-- Agenda 입력 -->
+<div class="modalbg" id="ageditbg">
+  <div class="modal" role="dialog" aria-label="Agenda 입력">
+    <header>Agenda <span id="ageditwho" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+      <button class="x" id="ageditx">✕</button></header>
+    <div class="content">
+      <div class="mrow" style="border:none;padding-top:0">
+        <div class="lbl">회의 종류</div>
+        <select id="ageditcat"></select>
+      </div>
+      <textarea id="agedittext" style="width:100%;min-height:170px;padding:9px;line-height:1.6;font-size:13px;
+        border:1px solid var(--line);border-radius:6px;outline:none;resize:vertical"
+        placeholder="이 회의의 Agenda(안건)를 입력하세요. 한 줄에 하나씩 적어도 됩니다."></textarea>
+      <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:8px">
+        Agenda는 <b>회의 종류 + 그 주(연·월·주차)</b> 로 저장되며, 같은 회의의 자료·회의록과 함께 묶입니다.
+      </div>
+    </div>
+    <footer>
+      <button class="ghostbtn" id="ageditdel" style="margin-right:auto;color:var(--bad);border-color:#f0cfcf">삭제</button>
+      <button class="ghostbtn" id="ageditcancel">취소</button>
+      <button class="primarybtn" id="ageditsave">저장</button>
+    </footer>
   </div>
 </div>
 
@@ -675,7 +769,8 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#b9bfc8;}
   <div class="modal" role="dialog" aria-label="설정">
     <header>설정 <button class="x" id="modalclose">✕</button></header>
     <div class="content">
-      <div class="mrow">
+      <!-- AI(제미나이) 자동 요약 — 현재 사용 안 함. 코드는 유지, 설정만 숨김. -->
+      <div class="mrow" style="display:none">
         <div class="lbl">AI 요약</div>
         <select id="set-ai">
           <option value="off" selected>① 끄기 (기본값) — 요약을 직접 입력</option>
@@ -850,7 +945,8 @@ const KV_DEFAULT = {
   cats:["정기 보고","주간회의","월간회의","워크샵"],
   offcats:[], folders:null, left:null, right:null,
   tasks:{}, sums:{}, storeMode:"full", rtab:"sum",
-  ai:"off", aiKey:"", aiModel:"gemini-3.5-flash"
+  ai:"off", aiKey:"", aiModel:"gemini-3.5-flash",
+  agendas:{}, agOff:[]
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -900,6 +996,7 @@ const S = {
   editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   openSec:new Set(), sumText:false,         /* 구조 요약 — 펼친 항목 · 텍스트로 보기 */
   offCats:new Set(), open:new Set(),
+  agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 */
   fitPref:"page",                           /* 기본은 한 페이지 전체 — 장표가 늘 다 보이게 */
@@ -1332,6 +1429,7 @@ function renderRight(){
   const used  = new Set(tasks.map(t => t.t));
   const note  = noteOf(d);
   const lines = note ? splitSentences(note.text).slice(0, 60) : [];
+  const agText = String((KV.agendas || {})[noteKey(d.cat, d.date)] || "");
 
   const aiOn  = aiReady();
   const busy  = S.aiBusy === d.id;
@@ -1371,11 +1469,10 @@ function renderRight(){
         ${ ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" }
         ${ asText ? lockBtn("A", !!a, S.editA) : "" }
       </h4>
-      <div class="airow">
-        ${ aiOn ? `<span class="aion">AI 켜짐 · 제미나이</span>`
-                : `<span class="aioff">AI 꺼짐 · 직접 입력</span>` }
+      ${ (aiOn || whenTxt) ? `<div class="airow">
+        ${ aiOn ? `<span class="aion">AI 켜짐 · 제미나이</span>` : "" }
         ${ whenTxt ? `<span class="aiwhen" title="${esc(whenTxt)}">${esc(whenTxt)}</span>` : "" }
-      </div>
+      </div>` : "" }
       ${ busy ? `<div class="aibusy">요약을 만드는 중입니다…
           <span class="step">${esc(S.aiStep || "AI에 보내는 중")}</span></div>` : "" }
       ${ err  ? `<div class="aierr">${esc(err)}<br><button id="airetry">다시 시도</button></div>` : "" }
@@ -1397,8 +1494,18 @@ function renderRight(){
     </div>
   `;
 
-  /* ── 탭 2 : Meeting Notes — 회의록 요약과 회의록 원문 ───────────── */
+  /* ── 탭 2 : Meeting Notes — Agenda · 회의록 요약 · 회의록 원문 ───────────── */
   const paneNote = `
+    <div class="sect">
+      <h4>Agenda
+        <button class="mini" id="agedit-open">${ agText ? "✎ 편집" : "＋ 등록" }</button></h4>
+      ${ agText
+        ? `<textarea class="sum" readonly>${esc(agText)}</textarea>`
+        : `<div class="nonote">이 회의(${esc(d.cat)} · ${fmtYMW(d)})의 Agenda가 없습니다.<br>
+           위 <b>＋ 등록</b> 으로 입력하거나, 상단바 <b>Agenda</b> 표에서 채울 수 있습니다.</div>` }
+      ${ agText ? `<div class="tip">같은 회의 종류·같은 주의 자료·회의록과 함께 묶입니다.</div>` : "" }
+    </div>
+
     <div class="sect">
       <h4>회의록 요약
         ${ lockBtn("B", !!b, S.editB) }
@@ -1592,6 +1699,131 @@ $("#popbody").addEventListener("click", async e => {
 });
 
 /* =========================================================
+   8-2) 회의 Agenda — 연도·월·주차별 안건 표
+      · 상단바 Agenda 단추로 엽니다.
+      · 상단 토글은 왼쪽 '회의 종류'(KV.cats)와 늘 같은 목록입니다.
+      · 칸 = 회의 종류 + 그 해 · 그 달 · 그 주차. 회의록·자료와 같은 열쇠(cat|날짜)를 씁니다.
+   ========================================================= */
+function agYears(){
+  const ys = new Set([new Date().getFullYear()]);
+  DOCS.forEach(d => { const y = +yearOf(d); if(y) ys.add(y); });
+  Object.keys(KV.agendas || {}).forEach(k => {
+    const y = +String(k.split("|")[1] || "").slice(0, 4); if(y) ys.add(y);
+  });
+  return Array.from(ys).sort((a, b) => a - b);
+}
+function agActiveCats(){ return KV.cats.filter(c => !S.agOff.has(c)); }
+
+function agEntry(cat, y, m, w){
+  const key  = noteKey(cat, mkDate(y, m, w));
+  const text = String((KV.agendas || {})[key] || "").trim();
+  const docs = DOCS.filter(d => d.cat === cat && +yearOf(d) === y && monthOf(d) === m && weekOf(d) === w);
+  return { key, text, docs };
+}
+
+function agCellHtml(cats, y, m, w, q){
+  const rows = [];
+  cats.forEach(cat => {
+    const { text, docs } = agEntry(cat, y, m, w);
+    if(!text && !docs.length) return;
+    const shown = text || docs.map(d => d.title).join(" / ");
+    if(q && !(shown.toLowerCase().includes(q) || cat.toLowerCase().includes(q))) return;
+    rows.push(`<button class="agitem" data-c="${esc(cat)}" data-m="${m}" data-w="${w}">
+        <span class="agcat">${esc(cat)}${docs.length ? `<span class="agdocs">📄${docs.length}</span>` : ""}</span>
+        <span class="agtext ${text ? "" : "agempty"}">${esc(shown)}</span>
+      </button>`);
+  });
+  if(rows.length) return rows.join("");
+  return cats.length ? `<button class="agadd" data-m="${m}" data-w="${w}" title="Agenda 입력">＋</button>` : "";
+}
+
+function renderAgenda(){
+  const y = S.agYear, q = S.agQ.trim().toLowerCase(), cats = agActiveCats();
+  $("#agyear").textContent = y + "년";
+  $("#agtoggles").innerHTML = KV.cats.length
+    ? KV.cats.map(c => `<button class="agtog ${S.agOff.has(c) ? "" : "on"}" data-c="${esc(c)}">${esc(c)}</button>`).join("")
+    : `<span class="agnote">왼쪽 패널에서 회의 종류를 먼저 추가하세요.</span>`;
+
+  let html = `<table class="agtable"><thead><tr><th class="wkh">주차</th>` +
+    Array.from({ length: 12 }, (_, i) => `<th>${i + 1}월</th>`).join("") + `</tr></thead><tbody>`;
+  for(let w = 1; w <= WEEK_MAX; w++){
+    html += `<tr><th class="wkh">${w}주</th>`;
+    for(let m = 1; m <= 12; m++)
+      html += `<td class="agcell">${agCellHtml(cats, y, m, w, q)}</td>`;
+    html += `</tr>`;
+  }
+  $("#agbody").innerHTML = html + `</tbody></table>`;
+}
+
+function openAgenda(){
+  const ys = agYears();
+  if(!ys.includes(S.agYear)) S.agYear = ys[ys.length - 1] || new Date().getFullYear();
+  S.agQ = ""; $("#agsearch").value = "";
+  renderAgenda();
+  $("#agendapop").classList.add("on");
+}
+function closeAgenda(){ $("#agendapop").classList.remove("on"); }
+
+$("#btn-agenda").onclick = openAgenda;
+$("#agclose").onclick = closeAgenda;
+$("#agendapop").addEventListener("click", e => { if(e.target.id === "agendapop") closeAgenda(); });
+$("#agprev").onclick = () => { S.agYear--; renderAgenda(); };
+$("#agnext").onclick = () => { S.agYear++; renderAgenda(); };
+$("#agsearch").addEventListener("input", e => { S.agQ = e.target.value; renderAgenda(); });
+$("#agtoggles").addEventListener("click", e => {
+  const b = e.target.closest("[data-c]"); if(!b) return;
+  const c = b.dataset.c;
+  S.agOff.has(c) ? S.agOff.delete(c) : S.agOff.add(c);
+  KV.agOff = Array.from(S.agOff); saveKV("agOff");
+  renderAgenda();
+});
+$("#agbody").addEventListener("click", e => {
+  const it = e.target.closest(".agitem, .agadd"); if(!it) return;
+  openAgEdit(it.dataset.c || agActiveCats()[0] || KV.cats[0], S.agYear, +it.dataset.m, +it.dataset.w);
+});
+
+/* ---- Agenda 입력 모달 ---- */
+let agEditCtx = null;
+function agCurKey(){
+  return agEditCtx ? noteKey($("#ageditcat").value, mkDate(agEditCtx.y, agEditCtx.m, agEditCtx.w)) : "";
+}
+function syncAgEdit(){
+  const cur = String((KV.agendas || {})[agCurKey()] || "");
+  $("#agedittext").value = cur;
+  $("#ageditdel").style.display = cur ? "" : "none";
+}
+function openAgEdit(cat, y, m, w){
+  if(!KV.cats.length){ toast("먼저 왼쪽에서 회의 종류를 추가하세요"); return; }
+  agEditCtx = { y, m, w };
+  $("#ageditcat").innerHTML = KV.cats.map(c =>
+    `<option value="${esc(c)}" ${c === cat ? "selected" : ""}>${esc(c)}</option>`).join("");
+  $("#ageditwho").textContent = `— ${y}년 ${m}월 ${w}주차`;
+  syncAgEdit();
+  $("#ageditbg").classList.add("on");
+  setTimeout(() => $("#agedittext").focus(), 30);
+}
+function closeAgEdit(){ $("#ageditbg").classList.remove("on"); agEditCtx = null; }
+$("#ageditcat").addEventListener("change", syncAgEdit);
+$("#ageditx").onclick = $("#ageditcancel").onclick = closeAgEdit;
+$("#ageditbg").addEventListener("click", e => { if(e.target.id === "ageditbg") closeAgEdit(); });
+$("#ageditsave").onclick = () => {
+  if(!agEditCtx) return;
+  const key = agCurKey(), text = $("#agedittext").value.trim();
+  KV.agendas = KV.agendas || {};
+  if(text) KV.agendas[key] = text; else delete KV.agendas[key];
+  saveKV("agendas");
+  closeAgEdit(); renderAgenda(); renderRight();
+  toast(text ? "Agenda를 저장했습니다" : "Agenda를 지웠습니다");
+};
+$("#ageditdel").onclick = () => {
+  if(!agEditCtx) return;
+  KV.agendas = KV.agendas || {};
+  delete KV.agendas[agCurKey()]; saveKV("agendas");
+  closeAgEdit(); renderAgenda(); renderRight();
+  toast("Agenda를 지웠습니다");
+};
+
+/* =========================================================
    9) 회의 종류 · 폴더 · 자료 선택
    ========================================================= */
 $("#cats").addEventListener("click", e => {
@@ -1603,6 +1835,14 @@ $("#cats").addEventListener("click", e => {
     if(n){ alert(`'${c}' 안에 자료가 ${n}개 있습니다.\n자료를 먼저 옮기거나 지운 뒤에 종류를 삭제할 수 있습니다.`); return; }
     if(confirm(`'${c}' 종류를 지울까요?`)){
       KV.cats = KV.cats.filter(x => x !== c); saveKV("cats");
+      if(KV.agendas){
+        let hit = false;
+        Object.keys(KV.agendas).forEach(k => {
+          if(k.slice(0, k.indexOf("|")) === c){ delete KV.agendas[k]; hit = true; }
+        });
+        if(hit) saveKV("agendas");
+      }
+      S.agOff.delete(c); KV.agOff = Array.from(S.agOff); saveKV("agOff");
       renderCats(); renderTree();
     }
     return;
@@ -1648,6 +1888,20 @@ async function renameCat(oldName){
   if(S.offCats.has(oldName)){                    /* 꺼 둔 상태였다면 그대로 유지 */
     S.offCats.delete(oldName); S.offCats.add(name);
     KV.offcats = Array.from(S.offCats); saveKV("offcats");
+  }
+  /* Agenda(회의 종류|날짜 열쇠)와 팝업 토글도 새 이름으로 옮깁니다 */
+  if(KV.agendas && Object.keys(KV.agendas).length){
+    const next = {};
+    Object.keys(KV.agendas).forEach(k => {
+      const i = k.indexOf("|");
+      const c = k.slice(0, i);
+      next[(c === oldName ? name : c) + k.slice(i)] = KV.agendas[k];
+    });
+    KV.agendas = next; saveKV("agendas");
+  }
+  if(S.agOff.has(oldName)){
+    S.agOff.delete(oldName); S.agOff.add(name);
+    KV.agOff = Array.from(S.agOff); saveKV("agOff");
   }
   renderAll();
   toast(`'${oldName}' → '${name}' 으로 바꿨습니다`);
@@ -2009,6 +2263,11 @@ $("#rbody").addEventListener("click", async e => {
   if(rm){ KV.tasks[S.sel].splice(+rm.dataset.rm,1); saveKV("tasks"); renderRight(); return; }
   if(e.target.id === "addtask"){ addTask($("#newtask").value); return; }
   if(e.target.id === "noteedit"){ openNote(); return; }
+  if(e.target.id === "agedit-open"){
+    const d = DOCS.find(x => x.id === S.sel);
+    if(d) openAgEdit(d.cat, +yearOf(d), monthOf(d), weekOf(d));
+    return;
+  }
   if(e.target.id === "aigen" || e.target.id === "airetry"){ makeSummary(S.sel); return; }
   if(e.target.id === "sugclear"){
     const cur = KV.sums[S.sel]; if(cur){ cur.sug = []; saveKV("sums"); renderRight(); }
@@ -2125,8 +2384,11 @@ async function pageImages(doc, onStep){
   return { images: out, total, sent: n };
 }
 
+/* 제미나이 자동 요약 스위치 — 현재 꺼 둠. 코드는 그대로 두고, 이 값만 true 로 하면 되살아납니다.
+   (설정 화면의 AI 항목도 함께 숨겨 두었습니다) */
+const AI_SUMMARY_ENABLED = false;
 function aiReady(){
-  return KV.ai === "gemini" && String(KV.aiKey || "").trim().length >= 10;
+  return AI_SUMMARY_ENABLED && KV.ai === "gemini" && String(KV.aiKey || "").trim().length >= 10;
 }
 const clip = (s, n) => {
   s = String(s || "").replace(/\s+/g, " ").trim();
@@ -3188,7 +3450,7 @@ async function updateUsage(){
 $("#btn-export").onclick = async () => {
   const data = {
     app:"whats-the-strategy", ver:2, exportedAt:new Date().toISOString(),
-    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, storeMode:KV.storeMode },
+    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, storeMode:KV.storeMode, agendas:KV.agendas },
     docs: DOCS.map(stripDoc),
     notes: Object.values(NOTES)
   };
@@ -3224,7 +3486,8 @@ $("#importfile").addEventListener("change", async e => {
       if(data.kv.cats)  KV.cats  = Array.from(new Set(KV.cats.concat(data.kv.cats)));
       if(data.kv.tasks) KV.tasks = Object.assign({}, KV.tasks, data.kv.tasks);
       if(data.kv.sums)  KV.sums  = Object.assign({}, KV.sums,  data.kv.sums);
-      saveKV("cats"); saveKV("tasks"); saveKV("sums");
+      if(data.kv.agendas) KV.agendas = Object.assign({}, KV.agendas, data.kv.agendas);
+      saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("agendas");
     }
     await loadAll();
     renderAll(); updateUsage();
@@ -3237,7 +3500,7 @@ $("#btn-wipe").onclick = async () => {
   if(!confirm("정말 지울까요? 마지막 확인입니다.")) return;
   await dbClear("docs"); await dbClear("files"); await dbClear("notes"); await dbClear("kv");
   KV = Object.assign({}, KV_DEFAULT);
-  DOCS = []; NOTES = {}; S.sel = null; S.offCats = new Set(); S.open = new Set();
+  DOCS = []; NOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
   $("#set-store").value = KV.storeMode; syncAiRow();
@@ -3274,7 +3537,9 @@ window.addEventListener("beforeunload", e => {
    ========================================================= */
 document.addEventListener("keydown", e => {
   if(e.key === "Escape"){
-    if($("#searchpop").classList.contains("on")) closePop();
+    if($("#ageditbg").classList.contains("on")) closeAgEdit();
+    else if($("#agendapop").classList.contains("on")) closeAgenda();
+    else if($("#searchpop").classList.contains("on")) closePop();
     else if($("#managebg").classList.contains("on")) closeManage();
     else if($("#notebg").classList.contains("on")) $("#notebg").classList.remove("on");
     else if($("#uploadbg").classList.contains("on")) closeUpload();
@@ -3348,6 +3613,7 @@ function registerSW(){
   }
 
   S.offCats = new Set(KV.offcats || []);
+  S.agOff   = new Set(KV.agOff || []);
   S.open    = new Set(KV.folders || defaultFolders());
   S.rtab    = (KV.rtab === "task" || KV.rtab === "note") ? KV.rtab : "sum";
   $("#set-store").value = KV.storeMode || "full";
