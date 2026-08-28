@@ -47,7 +47,7 @@
   --warn:#9b9797; --ok:#605d5d; --bad:#ae1800;
   --shadow:0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
   /* 오른쪽 칸은 화면의 절반 정도까지 넓게 씁니다 */
-  --left-w:252px; --right-w:min(40vw,820px); --rail:26px;
+  --left-w:268px; --right-w:min(40vw,820px); --rail:26px;
 }
 
 *{box-sizing:border-box;}
@@ -166,7 +166,7 @@ button[disabled]{opacity:.45;cursor:default;}
 #workspace{flex:1 1 auto;display:flex;min-height:0;position:relative;}
 aside{position:relative;background:var(--panel);display:flex;min-height:0;flex:0 0 auto;
   overflow:hidden;transition:width .16s ease;}
-#left{width:var(--left-w);border-right:1px solid var(--line);}
+#left{width:var(--left-w);border-right:2px solid var(--rule);}
 #right{width:var(--right-w);border-left:1px solid var(--line);}
 body.left-closed #left{width:var(--rail);}
 body.right-closed #right{width:var(--rail);}
@@ -180,44 +180,55 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 
 .side-inner{width:var(--left-w);display:flex;flex-direction:column;min-height:0;flex:1 1 auto;}
 #right .side-inner{width:var(--right-w);}
-.side-head{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:10px 10px 8px;
-  font-size:12px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);background:var(--panel);}
-.side-head .closebtn{margin-left:auto;border:1px solid transparent;background:none;color:var(--muted);
-  font-size:16px;font-weight:700;line-height:1;padding:3px 8px;border-radius:0;}
-.side-head .closebtn:hover{background:var(--panel2);border-color:var(--line);}
+.side-head{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:14px 16px 10px;
+  font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--hairline);background:var(--panel);}
+.side-head .cnt{font-size:11px;font-weight:500;letter-spacing:0;color:var(--muted2);}
+.side-head .closebtn{border:none;background:none;color:var(--muted);
+  font-size:14px;font-weight:700;line-height:1;padding:0 2px;border-radius:0;}
+.side-head .closebtn:hover{color:var(--accent-ink);}
 .side-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;padding-bottom:28px;}
 
 /* ---------- 왼쪽 ---------- */
 .grouphead{padding:10px 10px 4px;font-size:11px;font-weight:700;color:#7d7979;letter-spacing:.03em;
   display:flex;align-items:center;gap:5px;}
-/* 자료 목록 머리 — 오른쪽에 ＋ Upload · Manage 를 나란히 둡니다 */
-#btn-upload{margin-left:auto;border:1px solid var(--accent);background:var(--accent);border-radius:0;
-  font-size:11px;font-weight:700;color:#fff;padding:2px 8px;letter-spacing:0;white-space:nowrap;}
-#btn-upload:hover{background:#dd2b0f;border-color:#dd2b0f;}
-#btn-manage{border:1px solid var(--line);background:var(--bg);border-radius:0;
-  font-size:11px;font-weight:700;color:var(--muted);padding:2px 8px;letter-spacing:0;}
-#btn-manage:hover{border-color:var(--accent);color:var(--accent);}
+/* 자료 목록 머리 — 오른쪽에 UPLOAD · 자료 관리를 나란히 둡니다 */
+#btn-upload{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;
+  border:none;background:var(--accent);border-radius:0;
+  font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;white-space:nowrap;}
+#btn-upload:hover{background:var(--accent-hover);}
+#btn-upload svg{display:block;}
+#btn-manage{width:24px;height:24px;padding:0;display:inline-flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);background:none;border-radius:0;color:var(--muted);}
+#btn-manage:hover{border-color:var(--accent);color:var(--accent-ink);}
+#btn-manage svg{display:block;}
 .divider{height:1px;background:var(--line);margin:10px 0 0;}
 
-#tree{padding:0 6px 8px;}
-.fold{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:0;cursor:pointer;user-select:none;white-space:nowrap;}
+#tree{padding:0 8px 20px;}
+.fold{display:flex;align-items:center;gap:6px;border-radius:0;cursor:pointer;user-select:none;white-space:nowrap;}
 .fold:hover{background:var(--panel2);}
-.fold .caret{width:12px;flex:0 0 auto;color:#7d7979;font-size:10px;text-align:center;}
-.fold .ico{flex:0 0 auto;font-size:12px;}
+.fold .caret{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  color:var(--text);transition:transform .12s ease;}
+.fold .caret svg{display:block;}
+.fold.shut .caret{transform:rotate(-90deg);}
 .fold .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;}
-.fold .cnt{color:#9b9797;font-size:11px;}
-.fold.yr{font-size:12.5px;font-weight:700;}
-.fold.mo{font-size:12.5px;font-weight:600;color:#444141;padding-left:16px;}
-.doc{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 34px;border-radius:0;
-  cursor:pointer;font-size:12.5px;line-height:1.4;}
+.fold .cnt{flex:0 0 auto;font-size:11px;font-weight:500;color:var(--muted2);}
+.fold.yr{padding:7px 8px;font-size:12px;font-weight:800;}
+.fold.mo{padding:6px 8px 6px 20px;font-size:11.5px;font-weight:700;letter-spacing:.06em;
+  color:#444141;border-top:1px solid var(--hairline);}
+/* 자료 한 줄 — 왼쪽 3px 자리는 골랐을 때만 빨갛게 찹니다 */
+.doc{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 32px;border-radius:0;
+  border-left:3px solid transparent;cursor:pointer;line-height:1.4;}
 .doc:hover{background:var(--panel2);}
-.doc.sel{background:var(--accent-soft);color:#ae1800;font-weight:600;}
-.doc .wk{flex:0 0 auto;font-size:10.5px;font-weight:600;color:#7d7979;background:var(--bg);
-  border:1px solid var(--line);border-radius:0;padding:0 4px;line-height:15px;}
-.doc.sel .wk{color:#ae1800;border-color:#ff9783;}
-.doc .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.doc .tag{flex:0 0 auto;font-size:10px;color:var(--ok);}
+.doc.sel{background:var(--accent-soft);border-left-color:var(--accent);}
+.doc .wk{flex:0 0 auto;min-width:26px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.04em;
+  color:var(--muted2);background:none;border:1px solid var(--line);border-radius:0;padding:0 3px;line-height:15px;}
+.doc.sel .wk{color:var(--accent-ink);border-color:var(--accent-line);}
+.doc .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500;}
+.doc.sel .nm{font-weight:700;}
+.doc .tag{flex:0 0 auto;display:flex;color:var(--accent-ink);}
+.doc .tag svg{display:block;}
 .doc .nopdf{flex:0 0 auto;font-size:9.5px;color:#9b9797;}
 #empty,.emptybox{padding:22px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;}
 
@@ -659,11 +670,20 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
       <span class="arw">»</span><span class="lbl">자료 목록</span>
     </button>
     <div class="side-inner">
-      <div class="side-head">Meeting Materials <button class="closebtn" data-close="left" title="접기">«</button></div>
+      <div class="side-head">Materials <span class="cnt" id="listcount"></span>
+        <button id="btn-upload" title="PDF 자료 올리기">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>Upload</button>
+        <button id="btn-manage" title="자료 이름 바꾸기 · 옮기기 · 삭제" aria-label="자료 관리">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+          </svg>
+        </button>
+        <button class="closebtn" data-close="left" title="접기">«</button></div>
       <div class="side-scroll">
-        <div class="grouphead">자료 목록 <span id="listcount" style="font-weight:400"></span>
-          <button id="btn-upload" title="PDF 자료 올리기">＋ Upload</button>
-          <button id="btn-manage" title="자료 이름 바꾸기 · 옮기기 · 삭제">Manage</button></div>
         <div id="tree"></div>
       </div>
     </div>
@@ -1155,9 +1175,19 @@ function renderCats(){
   }).join("");
 }
 
+/* 접기 화살표 — 닫혀 있으면 CSS 가 -90도 돌립니다 */
+const caretSvg = n => `<span class="caret"><svg width="${n}" height="${n}" viewBox="0 0 24 24"
+  fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+  aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></span>`;
+
+/* 회의록이 붙은 자료에만 다는 표시 */
+const NOTE_MARK = `<span class="tag" title="회의록 있음"><svg width="12" height="12" viewBox="0 0 24 24"
+  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+  aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>`;
+
 function renderTree(){
   const list = activeDocs();
-  $("#listcount").textContent = `(${list.length})`;
+  $("#listcount").textContent = list.length;
   renderWeekNav();
   /* 커맨드 바 오른쪽 끝 — 지금 걸러진 자료 수와 회의록이 붙은 자료 수 */
   $("#cmdcount").textContent =
@@ -1188,22 +1218,22 @@ function renderTree(){
     const months = years[y];
     const yCnt = Object.values(months).reduce((a,b) => a + b.length, 0);
     const yOpen = S.open.has(y);
-    html += `<div class="fold yr" data-k="${y}"><span class="caret">${yOpen?"▼":"▶"}</span>
-      <span class="ico">📁</span><span class="nm">${y}년</span><span class="cnt">${yCnt}</span></div>`;
+    html += `<div class="fold yr ${yOpen?"":"shut"}" data-k="${y}">${caretSvg(12)}
+      <span class="nm">${y}</span><span class="cnt">${yCnt}</span></div>`;
     if(!yOpen) return;
 
     Object.keys(months).sort().forEach(m => {
       const docs = months[m], mOpen = S.open.has(m);
-      html += `<div class="fold mo" data-k="${m}"><span class="caret">${mOpen?"▼":"▶"}</span>
-        <span class="ico">📂</span><span class="nm">${parseInt(m.slice(5),10)}월</span>
+      html += `<div class="fold mo ${mOpen?"":"shut"}" data-k="${m}">${caretSvg(11)}
+        <span class="nm">${parseInt(m.slice(5),10)}월</span>
         <span class="cnt">${docs.length}</span></div>`;
       if(!mOpen) return;
       docs.forEach(d => {
         html += `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
             title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
-          <span class="wk">${weekOf(d)}주</span>
+          <span class="wk">W${weekOf(d)}</span>
           <span class="nm">${esc(d.short || d.title)}</span>
-          ${noteOf(d) ? '<span class="tag" title="회의록 있음">●</span>' : ""}
+          ${noteOf(d) ? NOTE_MARK : ""}
           ${d.hasPdf ? "" : '<span class="nopdf" title="원본 없이 글자만 저장됨">글자만</span>'}
         </div>`;
       });
