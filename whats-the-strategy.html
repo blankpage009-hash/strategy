@@ -47,7 +47,7 @@
   --warn:#9b9797; --ok:#605d5d; --bad:#ae1800;
   --shadow:0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
   /* 오른쪽 칸은 화면의 절반 정도까지 넓게 씁니다 */
-  --left-w:268px; --right-w:min(40vw,820px); --rail:26px;
+  --left-w:268px; --right-w:clamp(420px, 30vw, 720px); --rail:26px;
 }
 
 *{box-sizing:border-box;}
@@ -167,7 +167,7 @@ button[disabled]{opacity:.45;cursor:default;}
 aside{position:relative;background:var(--panel);display:flex;min-height:0;flex:0 0 auto;
   overflow:hidden;transition:width .16s ease;}
 #left{width:var(--left-w);border-right:2px solid var(--rule);}
-#right{width:var(--right-w);border-left:1px solid var(--line);}
+#right{width:var(--right-w);border-left:2px solid var(--rule);}
 body.left-closed #left{width:var(--rail);}
 body.right-closed #right{width:var(--rail);}
 
@@ -385,18 +385,26 @@ body.rendering #spin{display:block;}
 
 /* ---------- 오른쪽 ---------- */
 #right .side-scroll{padding:12px 12px 28px;}
-/* 제목과 탭은 스크롤과 상관없이 위에 붙어 있습니다 */
-#rtop{flex:0 0 auto;padding:10px 12px 0;background:var(--panel);border-bottom:1px solid var(--line);}
-.rtitle{font-size:14px;font-weight:700;line-height:1.4;margin:0 0 10px;}
-.rtabs{display:flex;gap:4px;}
-.rtab{flex:1 1 0;min-width:0;height:33px;margin-bottom:-1px;padding:0 6px;
-  border:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;
-  background:var(--panel2);color:var(--muted);font-size:12px;font-weight:700;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rtab:hover{color:var(--text);}
-.rtab.on{background:var(--panel);color:var(--accent);border-bottom-color:var(--panel);}
-.rtab .num{font-weight:600;font-size:11px;color:var(--muted);margin-left:3px;}
-.rtab.on .num{color:var(--accent);}
+/* 탭 줄은 스크롤과 상관없이 위에 붙어 있습니다.
+   고른 탭만 이름과 함께 넓게 펴지고, 나머지는 아이콘 칸으로 접힙니다. */
+#rtop{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
+  background:var(--panel);border-bottom:2px solid var(--rule);}
+.rtab{flex:0 0 auto;width:52px;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:0;border:none;border-right:1px solid var(--hairline);border-radius:0;
+  background:none;color:var(--text);white-space:nowrap;overflow:hidden;}
+.rtab .t{display:none;}
+.rtab svg{display:block;flex:0 0 auto;}
+.rtab:hover:not(.on):not([disabled]){background:var(--panel2);}
+.rtab.on{flex:1 1 auto;width:auto;justify-content:flex-start;padding:0 12px;
+  background:var(--rule);color:var(--bg);}
+.rtab.on .t{display:inline;font-size:11px;font-weight:800;letter-spacing:.02em;}
+.rtab .num{flex:0 0 auto;font-size:11px;font-weight:800;color:var(--accent);}
+.rtab.on .num{color:var(--bg);}
+.rtab[disabled]{opacity:.4;}
+#rtop .closebtn{flex:0 0 auto;width:36px;display:flex;align-items:center;justify-content:center;
+  border:none;border-left:2px solid var(--line);border-radius:0;background:none;
+  color:var(--muted);font-size:14px;font-weight:700;padding:0;}
+#rtop .closebtn:hover{background:var(--accent-soft);color:var(--accent-ink);}
 .sect{margin-bottom:16px;}
 .sect > h4{margin:0 0 6px;font-size:11.5px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .sect > h4 .mini{margin-left:auto;border:1px solid var(--line);background:var(--bg);border-radius:0;
@@ -807,7 +815,6 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
       <span class="arw">«</span><span class="lbl">Summary · Notes · Tasks</span>
     </button>
     <div class="side-inner">
-      <div class="side-head">Summary <button class="closebtn" data-close="right" title="접기">»</button></div>
       <div id="rtop"></div>
       <div class="side-scroll" id="rbody"></div>
     </div>
@@ -1702,12 +1709,35 @@ function exSections(ex){
   `;
 }
 
+/* 오른쪽 탭 줄 — 고른 탭 하나만 이름과 함께 펴집니다 */
+const RTAB_ICONS = {
+  sum:  `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 12H3M17 18H3M21 6H3"/></svg>`,
+  note: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true"
+           ><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  task: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true"
+           ><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></svg>`
+};
+
+function rtabsHtml(tab, taskCount, off){
+  const one = (k, label, extra) =>
+    `<button class="rtab ${tab === k ? "on" : ""}" data-tab="${k}" title="${label}"
+      ${off ? "disabled" : ""}>${RTAB_ICONS[k]}<span class="t">${label}</span>${extra || ""}</button>`;
+  return one("sum", "요약")
+       + one("note", "회의록")
+       + one("task", "할 일", taskCount ? `<span class="num">${taskCount}</span>` : "")
+       + `<button class="closebtn" data-close="right" title="접기">»</button>`;
+}
+
 function renderRight(){
   const d = DOCS.find(x => x.id === S.sel);
   const body = $("#rbody"), top = $("#rtop");
 
   if(!d){
-    top.style.display = "none"; top.innerHTML = "";
+    top.style.display = "";
+    top.innerHTML = rtabsHtml(S.rtab || "sum", 0, true);
     body.dataset.tab = "";
     body.innerHTML = `<div class="emptybox">자료를 선택하면<br>요약과 할 일이 여기에 나옵니다.</div>`;
     return;
@@ -1733,14 +1763,8 @@ function renderRight(){
     ? `<button class="mini" data-lock="${id}">✓ 완료</button>`
     : `<button class="mini" data-lock="${id}">${has ? "✎ Edit" : "＋ Add"}</button>`;
 
-  /* 위쪽 고정 — 자료 이름과 탭 */
-  top.innerHTML = `
-    <div class="rtitle" title="${esc(d.cat)} · ${fmtYMW(d)} · ${d.pages}쪽">${esc(d.title)}</div>
-    <div class="rtabs">
-      <button class="rtab ${tab==="sum" ?"on":""}" data-tab="sum" title="Executive Summary">Executive Summary</button>
-      <button class="rtab ${tab==="note"?"on":""}" data-tab="note" title="Meeting Notes">Meeting Notes</button>
-      <button class="rtab ${tab==="task"?"on":""}" data-tab="task" title="Tasks">Tasks<span class="num">${tasks.length}</span></button>
-    </div>`;
+  /* 위쪽 고정 — 탭 줄 (자료 이름은 뷰어 툴바에 이미 있습니다) */
+  top.innerHTML = rtabsHtml(tab, tasks.length, false);
 
   /* ── 탭 1 : Executive Summary ─────────────────────────────
        구조 요약(ex)이 있으면 [0] 상자 + 부서별 하이어라키로 보여 주고,
@@ -1902,7 +1926,11 @@ function toggleSide(which, force){
   if(was !== closed && S.pdf) setTimeout(autoFit, 200);
 }
 $$(".rail").forEach(b => b.onclick = () => toggleSide(b.dataset.open, true));
-$$(".closebtn").forEach(b => b.onclick = () => toggleSide(b.dataset.close, false));
+/* 접기 단추는 오른쪽 탭 줄처럼 새로 그려지기도 하므로 맡겨서 처리합니다 */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".closebtn[data-close]");
+  if(b) toggleSide(b.dataset.close, false);
+});
 $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", false); };
 
 /* =========================================================
