@@ -63,6 +63,11 @@ body{
 }
 @supports (height:100dvh){ body{height:100dvh;} }
 button{font:inherit;color:inherit;cursor:pointer;}
+/* 키보드로 옮겨 다닐 때의 표시 — 브라우저 기본 파란 테두리를 쓰지 않습니다 */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+/* 색이 바뀌는 것은 모두 0.12초에 걸쳐 — 움직임은 이것뿐입니다 */
+button,input,select,textarea,.cat,.doc,.fold,.res,.tick,.mline,.task,.agitem,.agtog,.mgrow{
+  transition:background-color .12s ease,color .12s ease,border-color .12s ease;}
 input,textarea,select{font:inherit;color:inherit;}
 button[disabled]{opacity:.45;cursor:default;}
 
@@ -87,7 +92,7 @@ button[disabled]{opacity:.45;cursor:default;}
 #searchwrap .mag{flex:0 0 auto;display:flex;align-items:center;color:var(--muted2);}
 #searchwrap .mag svg{display:block;}
 #search{flex:1 1 auto;min-width:0;height:32px;padding:0;
-  border:none;border-bottom:2px solid var(--line);border-radius:0;background:none;outline:none;
+  border:none;border-bottom:2px solid var(--line);border-radius:0;background:none;
   font-size:13px;font-weight:500;}
 #search:focus{border-bottom-color:var(--accent);}
 #search::placeholder{color:var(--muted2);}
@@ -230,7 +235,7 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .doc .tag{flex:0 0 auto;display:flex;color:var(--accent-ink);}
 .doc .tag svg{display:block;}
 .doc .nopdf{flex:0 0 auto;font-size:9.5px;color:#9b9797;}
-#empty,.emptybox{padding:22px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;}
+#empty,.emptybox{padding:14px 16px;color:var(--muted);font-size:12px;line-height:1.7;}
 
 /* ---------- 검색 팝업 ---------- */
 #searchpop{position:fixed;inset:0;background:color-mix(in srgb, #201e1d 45%, transparent);display:none;z-index:70;
@@ -271,7 +276,7 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 #agendapop .yr button:hover{border-color:var(--accent);color:var(--accent-ink);}
 #agyear{min-width:56px;text-align:center;}
 #agsearch{flex:1 1 150px;min-width:110px;height:30px;padding:0;border:none;
-  border-bottom:2px solid var(--line);border-radius:0;background:none;outline:none;
+  border-bottom:2px solid var(--line);border-radius:0;background:none;
   font-size:12.5px;font-weight:500;}
 #agsearch:focus{border-bottom-color:var(--accent);}
 #agtoggles{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;
@@ -430,7 +435,7 @@ body.rendering #spin{display:block;}
   border-radius:0;padding:7px 8px;line-height:1.6;margin:6px 0;}
 .sumlabel{font-size:11.5px;color:var(--muted);margin:6px 0 3px;}
 textarea.sum{width:100%;min-height:84px;resize:vertical;padding:7px 8px;line-height:1.6;font-size:12.5px;
-  border:1px solid var(--line);border-radius:0;background:#fff;outline:none;}
+  border:1px solid var(--line);border-radius:0;background:#fff;}
 textarea.sum:focus{border-color:var(--accent);}
 /* 잠겨 있을 때 — 읽기만 됩니다 */
 textarea.sum[readonly]{background:var(--panel2);cursor:default;}
@@ -478,7 +483,7 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 .task .rm:hover{color:var(--accent-ink);}
 #taskadd{display:flex;gap:6px;margin-top:12px;}
 #taskadd input{flex:1 1 auto;min-width:0;height:28px;padding:0 8px;border:none;
-  border-bottom:2px solid var(--line);border-radius:0;background:none;outline:none;font-size:12px;}
+  border-bottom:2px solid var(--line);border-radius:0;background:none;font-size:12px;}
 #taskadd input:focus{border-bottom-color:var(--accent);}
 #taskadd button{height:28px;padding:0 10px;border:none;border-radius:0;background:var(--accent);
   color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
@@ -571,6 +576,13 @@ table.ext td.sub .k0{padding-left:11px;color:var(--muted);font-weight:600;}
 .exhint{font-size:10.5px;color:#7d7979;margin:6px 0 2px;line-height:1.5;}
 /* AI 진행 상황 (그림으로 읽는 중 등) */
 .aibusy .step{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;}
+/* 요약을 만드는 중 — 자리만 잡아 두는 뼈대 */
+.skel{background:var(--panel2);animation:skelpulse 1.2s ease-in-out infinite;}
+.skel.line{height:12px;margin:9px 0;}
+.skel.head{height:20px;margin:0 0 8px;}
+.skel.w70{width:70%;} .skel.w50{width:50%;} .skel.w90{width:90%;}
+@keyframes skelpulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+@media (prefers-reduced-motion: reduce){ .skel{animation:none;} }
 
 /* ---------- 전체화면 ---------- */
 body.full #topbar,body.full #cmdbar,body.full #left,body.full #right{display:none;}
@@ -613,7 +625,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 .mrow .lbl{font-weight:700;font-size:12.5px;margin-bottom:5px;}
 .mrow .hint{font-size:11.5px;color:var(--muted);line-height:1.6;}
 .mrow select,.mrow input[type=text],.mrow input[type=password]{width:100%;height:32px;padding:0 8px;margin-top:6px;
-  border:1px solid var(--line);border-radius:0;background:var(--panel);outline:none;font-size:13px;}
+  border:1px solid var(--line);border-radius:0;background:var(--panel);font-size:13px;}
 .soon{display:inline-block;font-size:10.5px;color:var(--muted);border:1px solid var(--line);
   background:var(--panel);border-radius:0;padding:0 5px;line-height:16px;margin-left:4px;}
 .mrow .btnrow{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
@@ -625,7 +637,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 /* ---------- 자료 관리(Manage) ---------- */
 #mgtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
 #mgsearch{flex:1 1 180px;min-width:0;height:32px;padding:0 9px;border:1px solid var(--line);
-  border-radius:0;background:var(--panel);outline:none;font-size:13px;}
+  border-radius:0;background:var(--panel);font-size:13px;}
 #mgsearch:focus{border-color:var(--accent);}
 #mgtools .cnt{font-size:12px;color:var(--muted);margin-left:auto;}
 .mgrow{border:none;border-bottom:1px solid var(--hairline);border-radius:0;background:none;padding:10px 2px;}
@@ -633,14 +645,14 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 .mgtop{display:flex;align-items:center;gap:7px;}
 .mgtop input[type=checkbox]{width:15px;height:15px;margin:0;flex:0 0 auto;}
 .mgname{flex:1 1 auto;min-width:0;height:30px;padding:0 8px;border:1px solid var(--line);
-  border-radius:0;background:#fff;outline:none;font-size:13px;}
+  border-radius:0;background:#fff;font-size:13px;}
 .mgname:focus{border-color:var(--accent);}
 .mgdel{flex:0 0 auto;width:28px;height:28px;border:2px solid var(--line);border-radius:0;
   background:var(--bg);color:#d7d3d3;font-size:13px;line-height:1;}
 .mgdel:hover{background:#ffe0d9;border-color:#ff9783;color:var(--bad);}
 .mgbot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0 0 22px;}
 .mgbot select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
-  background:#fff;outline:none;font-size:12px;}
+  background:#fff;font-size:12px;}
 .mgbot select.cat{flex:0 1 190px;min-width:110px;}
 .mgbot .meta{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap;}
 #mgempty{padding:30px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;}
@@ -898,7 +910,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
         <select id="ageditcat"></select>
       </div>
       <textarea id="agedittext" style="width:100%;min-height:170px;padding:9px;line-height:1.6;font-size:13px;
-        border:1px solid var(--line);border-radius:0;outline:none;resize:vertical"
+        border:1px solid var(--line);border-radius:0;resize:vertical"
         placeholder="이 회의의 Agenda(안건)를 입력하세요. 한 줄에 하나씩 적어도 됩니다."></textarea>
       <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:8px">
         Agenda는 <b>회의 종류 + 그 주(연·월·주차)</b> 로 저장되며, 같은 회의의 자료·회의록과 함께 묶입니다.
@@ -987,7 +999,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
         회의록은 <b>회의 종류 + 날짜</b>가 같은 자료들과 자동으로 연결됩니다.
       </div>
       <textarea id="notetext" style="width:100%;min-height:240px;padding:9px;line-height:1.65;font-size:13px;
-        border:1px solid var(--line);border-radius:0;outline:none;resize:vertical"
+        border:1px solid var(--line);border-radius:0;resize:vertical"
         placeholder="회의록 내용을 붙여넣으세요."></textarea>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         <button class="ghostbtn" id="notefilebtn">파일에서 가져오기 (.txt · .docx · .pdf)</button>
@@ -1804,6 +1816,8 @@ function renderRight(){
        없으면(또는 ‘텍스트’ 를 누르면) 예전처럼 글상자로 보여 줍니다. */
   const ex       = (mine.ex && mine.ex.ver === 3) ? mine.ex : null;
   const asText   = !ex || S.sumText;
+  /* 요약이 하나도 없는 상태 — 빈 글상자 대신 만들기를 권합니다 */
+  const noSum    = !ex && !a && !S.sumText;
   /* 만든 시각은 배지 바로 오른쪽에 한 줄로 붙습니다 (자리가 좁으면 … 로 줄입니다) */
   const whenTxt = (mine.by === "ai" && mine.at)
     ? `AI가 ${fmtWhen(mine.at)}에 만든 요약입니다.` : "";
@@ -1831,7 +1845,38 @@ function renderRight(){
             ex.imgPages && ex.imgPages.total > ex.imgPages.sent
               ? ` (전체 ${ex.imgPages.total}쪽 중 앞 ${ex.imgPages.sent}쪽만 보냈습니다)` : ""}</div>` : "" );
 
-  const paneSum = asText
+  /* 요약이 아직 없을 때 · 만드는 중일 때 — 자리만 잡아 두거나 만들기를 권합니다 */
+  const skelBlk = `
+    <div class="sblk major">
+      <div class="skick">Executive summary</div>
+      ${sumStatus}
+      <div class="skel head w90"></div>
+      <div class="skel line w70"></div>
+    </div>
+    <div class="sblk">
+      <div class="skick">Key figures</div>
+      <div class="skel line"></div><div class="skel line w90"></div><div class="skel line w70"></div>
+    </div>
+    <div class="sblk">
+      <div class="skick">By page</div>
+      <div class="skel line w90"></div><div class="skel line w50"></div>
+    </div>`;
+
+  const noSumBlk = `
+    <div class="sblk major">
+      <div class="skick">Executive summary<span class="sp"></span>
+        ${ aiOn ? `<button class="mini" id="aigen">AI로 요약 만들기</button>` : "" }
+        <button class="mini" id="sumview">직접 적기</button></div>
+      ${sumStatus}
+      <div class="nonote">아직 요약이 없습니다.${
+        aiOn ? ` 위 <b>AI로 요약 만들기</b> 를 누르거나, <b>직접 적기</b> 로 손수 적을 수 있습니다.`
+             : ` <b>직접 적기</b> 로 손수 적거나, 설정에서 AI 요약을 켜 주세요.`}</div>
+    </div>`;
+
+  const paneSum =
+      (busy && !ex) ? skelBlk
+    : noSum ? noSumBlk
+    : asText
     ? `<div class="sect grow">
         <h4 class="aihead">${sumTools}</h4>
         ${sumStatus}
