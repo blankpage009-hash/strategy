@@ -385,6 +385,7 @@ body.rendering #spin{display:block;}
 
 /* ---------- 오른쪽 ---------- */
 #right .side-scroll{padding:12px 12px 28px;}
+#rbody[data-tab="sum"]{padding:0 0 20px;}
 /* 탭 줄은 스크롤과 상관없이 위에 붙어 있습니다.
    고른 탭만 이름과 함께 넓게 펴지고, 나머지는 아이콘 칸으로 접힙니다. */
 #rtop{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
@@ -462,82 +463,88 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 
 /* ---------- Executive Summary (구조 요약) ---------- */
 /* [0] 은 늘 펼쳐진 상자, [1]~[4] 는 눌러서 펴는 하이어라키입니다 */
-.exec{border:1px solid var(--line);border-radius:0;background:#fff;overflow:hidden;margin-bottom:14px;}
-.exec .exhead{display:flex;align-items:center;gap:6px;padding:9px 11px;background:var(--panel2);
-  border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;}
-.exec .exhead .per{margin-left:auto;font-weight:600;font-size:11px;color:var(--muted);}
-.exblk{padding:10px 11px;border-bottom:1px solid var(--line);}
-.exblk:last-child{border-bottom:none;}
-.exttl{font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+/* ---------- 요약 탭 — 블록 구조 ----------
+   블록 하나 = 키커 한 줄 + 내용. 블록끼리는 실선으로, 큰 묶음은 2px 검은 선으로 나눕니다. */
+.sblk{padding:14px 16px;border-bottom:1px solid var(--hairline);}
+.sblk.major{border-bottom:2px solid var(--rule);}
+.sblk:last-child{border-bottom:none;}
+.skick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;
+  font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.skick .sp{flex:1 1 auto;}
+.skick .mini{border:1px solid var(--line);background:none;border-radius:0;
+  font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;
+  padding:2px 7px;color:var(--muted);}
+.skick .mini:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
+.sblk .airow,.sblk .aibusy,.sblk .aierr,.sblk .tip{letter-spacing:0;text-transform:none;font-weight:400;}
+.sblk .airow{margin-top:8px;}
+/* 한 줄 총평 */
+.shead{font-size:17px;font-weight:800;line-height:1.25;letter-spacing:-.01em;}
+.smeta{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;}
+.ssub{margin:10px 0 3px;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--muted2);}
+.ssub:first-child{margin-top:0;}
+
+/* 숫자 표 — 줄마다 실선, 숫자는 오른쪽 정렬 */
 .extab{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.extab + .extab{margin-top:8px;}
 table.ext{width:100%;border-collapse:collapse;font-size:12px;}
-table.ext th{text-align:left;font-weight:700;color:var(--muted);font-size:10.5px;white-space:nowrap;
-  padding:4px 6px;border-bottom:1px solid var(--line);}
-table.ext td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
-table.ext tr:last-child td{border-bottom:none;}
-table.ext td.k{font-weight:700;white-space:nowrap;}
-table.ext td.n{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;}
+table.ext th{text-align:left;font-weight:700;color:var(--muted2);font-size:10.5px;white-space:nowrap;
+  padding:0 0 5px;border-bottom:1px solid var(--hairline);}
 table.ext th.n{text-align:right;}
-/* 설명 글이 들어가는 칸은 줄바꿈합니다 (증감 요인·조치 사항 등) */
-table.ext td.t{white-space:normal;min-width:150px;font-size:11.5px;color:#444141;}
+table.ext td{padding:7px 0;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.45;}
+table.ext tr:last-child td{border-bottom:none;}
+table.ext td.k{font-weight:700;white-space:nowrap;padding-right:8px;}
+table.ext td.n{white-space:nowrap;text-align:right;font-weight:600;
+  font-variant-numeric:tabular-nums;padding-left:8px;}
+table.ext td.d{white-space:nowrap;text-align:right;font-weight:700;
+  font-variant-numeric:tabular-nums;padding-left:8px;}
+table.ext td.s{width:9px;padding-left:8px;}
+table.ext td.t{white-space:normal;min-width:120px;font-size:11.5px;color:#444141;}
 table.ext td.sub .k0{padding-left:11px;color:var(--muted);font-weight:600;}
-.up{color:var(--accent);} .dn{color:var(--bad);} .na{color:#9b9797;}
-.excmt{margin-top:9px;font-size:12px;line-height:1.6;padding:7px 9px;
-  border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0;}
-.exrow{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line);}
+.up{color:var(--accent-ink);} .dn{color:var(--accent-ink);} .na{color:#9b9797;}
+
+/* 핵심 이슈 */
+.exrow{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--hairline);}
 .exrow:last-child{border-bottom:none;}
-.exrow .rk{flex:0 0 18px;height:18px;margin-top:1px;border-radius:0;background:var(--panel2);
-  color:var(--muted);font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.exrow .rk{flex:0 0 26px;text-align:center;background:var(--rule);color:var(--bg);
+  font-size:10.5px;font-weight:800;line-height:18px;font-variant-numeric:tabular-nums;}
 .exrow .bd{flex:1 1 auto;min-width:0;}
-.exrow .it{font-size:12.5px;font-weight:600;line-height:1.5;}
-.exrow .mt{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5;}
-.exrow .own{display:inline-block;border:1px solid var(--line);border-radius:0;background:var(--panel);
-  padding:0 5px;line-height:16px;margin-left:5px;color:var(--muted);}
-.sigrow{display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;}
+.exrow .it{font-size:12px;font-weight:700;line-height:1.4;}
+.exrow .mt{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
+.exrow .own{margin-left:5px;padding:0 5px;border:1px solid var(--line);line-height:16px;
+  display:inline-block;color:var(--muted);}
+
+/* 본부별 신호등 */
+.sigrow{display:flex;align-items:center;gap:8px;padding:7px 0;
+  border-bottom:1px solid var(--hairline);font-size:12px;}
 .sigrow:last-child{border-bottom:none;}
 .sigrow .nm{flex:1 1 auto;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sigrow.sub .nm{padding-left:12px;font-weight:600;color:var(--muted);}
-.sigrow.sub .nm:before{content:"└ ";color:#d7d3d3;}
-.sigrow .v{flex:0 0 52px;text-align:right;font-variant-numeric:tabular-nums;}
-.sigrow .st{flex:0 0 74px;display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:11px;}
+.sigrow.sub .nm{padding-left:12px;font-weight:500;color:var(--muted);}
+.sigrow.sub .nm:before{content:"©4 ";color:var(--line);}
+.sigrow .v{flex:0 0 52px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+.sigrow .st{flex:0 0 76px;display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  font-size:11px;color:var(--muted);}
 .dot{width:9px;height:9px;border-radius:0;background:#d7d3d3;flex:0 0 auto;}
 .dot.ok{background:var(--ok);} .dot.warn{background:var(--warn);} .dot.bad{background:var(--accent);}
-/* 하이어라키 — 부서명을 누르면 아래 상자가 열립니다 */
-.grp{font-size:11.5px;font-weight:700;color:var(--muted);margin:14px 0 6px;}
-.acc{border:1px solid var(--line);border-radius:0;background:var(--panel);margin-bottom:6px;overflow:hidden;}
-.acc.open{background:#fff;}
-.acc.sub{margin-left:12px;}
-.acch{width:100%;display:flex;align-items:center;gap:7px;padding:9px 10px;
-  background:none;border:none;text-align:left;font-size:12.5px;font-weight:700;color:var(--text);}
-.acch:hover{background:var(--panel2);}
-.acch .cv{flex:0 0 9px;font-size:10px;color:var(--muted);transition:transform .12s ease;}
-.acc.open .acch .cv{transform:rotate(90deg);}
-.acch .tt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.acch .cnt{flex:0 0 auto;font-size:10.5px;font-weight:600;color:var(--muted);
-  background:var(--bg);border:1px solid var(--line);border-radius:0;padding:0 5px;line-height:16px;}
-.accb{padding:9px 11px 11px;border-top:1px solid var(--line);}
-.subttl{font-size:11px;font-weight:700;color:var(--accent);margin:10px 0 2px;}
-.accb > .subttl:first-child{margin-top:0;}
-.exlist{margin:0;padding:0;list-style:none;}
-.exlist li{position:relative;padding:3px 0 3px 12px;font-size:12.5px;line-height:1.6;}
-.exlist li:before{content:"ㆍ";position:absolute;left:0;color:var(--muted);}
-.exnone{font-size:11.5px;color:#9b9797;padding:3px 0 3px 12px;}
-.exhint{font-size:10.5px;color:#7d7979;margin:6px 0 2px;line-height:1.5;}
-.exmeta{padding:7px 11px;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);
-  background:#f3f2f2;line-height:1.5;}
-.exsub{font-size:11px;font-weight:600;color:var(--muted);margin:7px 0 3px;}
-.acch .dot{margin-right:1px;}
-/* 쪽 요약 한 장 — 왼쪽에 쪽 번호, 오른쪽에 그 쪽의 주요 이슈 */
-.pgrow{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);}
-.pgrow:first-child{padding-top:0;}
-.pgrow:last-child{border-bottom:none;padding-bottom:0;}
-.pgrow .pg{flex:0 0 34px;margin-top:1px;border-radius:0;background:var(--panel2);color:var(--muted);
-  font-size:10.5px;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums;}
+
+/* 쪽별 요약 — 쪽 번호 딱지를 누르면 그 쪽으로 갑니다 */
+.pgdept{margin:10px 0 2px;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--muted2);}
+.pgdept:first-child{margin-top:0;}
+.pgrow{display:flex;width:100%;gap:12px;align-items:flex-start;padding:9px 0;text-align:left;
+  border:none;border-bottom:1px solid var(--hairline);border-radius:0;background:none;}
+.pgrow:last-child{border-bottom:none;}
+.pgrow:hover{background:var(--panel2);}
+.pgrow .pg{flex:0 0 26px;text-align:center;background:var(--rule);color:var(--bg);
+  font-size:10.5px;font-weight:800;line-height:18px;font-variant-numeric:tabular-nums;}
 .pgrow .bd{flex:1 1 auto;min-width:0;}
-.pgrow .pt{font-size:12px;font-weight:700;line-height:1.5;margin-bottom:1px;}
-.pgrow .exlist li{padding:2px 0 2px 11px;font-size:12px;}
-.pgrow .exnone{padding-left:0;}
+.pgrow .pt{display:block;font-size:12px;font-weight:700;line-height:1.4;}
+.pgrow .pn{display:block;margin-top:2px;font-size:11.5px;color:var(--muted);line-height:1.5;}
+
+.excmt{margin-top:9px;font-size:12px;line-height:1.6;padding:7px 9px;
+  border-left:3px solid var(--accent);background:var(--accent-soft);}
+.exlist{margin:0;padding:0;list-style:none;}
+.exlist li{position:relative;padding:3px 0 3px 12px;font-size:12px;line-height:1.6;}
+.exlist li:before{content:"Ë9";position:absolute;left:0;color:var(--muted2);}
+.exnone{font-size:11.5px;color:#9b9797;}
+.exhint{font-size:10.5px;color:#7d7979;margin:6px 0 2px;line-height:1.5;}
 /* AI 진행 상황 (그림으로 읽는 중 등) */
 .aibusy .step{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;}
 
@@ -1196,7 +1203,7 @@ const S = {
   sel:null, q:"", zoom:1, page:1, rtab:"sum",
   /* 오른쪽 탭 : sum(회의자료 요약) · note(회의록) · task(할 일) */
   editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
-  openSec:new Set(), sumText:false,         /* 구조 요약 — 펼친 항목 · 텍스트로 보기 */
+  sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
   /* 주차 거르개 — week 가 null 이면 기간과 상관없이 전부 보여 줍니다 */
   pY:new Date().getFullYear(), pM:new Date().getMonth() + 1, week:null,
@@ -1583,54 +1590,17 @@ function exTable(cols, rows){
   </table></div>`;
 }
 
-/* 접었다 펴는 상자 하나 — opts: {sub:하위부문, dot:신호등색} */
-function accBox(key, title, count, inner, opts){
-  const o = opts || {}, open = S.openSec.has(key);
-  return `<div class="acc ${open?"open":""} ${o.sub?"sub":""}">
-    <button class="acch" data-sec="${esc(key)}">
-      <span class="cv">▶</span>
-      ${o.dot != null ? `<i class="dot ${o.dot}"></i>` : ""}
-      <span class="tt">${esc(title)}</span>
-      ${count != null ? `<span class="cnt">${count}</span>` : ""}
-    </button>
-    ${open ? `<div class="accb">${inner}</div>` : ""}
-  </div>`;
+/* 계획 달성률이 100 % 에 못 미치면 '살펴볼 것'(빨강)으로 표시합니다.
+   빨강은 오르내림이 아니라 '눈여겨볼 것'이라는 뜻입니다. */
+function planDot(v){
+  const n = parseFloat(String(v == null ? "" : v).replace(/[^0-9.\-]/g, ""));
+  if(!isFinite(n)) return "";
+  return n < 100 ? "bad" : "ok";
 }
 
-/* [0] Executive Summary 상자 */
-function execBox(ex){
+/* [0] 한 줄 총평 · 핵심 숫자 · 핵심 이슈 · 본부별 신호등 */
+function execBox(ex, headTools, headStatus){
   const E = ex.exec, M = ex.meta;
-
-  const perfHtml = E.company.length ? `
-    <div class="extab"><table class="ext">
-      <tr><th>구분</th><th class="n">당월</th><th class="n">전년비</th><th class="n">계획 달성률</th></tr>
-      ${E.company.map(r => `<tr><td class="k">${esc(r.item)}</td>
-        <td class="n">${exNum(r.cur)}</td><td class="n">${exNum(r.curYoy)}</td><td class="n">${exNum(r.curPlan)}</td>
-      </tr>`).join("")}
-    </table></div>
-    <div class="extab"><table class="ext">
-      <tr><th>구분</th><th class="n">누계</th><th class="n">전년비</th><th class="n">계획 달성률</th></tr>
-      ${E.company.map(r => `<tr><td class="k">${esc(r.item)}</td>
-        <td class="n">${exNum(r.ytd)}</td><td class="n">${exNum(r.ytdYoy)}</td><td class="n">${exNum(r.ytdPlan)}</td>
-      </tr>`).join("")}
-    </table></div>` : `<div class="exnone">미기재</div>`;
-
-  const issueHtml = E.issues.length
-    ? E.issues.map((r,i) => `<div class="exrow">
-        <div class="rk">${esc(String(r.rank || i+1))}</div>
-        <div class="bd"><div class="it">${esc(r.issue)}</div>
-          <div class="mt">영향 ${esc(exVal(r.impact))}
-            ${r.owner ? `<span class="own">${esc(r.owner)}</span>` : ""}</div></div>
-      </div>`).join("")
-    : `<div class="exnone">미기재</div>`;
-
-  const sigHtml = E.signals.length
-    ? E.signals.map(s => `<div class="sigrow ${s.sub?"sub":""}">
-        <span class="nm">${esc(s.org)}</span>
-        <span class="v">${exNum(s.rev)}</span><span class="v">${exNum(s.op)}</span>
-        <span class="st"><i class="dot ${sigCls(s.state)}"></i>${esc(exVal(s.state))}</span>
-      </div>`).join("")
-    : `<div class="exnone">미기재</div>`;
 
   const meta = [
     M.date  ? `회의일자 ${M.date}`   : "",
@@ -1638,75 +1608,109 @@ function execBox(ex){
     M.unit  ? `단위 ${M.unit}`       : ""
   ].filter(Boolean).join(" · ");
 
-  return `
-  <div class="exec">
-    <div class="exhead">Overview</div>
-    ${meta ? `<div class="exmeta">${esc(meta)}</div>` : ""}
-    <div class="exblk">
-      <div class="exttl">■ 전사 실적</div>
-      ${perfHtml}
-      ${E.comment ? `<div class="excmt">${esc(E.comment)}</div>` : ""}
-    </div>
-    <div class="exblk">
-      <div class="exttl">■ 핵심 이슈 TOP 5</div>
-      ${issueHtml}
-    </div>
-    <div class="exblk">
-      <div class="exttl">■ 본부별 신호등 <span style="font-weight:400">(매출 달성률 · 영업이익 달성률)</span></div>
-      ${sigHtml}
-    </div>
-  </div>`;
-}
-
-/* 쪽 요약을 부서명으로 묶습니다 — 부서가 처음 나온 순서를 지키고,
-   같은 부서가 여기저기 흩어져 있어도 한 상자로 모읍니다. */
-function exGroupPages(pages){
-  const out = [], byDept = new Map();
-  pages.forEach(p => {
-    const key = p.dept || "공통";
-    let g = byDept.get(key);
-    if(!g){ g = { dept:key, rows:[] }; byDept.set(key, g); out.push(g); }
-    g.rows.push(p);
-  });
-  out.forEach(g => g.rows.sort((a,b) => (a.page || 0) - (b.page || 0)));
-  return out;
-}
-
-/* [1] 부서별 쪽 요약 · [2] 주요 일정 · [3] 후속 조치
-   — 제목(부서명)을 누르면 아래 상자가 열립니다 */
-function exSections(ex){
-  /* 쪽 한 장 — 왼쪽에 쪽 번호, 오른쪽에 그 쪽의 주요 이슈(최대 3줄) */
-  const pageRow = p => `<div class="pgrow">
-      <div class="pg">${esc(p.page ? p.page + "쪽" : "―")}</div>
-      <div class="bd">
-        ${p.title ? `<div class="pt">${esc(p.title)}</div>` : ""}
-        ${exList(p.lines)}
-      </div>
+  /* 1) 한 줄 총평 — 시안의 큰 머리글 */
+  const headBlk = `
+    <div class="sblk major">
+      <div class="skick">Executive summary${headTools ? `<span class="sp"></span>${headTools}` : ""}</div>
+      ${E.comment ? `<div class="shead">${esc(E.comment)}</div>`
+                  : `<div class="exnone">한 줄 총평이 아직 없습니다.</div>`}
+      ${meta ? `<div class="smeta">${esc(meta)}</div>` : ""}
+      ${headStatus || ""}
     </div>`;
 
-  const groups = exGroupPages(ex.pages || []);
-  const pageBoxes = groups.length
-    ? groups.map((g,i) => accBox("p" + i, g.dept, g.rows.length,
-        g.rows.map(pageRow).join(""))).join("")
-    : `<div class="exnone">미기재</div>`;
+  /* 2) 핵심 숫자 — 당월과 누계를 같은 모양의 표 두 개로 */
+  const figTable = (label, pick) => `
+    <div class="ssub">${label}</div>
+    <div class="extab"><table class="ext">
+      <tr><th>구분</th><th class="n">${label}</th><th class="n">전년비</th><th class="n">달성률</th><th></th></tr>
+      ${E.company.map(r => { const c = pick(r), dot = planDot(c.plan);
+        return `<tr><td class="k">${esc(r.item)}</td>
+          <td class="n">${exNum(c.v)}</td><td class="d">${exNum(c.yoy)}</td><td class="d">${exNum(c.plan)}</td>
+          <td class="s">${dot ? `<i class="dot ${dot}"></i>` : ""}</td></tr>`; }).join("")}
+    </table></div>`;
 
-  const schBody = ex.schedule.length
-    ? exTable(["일자","내용","소관"], ex.schedule.map(r => [r.date, r.item, r.owner]))
-    : `<div class="exnone">미기재</div>`;
-  const actBody = (ex.actions.length
-    ? exTable(["구분","조치 사항","소관"], ex.actions.map(r => [r.kind, r.action, r.owner]))
-    : `<div class="exnone">미기재</div>`) +
-    `<div class="exhint">할 일로 담고 싶은 항목은 <b>Tasks</b> 탭의 ‘AI가 뽑은 할 일 후보’ 에 있습니다.</div>`;
+  const figBlk = `
+    <div class="sblk">
+      <div class="skick">Key figures</div>
+      ${E.company.length
+        ? figTable("당월", r => ({ v:r.cur, yoy:r.curYoy, plan:r.curPlan })) +
+          figTable("누계", r => ({ v:r.ytd, yoy:r.ytdYoy, plan:r.ytdPlan }))
+        : `<div class="exnone">미기재</div>`}
+    </div>`;
 
-  return `
-    <div class="grp">1. 부서별 쪽 요약
-      <span style="font-weight:400">— 부서명을 누르면 그 부서의 쪽이 열립니다</span></div>
-    ${pageBoxes}
+  /* 3) 핵심 이슈 */
+  const issueBlk = `
+    <div class="sblk">
+      <div class="skick">핵심 이슈 TOP 5</div>
+      ${E.issues.length
+        ? E.issues.map((r,i) => `<div class="exrow">
+            <div class="rk">${esc(String(r.rank || i+1))}</div>
+            <div class="bd"><div class="it">${esc(r.issue)}</div>
+              <div class="mt">영향 ${esc(exVal(r.impact))}
+                ${r.owner ? `<span class="own">${esc(r.owner)}</span>` : ""}</div></div>
+          </div>`).join("")
+        : `<div class="exnone">미기재</div>`}
+    </div>`;
 
-    <div class="grp">2. 주요 일정 · 3. 후속 조치</div>
-    ${accBox("sch", "2. 주요 일정 (Watch List)", ex.schedule.length || null, schBody)}
-    ${accBox("act", "3. 후속 조치 (Action Items)", ex.actions.length || null, actBody)}
-  `;
+  /* 4) 본부별 신호등 */
+  const sigBlk = `
+    <div class="sblk major">
+      <div class="skick">본부별 신호등 <span style="font-weight:500;letter-spacing:0;text-transform:none"
+        >매출 · 영업이익 달성률</span></div>
+      ${E.signals.length
+        ? E.signals.map(s => `<div class="sigrow ${s.sub?"sub":""}">
+            <span class="nm">${esc(s.org)}</span>
+            <span class="v">${exNum(s.rev)}</span><span class="v">${exNum(s.op)}</span>
+            <span class="st"><i class="dot ${sigCls(s.state)}"></i>${esc(exVal(s.state))}</span>
+          </div>`).join("")
+        : `<div class="exnone">미기재</div>`}
+    </div>`;
+
+  return headBlk + figBlk + issueBlk + sigBlk;
+}
+
+/* [1] 쪽별 요약 — 쪽 번호 차례대로 늘어놓고, 부서가 바뀌는 자리에 부서명을 답니다.
+   줄을 누르면 뷰어가 그 쪽으로 넘어갑니다. */
+function exSections(ex){
+  const pages = (ex.pages || []).slice().sort((a,b) => (a.page || 0) - (b.page || 0));
+  let lastDept = null, rows = "";
+  pages.forEach(p => {
+    const dept = p.dept || "공통";
+    if(dept !== lastDept){ rows += `<div class="pgdept">${esc(dept)}</div>`; lastDept = dept; }
+    const note = (p.lines || []).filter(Boolean).join(" · ");
+    rows += `<button class="pgrow" ${p.page ? `data-page="${p.page}"` : ""}
+        title="${p.page ? p.page + "쪽으로 가기" : ""}">
+      <span class="pg">${p.page ? String(p.page).padStart(2,"0") : "―"}</span>
+      <span class="bd">
+        ${p.title ? `<span class="pt">${esc(p.title)}</span>` : ""}
+        ${note ? `<span class="pn">${esc(note)}</span>` : ""}
+      </span></button>`;
+  });
+
+  const pageBlk = `
+    <div class="sblk major">
+      <div class="skick">By page</div>
+      ${rows || `<div class="exnone">미기재</div>`}
+    </div>`;
+
+  const schBlk = `
+    <div class="sblk">
+      <div class="skick">주요 일정</div>
+      ${ex.schedule.length
+        ? exTable(["일자","내용","소관"], ex.schedule.map(r => [r.date, r.item, r.owner]))
+        : `<div class="exnone">미기재</div>`}
+    </div>`;
+
+  const actBlk = `
+    <div class="sblk">
+      <div class="skick">후속 조치</div>
+      ${ex.actions.length
+        ? exTable(["구분","조치 사항","소관"], ex.actions.map(r => [r.kind, r.action, r.owner]))
+        : `<div class="exnone">미기재</div>`}
+      <div class="exhint">할 일로 담고 싶은 항목은 <b>할 일</b> 탭의 ‘AI가 뽑은 할 일 후보’ 에 있습니다.</div>
+    </div>`;
+
+  return pageBlk + schBlk + actBlk;
 }
 
 /* 오른쪽 탭 줄 — 고른 탭 하나만 이름과 함께 펴집니다 */
@@ -1775,38 +1779,41 @@ function renderRight(){
   const whenTxt = (mine.by === "ai" && mine.at)
     ? `AI가 ${fmtWhen(mine.at)}에 만든 요약입니다.` : "";
 
-  const paneSum = `
-    <div class="sect ${asText ? "grow" : ""}">
-      <h4 class="aihead">
-        ${ aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
-             busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" }
-        ${ ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" }
-        ${ asText ? lockBtn("A", !!a, S.editA) : "" }
-      </h4>
-      ${ (aiOn || whenTxt) ? `<div class="airow">
+  /* 요약 탭 위쪽 단추들과 상태 줄 — 글상자로 볼 때와 구조로 볼 때가 같은 것을 씁니다 */
+  const sumTools =
+    ( aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
+        busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" ) +
+    ( ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" ) +
+    ( asText ? lockBtn("A", !!a, S.editA) : "" );
+
+  const sumStatus =
+    ( (aiOn || whenTxt) ? `<div class="airow">
         ${ aiOn ? `<span class="aion">AI 켜짐 · 제미나이</span>` : "" }
         ${ whenTxt ? `<span class="aiwhen" title="${esc(whenTxt)}">${esc(whenTxt)}</span>` : "" }
-      </div>` : "" }
-      ${ busy ? `<div class="aibusy">요약을 만드는 중입니다…
-          <span class="step">${esc(S.aiStep || "AI에 보내는 중")}</span></div>` : "" }
-      ${ err  ? `<div class="aierr">${esc(err)}<br><button id="airetry">다시 시도</button></div>` : "" }
-      ${ ex && ex.cut ? `<div class="aibusy" style="color:var(--warn);background:#eae9e9;border-color:#d7d3d3">
+      </div>` : "" ) +
+    ( busy ? `<div class="aibusy">요약을 만드는 중입니다…
+          <span class="step">${esc(S.aiStep || "AI에 보내는 중")}</span></div>` : "" ) +
+    ( err  ? `<div class="aierr">${esc(err)}<br><button id="airetry">다시 시도</button></div>` : "" ) +
+    ( ex && ex.cut ? `<div class="aibusy" style="color:var(--warn);background:#eae9e9;border-color:#d7d3d3">
            내용이 많아 답이 중간에 끊겼습니다 — 받은 데까지만 담았습니다.
-           <b>다시 만들기</b> 를 누르면 다시 시도합니다.</div>` : "" }
-      ${ ex && ex.src === "image"
-          ? `<div class="tip">이 자료는 글자가 없어 <b>쪽 그림 ${ex.imgPages ? ex.imgPages.sent : ""}쪽</b> 을 AI가 보고 읽었습니다 — 숫자는 원본과 한 번 대조해 주세요.${
-              ex.imgPages && ex.imgPages.total > ex.imgPages.sent
-                ? ` (전체 ${ex.imgPages.total}쪽 중 앞 ${ex.imgPages.sent}쪽만 보냈습니다)` : ""}</div>` : "" }
-      ${ whenTxt && asText ? `<div class="tip"><b>✎ Edit</b> 로 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
-      ${ asText ? `
-      <textarea class="sum fill" id="sumA" ${S.editA?"":"readonly"}
-        placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "＋ Add 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
-      ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
-      ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
-               위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }`
-      : execBox(ex) + exSections(ex) }
-    </div>
-  `;
+           <b>다시 만들기</b> 를 누르면 다시 시도합니다.</div>` : "" ) +
+    ( ex && ex.src === "image"
+        ? `<div class="tip">이 자료는 글자가 없어 <b>쪽 그림 ${ex.imgPages ? ex.imgPages.sent : ""}쪽</b> 을 AI가 보고 읽었습니다 — 숫자는 원본과 한 번 대조해 주세요.${
+            ex.imgPages && ex.imgPages.total > ex.imgPages.sent
+              ? ` (전체 ${ex.imgPages.total}쪽 중 앞 ${ex.imgPages.sent}쪽만 보냈습니다)` : ""}</div>` : "" );
+
+  const paneSum = asText
+    ? `<div class="sect grow">
+        <h4 class="aihead">${sumTools}</h4>
+        ${sumStatus}
+        ${ whenTxt ? `<div class="tip"><b>Edit</b> 로 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
+        <textarea class="sum fill" id="sumA" ${S.editA?"":"readonly"}
+          placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
+        ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
+        ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
+                 위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }
+      </div>`
+    : execBox(ex, sumTools, sumStatus) + exSections(ex);
 
   /* ── 탭 2 : Meeting Notes — Agenda · 회의록 요약 · 회의록 원문 ───────────── */
   const paneNote = `
@@ -2439,7 +2446,7 @@ $("#mgdelsel").onclick = async () => {
 async function selectDoc(id){
   S.sel = id; revealDoc(id);
   S.editA = S.editB = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
-  S.openSec = new Set(); S.sumText = false;                   /* 부서 상자는 닫힌 채로 시작합니다 */
+  S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
   renderTree(); renderRight();
   if(isNarrow()) toggleSide("left", false);
@@ -2626,14 +2633,9 @@ $("#rbody").addEventListener("click", async e => {
     renderRight();
     return;
   }
-  /* 구조 요약 — 부서 상자 펴기/접기 */
-  const sec = e.target.closest("[data-sec]");
-  if(sec){
-    const k = sec.dataset.sec;
-    S.openSec.has(k) ? S.openSec.delete(k) : S.openSec.add(k);
-    renderRight();
-    return;
-  }
+  /* 쪽별 요약 — 줄을 누르면 그 쪽으로 넘어갑니다 */
+  const pg = e.target.closest(".pgrow[data-page]");
+  if(pg){ goPage(+pg.dataset.page); return; }
   /* 구조 요약 ↔ 텍스트 보기 */
   if(e.target.id === "sumview"){ S.sumText = !S.sumText; S.editA = false; renderRight(); return; }
   const line = e.target.closest("[data-line]");
@@ -3275,7 +3277,7 @@ async function makeSummary(docId, opts){
         ex, a: exToText(ex), b: bul(ex.noteSummary),
         sug: ex.actions.map(r => r.action).slice(0, 12), by:"ai", at: now
       });
-      if(S.sel === docId){ S.openSec = new Set(); S.sumText = false; }
+      if(S.sel === docId){ S.sumText = false; }
     }else{
       /* 틀을 못 지킨 답이면 옛 방식(글 요약)으로 되돌립니다 */
       const out = aiParse(raw);
