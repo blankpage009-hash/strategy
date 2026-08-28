@@ -299,7 +299,7 @@ table.agtable tbody th.wkh{position:sticky;left:0;z-index:2;background:var(--pan
 table.agtable td.agcell:hover .agadd{color:var(--accent);}
 
 /* ---------- 가운데 ---------- */
-#center{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;background:#444141;}
+#center{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel2);}
 /* 뷰어 툴바 — 칸이 맞닿는 44px 줄. 칸 사이는 1px, 묶음 사이는 2px 로 나눕니다 */
 #viewbar{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
   background:var(--bg);border-bottom:2px solid var(--rule);white-space:nowrap;}
@@ -331,24 +331,37 @@ body.tight-bar #viewbar .doctitle{display:none;}
 body.tight-bar #viewbar .fitbtn.on{width:40px;padding:0;}
 body.tight-bar #viewbar .fitbtn.on .t{display:none;}
 
-/* 자료가 최대한 꽉 차 보이도록 여백을 최소로 둡니다.
+/* 무대 — 밝은 회색 바닥 위에 흰 종이 한 장.
    가운데 맞추기는 margin:auto 로 합니다 — 확대해서 넘칠 때도 잘리지 않습니다. */
-#stage{flex:1 1 auto;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:flex-start;
-  padding:3px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;}
-#canvaswrap{flex:0 0 auto;margin:auto;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.3);border-radius:0;
+#stagewrap{flex:1 1 auto;min-height:0;position:relative;display:flex;}
+#stage{flex:1 1 auto;min-width:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
+  background:var(--panel2);padding:12px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;}
+#canvaswrap{flex:0 0 auto;margin:auto;background:var(--card);box-shadow:var(--shadow);border-radius:0;
   line-height:0;transform-origin:top center;}
 #pdfcanvas{display:block;}
+/* 무대에 마우스를 올렸을 때만 나타나는 앞뒤 장 넘김 단추 */
+.pagenav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;padding:0;
+  display:flex;align-items:center;justify-content:center;border:none;border-radius:0;
+  background:var(--rule);color:var(--bg);opacity:0;transition:opacity .12s ease;}
+#stagewrap:hover .pagenav{opacity:1;}
+.pagenav:hover{background:var(--accent);opacity:1;}
+.pagenav[disabled]{display:none;}
+.pagenav svg{display:block;}
+#nav-prev{left:12px;} #nav-next{right:12px;}
+/* 마우스가 없는 기기는 올려놓을 수가 없으니 늘 보여 줍니다 */
+@media (hover: none){ .pagenav{opacity:1;} }
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
-  color:#d7d3d3;text-align:center;padding:30px;margin:auto;max-width:460px;line-height:1.7;font-size:13px;}
-#novideo .big{font-size:15px;font-weight:700;color:#d7d3d3;}
-#novideo .hint{font-size:12px;color:#9b9797;}
-#novideo button{height:32px;padding:0 14px;border-radius:0;border:1px solid #605d5d;background:#605d5d;color:#fff;font-size:13px;}
-#novideo button:hover{background:#605d5d;}
+  color:var(--muted);text-align:center;padding:30px;margin:auto;max-width:460px;line-height:1.7;font-size:13px;}
+#novideo .big{font-size:15px;font-weight:800;color:var(--text);}
+#novideo .hint{font-size:12px;color:var(--muted2);}
+#novideo button{height:32px;padding:0 14px;border-radius:0;border:none;
+  background:var(--accent);color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
+#novideo button:hover{background:var(--accent-hover);}
 #pagebar{flex:0 0 auto;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;
   background:var(--bg);border-top:1px solid var(--line);font-size:12.5px;}
 #pageno{width:46px;height:24px;text-align:center;border:1px solid var(--line);border-radius:0;
   background:var(--panel);font-variant-numeric:tabular-nums;}
-#spin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#d7d3d3;font-size:12px;display:none;}
+#spin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:12px;display:none;}
 #center{position:relative;}
 body.rendering #spin{display:block;}
 
@@ -626,6 +639,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   #cmdbar{padding:0 10px;}
   #viewbar .doctitle{display:none;}
   #stage{padding:8px;}
+  .pagenav{width:34px;height:54px;}
   #searchpop .pop{margin-top:12px;max-height:80vh;}
   .frow{flex-wrap:wrap;}
   .frow .fn{flex:1 0 100%;}
@@ -735,13 +749,21 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
              ><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
     </div>
 
+    <div id="stagewrap">
     <div id="stage">
       <div id="canvaswrap" style="display:none"><canvas id="pdfcanvas"></canvas></div>
       <div id="novideo">
         <div class="big">자료가 없습니다</div>
-        <div>왼쪽 <b>자료 목록</b>의 <b>＋ Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.</div>
-        <button id="novideo-btn">＋ Upload</button>
+        <div>왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.</div>
+        <button id="novideo-btn">Upload</button>
       </div>
+    </div>
+      <button class="pagenav" id="nav-prev" title="앞 장" aria-label="앞 장">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+      <button class="pagenav" id="nav-next" title="다음 장" aria-label="다음 장">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
     </div>
 
     <div id="spin">불러오는 중…</div>
@@ -1224,7 +1246,7 @@ function renderTree(){
 
   if(!DOCS.length){
     $("#tree").innerHTML = `<div class="emptybox">아직 등록된 자료가 없습니다.<br>
-      왼쪽 <b>자료 목록</b>의 <b>＋ Upload</b> 를 눌러<br>PDF를 등록해 보세요.</div>`;
+      왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 를 눌러<br>PDF를 등록해 보세요.</div>`;
     return;
   }
   if(!list.length){
@@ -1305,8 +1327,8 @@ async function loadPdfFor(doc){
 
   if(!doc){
     setNoView("자료가 없습니다",
-      "왼쪽 <b>자료 목록</b>의 <b>＋ Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.",
-      "＋ Upload", openUpload);
+      "왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.",
+      "Upload", openUpload);
     return;
   }
   if(!doc.hasPdf){
@@ -1314,7 +1336,7 @@ async function loadPdfFor(doc){
       `‘글자와 요약만 저장’ 으로 등록된 자료입니다.<br>
        검색·요약·할 일은 그대로 쓸 수 있고, 화면 표시는 되지 않습니다.<br>
        <span class="hint">원본을 보려면 이 기기에서 같은 PDF를 다시 올리세요.</span>`,
-      "＋ Upload", openUpload);
+      "Upload", openUpload);
     return;
   }
 
@@ -1403,8 +1425,9 @@ async function fitTo(mode){
   const page = await S.pdf.getPage(S.page);
   const vp1 = page.getViewport({ scale: 1 });
   const st  = $("#stage");
-  let availW   = st.clientWidth  - 6;   /* #stage 좌우 여백(3px+3px) */
-  const availH = st.clientHeight - 6;   /* #stage 위아래 여백 */
+  const pad = parseFloat(getComputedStyle(st).paddingLeft) || 0;   /* 무대 여백 (좁은 화면은 8px) */
+  let availW   = st.clientWidth  - pad * 2;
+  const availH = st.clientHeight - pad * 2;
   if(mode === "page"){
     S.baseScale = Math.min(availW / vp1.width, availH / vp1.height);
   }else{
@@ -1430,6 +1453,9 @@ function updateBars(){
   $("#viewmeta").style.display = d ? "" : "none";
   $("#pagetotal").textContent = S.pdf ? S.pdf.numPages : (d ? (d.pages || 1) : 1);
   $("#pageno").value = S.page;
+  const last = S.pdf ? S.pdf.numPages : 1;
+  $("#nav-prev").disabled = !S.pdf || S.page <= 1;
+  $("#nav-next").disabled = !S.pdf || S.page >= last;
   renderFitBtns();
 }
 
@@ -2238,7 +2264,7 @@ function mgRender(){
       </div>`).join("")
     : `<div id="mgempty">${ DOCS.length
         ? "찾는 이름의 자료가 없습니다."
-        : "아직 등록된 자료가 없습니다.<br>왼쪽 <b>자료 목록</b>의 <b>＋ Upload</b> 로 먼저 등록하세요." }</div>`;
+        : "아직 등록된 자료가 없습니다.<br>왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 먼저 등록하세요." }</div>`;
   $("#mgall").checked = false;
   mgSyncSel();
 }
@@ -2362,6 +2388,9 @@ $("#zoom-out").onclick = () => { S.zoom = clampZoom(S.zoom - 0.15); S.fitMode = 
 /* 직접 고른 방식은 기억해 두었다가, 패널을 다시 열 때 그대로 돌아갑니다 */
 $("#fit-width").onclick = () => { S.fitPref = "width"; fitTo("width"); };
 $("#fit-page").onclick  = () => { S.fitPref = "page";  fitTo("page");  };
+
+$("#nav-prev").onclick = () => goPage(S.page - 1);
+$("#nav-next").onclick = () => goPage(S.page + 1);
 
 function goPage(n){
   if(!S.pdf) return;
