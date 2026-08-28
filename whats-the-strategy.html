@@ -357,10 +357,28 @@ body.tight-bar #viewbar .fitbtn.on .t{display:none;}
 #novideo button{height:32px;padding:0 14px;border-radius:0;border:none;
   background:var(--accent);color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
 #novideo button:hover{background:var(--accent-hover);}
-#pagebar{flex:0 0 auto;height:38px;display:flex;align-items:center;justify-content:center;gap:8px;
-  background:var(--bg);border-top:1px solid var(--line);font-size:12.5px;}
-#pageno{width:46px;height:24px;text-align:center;border:1px solid var(--line);border-radius:0;
-  background:var(--panel);font-variant-numeric:tabular-nums;}
+/* 페이지 자리 띠 — 쪽마다 눈금 하나. 긴 눈금은 요약이 있는 쪽입니다 */
+#pagebar{flex:0 0 auto;height:44px;display:flex;align-items:center;gap:2px;padding:0 16px;
+  background:var(--bg);border-top:2px solid var(--rule);font-size:12.5px;}
+#pagebar .step{flex:0 0 auto;width:28px;height:24px;padding:0;display:flex;align-items:center;
+  justify-content:center;border:none;border-radius:0;background:none;color:var(--text);}
+#pagebar .step:hover:not([disabled]){color:var(--accent-ink);}
+#pagebar .step svg{display:block;}
+#ticks{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:2px;overflow:hidden;margin-left:6px;}
+.tick{flex:0 1 14px;min-width:3px;height:8px;padding:0;border:none;border-radius:0;background:var(--line);}
+/* 쪽이 많으면 눈금을 더 가늘게 — 띠가 넘치지 않게 합니다 */
+#ticks.dense .tick{min-width:2px;}
+#ticks.denser .tick{min-width:1px;}
+.tick.sum{height:14px;background:var(--rule);}
+.tick.now{height:20px;background:var(--accent);}
+.tick:hover{background:var(--accent-ink);}
+#pagepos{flex:0 0 auto;margin-left:12px;padding:0;border:none;background:none;
+  font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+#pagepos .tot{font-weight:500;color:var(--muted);}
+#pagepos:hover .tot,#pagepos:hover{color:var(--accent-ink);}
+#ticklegend{flex:0 0 auto;margin-left:16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  color:var(--muted2);white-space:nowrap;}
+body.tight-bar #ticklegend{display:none;}
 #spin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:12px;display:none;}
 #center{position:relative;}
 body.rendering #spin{display:block;}
@@ -525,7 +543,10 @@ body.full #viewbar #btn-full{border-left-color:#605d5d;}
 body.full #viewbar .fitbtn.on{background:#f3f2f2;color:#201e1d;}
 body.full #viewbar .doctitle .meta{border-left-color:#605d5d;}
 body.full #pagebar{background:#2d2b2b;border-top-color:#201e1d;color:#f3f2f2;}
-body.full #pageno{background:#444141;border-color:#605d5d;color:#f3f2f2;}
+body.full #pagebar .step,body.full #pagepos{color:#f3f2f2;}
+body.full #pagepos .tot,body.full #ticklegend{color:#9b9797;}
+body.full .tick{background:#605d5d;}
+body.full .tick.sum{background:#f3f2f2;}
 body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 
 /* ---------- 공통 모달 ---------- */
@@ -769,10 +790,15 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
     <div id="spin">불러오는 중…</div>
 
     <div id="pagebar">
-      <button class="iconbtn" id="prev">◀</button>
-      <input id="pageno" type="text" inputmode="numeric" value="1">
-      <span style="color:var(--muted)">/ <b id="pagetotal">1</b></span>
-      <button class="iconbtn" id="next">▶</button>
+      <button class="step" id="prev" title="앞 장" aria-label="앞 장">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+      <button class="step" id="next" title="다음 장" aria-label="다음 장">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+      <div id="ticks"></div>
+      <button id="pagepos" title="쪽 번호로 이동"></button>
+      <span id="ticklegend">긴 눈금은 요약이 있는 쪽</span>
     </div>
   </main>
 
@@ -1451,12 +1477,40 @@ function updateBars(){
         S.pdf ? S.pdf.numPages : (d.pages || 1)}쪽`
     : "";
   $("#viewmeta").style.display = d ? "" : "none";
-  $("#pagetotal").textContent = S.pdf ? S.pdf.numPages : (d ? (d.pages || 1) : 1);
-  $("#pageno").value = S.page;
-  const last = S.pdf ? S.pdf.numPages : 1;
+  const last = S.pdf ? S.pdf.numPages : (d ? (d.pages || 1) : 1);
+  $("#pagepos").innerHTML = `${S.page}<span class="tot"> / ${last}</span>`;
+  renderTicks(last);
+  $("#prev").disabled = !S.pdf || S.page <= 1;
+  $("#next").disabled = !S.pdf || S.page >= last;
   $("#nav-prev").disabled = !S.pdf || S.page <= 1;
   $("#nav-next").disabled = !S.pdf || S.page >= last;
   renderFitBtns();
+}
+
+/* 요약이 붙어 있는 쪽 번호 — 구조 요약(ex)의 pages 에서 뽑습니다 */
+function summaryPages(){
+  const d = DOCS.find(x => x.id === S.sel); if(!d) return new Set();
+  const ex = (KV.sums[d.id] || {}).ex;
+  if(!ex || ex.ver !== 3 || !Array.isArray(ex.pages)) return new Set();
+  return new Set(ex.pages.map(x => +x.page).filter(n => n > 0));
+}
+
+/* 페이지 자리 띠 — 쪽마다 눈금 하나.
+   지금 보는 쪽은 가장 길고 빨갛게, 요약이 있는 쪽은 중간 길이의 검은 눈금입니다. */
+function renderTicks(total){
+  const box = $("#ticks");
+  if(!S.pdf){ box.innerHTML = ""; return; }
+  const sum = summaryPages();
+  box.classList.toggle("dense",  total > 60  && total <= 150);
+  box.classList.toggle("denser", total > 150);
+  box.style.gap = total > 150 ? "0px" : (total > 60 ? "1px" : "2px");
+  let html = "";
+  for(let n = 1; n <= total; n++){
+    const cls = n === S.page ? "now" : (sum.has(n) ? "sum" : "");
+    html += `<button class="tick ${cls}" data-p="${n}" title="${n}쪽${
+      sum.has(n) ? " — 요약 있음" : ""}" aria-label="${n}쪽"></button>`;
+  }
+  box.innerHTML = html;
 }
 
 /* 맞춤 단추 — 지금 쓰는 방식 하나만 이름과 함께 채워 둡니다.
@@ -2400,7 +2454,15 @@ function goPage(n){
 }
 $("#prev").onclick = () => goPage(S.page - 1);
 $("#next").onclick = () => goPage(S.page + 1);
-$("#pageno").addEventListener("change", e => goPage(parseInt(e.target.value,10) || 1));
+$("#ticks").addEventListener("click", e => {
+  const t = e.target.closest(".tick"); if(t) goPage(+t.dataset.p);
+});
+/* 쪽이 많아 눈금이 촘촘할 때를 위해 — 숫자를 눌러 바로 이동합니다 */
+$("#pagepos").onclick = () => {
+  if(!S.pdf) return;
+  const n = parseInt(prompt(`몇 쪽으로 갈까요? (1 ~ ${S.pdf.numPages})`, S.page) || "", 10);
+  if(n) goPage(n);
+};
 
 /* 마우스 휠로 쪽 넘기기 — 아래로 굴리면 다음 장, 위로 굴리면 이전 장.
    확대해서 자료가 화면보다 클 때는 먼저 위아래로 움직이고, 끝에 닿으면 다음(이전) 장으로 갑니다. */
