@@ -713,7 +713,13 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   :root{--left-w:min(84vw,300px);--right-w:min(92vw,560px);}
   #center{padding-left:var(--rail);padding-right:var(--rail);}
   #brand{display:none;}
-  #cmdbar{padding:0 10px;}
+  /* 좁은 화면에서는 커맨드 바가 통째로 옆으로 밀립니다 —
+     칩 안에서만 밀면 주차 고르개가 화면 밖으로 나가 버립니다 */
+  #cmdbar{padding:0 10px;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  #cmdbar::-webkit-scrollbar{display:none;}
+  #cats{flex:0 0 auto;overflow:visible;}
+  #cmdcount{display:none;}
+  .cmdlabel{display:none;}
   #viewbar .doctitle{display:none;}
   #stage{padding:8px;}
   .pagenav{width:34px;height:54px;}
@@ -860,7 +866,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 
   <aside id="right">
     <button class="rail" data-open="right" title="오른쪽 사이드바 열기">
-      <span class="arw">«</span><span class="lbl">Summary · Notes · Tasks</span>
+      <span class="arw">«</span><span class="lbl">요약 · 회의록 · 할 일</span>
     </button>
     <div class="side-inner">
       <div id="rtop"></div>
