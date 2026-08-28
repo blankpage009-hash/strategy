@@ -385,7 +385,8 @@ body.rendering #spin{display:block;}
 
 /* ---------- 오른쪽 ---------- */
 #right .side-scroll{padding:12px 12px 28px;}
-#rbody[data-tab="sum"]{padding:0 0 20px;}
+#rbody[data-tab="sum"],#rbody[data-tab="note"],#rbody[data-tab="task"]{padding:0 0 20px;}
+#rbody[data-tab="sum"][data-mode="text"]{padding:12px 12px 28px;}
 /* 탭 줄은 스크롤과 상관없이 위에 붙어 있습니다.
    고른 탭만 이름과 함께 넓게 펴지고, 나머지는 아이콘 칸으로 접힙니다. */
 #rtop{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
@@ -440,26 +441,43 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 #rbody[data-tab="sum"][data-mode="text"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
 #rbody[data-tab="sum"][data-mode="text"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
 .tip{font-size:10.5px;color:#7d7979;margin-top:3px;}
-.nonote{font-size:12px;color:var(--muted);background:#fff;border:1px dashed var(--line);
-  border-radius:0;padding:8px;line-height:1.5;}
-.mline{display:flex;gap:6px;align-items:flex-start;font-size:12.5px;line-height:1.5;padding:5px 6px;
-  border-radius:0;background:#fff;border:1px solid var(--line);margin-bottom:4px;}
-.mline span{flex:1 1 auto;}
-.mline .add{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);border-radius:0;
-  width:22px;height:22px;line-height:1;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
-.mline .add:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
-.mline.used .add{background:#eae9e9;color:var(--ok);border-color:#d7d3d3;}
-.task{display:flex;gap:7px;align-items:flex-start;padding:6px;border-radius:0;background:#fff;
-  border:1px solid var(--line);margin-bottom:4px;}
-.task .st{flex:0 0 auto;border:none;background:none;font-size:14px;line-height:1.35;padding:0 1px;width:20px;text-align:center;}
-.task .tx{flex:1 1 auto;font-size:12.5px;line-height:1.5;}
-.task.done .tx{color:#7d7979;text-decoration:line-through;}
-.task .rm{flex:0 0 auto;border:none;background:none;color:#d7d3d3;font-size:13px;line-height:1;padding:0 2px;}
-.task .rm:hover{color:var(--bad);}
-#taskadd{display:flex;gap:5px;margin-top:6px;}
-#taskadd input{flex:1 1 auto;height:28px;padding:0 8px;border:1px solid var(--line);border-radius:0;background:#fff;outline:none;font-size:12.5px;}
-#taskadd button{height:28px;padding:0 10px;border:1px solid var(--line);border-radius:0;background:var(--bg);font-size:12.5px;}
-.legend{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+.nonote{font-size:12px;color:var(--muted);line-height:1.6;}
+/* 상태 딱지 — 9px 사각형 하나에 글자 하나 */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:0 6px;line-height:18px;
+  border:1px solid var(--line);font-size:10px;font-weight:800;letter-spacing:.04em;
+  text-transform:none;color:var(--muted);font-variant-numeric:tabular-nums;}
+.chip.on{border-color:var(--accent-line);color:var(--accent-ink);}
+/* 회의록 문장 · AI 후보 한 줄 */
+.mline{display:flex;gap:12px;align-items:flex-start;font-size:12px;line-height:1.5;
+  padding:8px 0;border-bottom:1px solid var(--hairline);}
+.mline:last-of-type{border-bottom:none;}
+.mline span{flex:1 1 auto;min-width:0;}
+.mline .add{flex:0 0 auto;width:22px;height:22px;padding:0;display:flex;align-items:center;
+  justify-content:center;border:2px solid var(--line);border-radius:0;background:none;
+  line-height:1;font-size:12px;color:var(--muted);}
+.mline .add:hover{border-color:var(--accent);color:var(--accent-ink);}
+.mline.used{color:var(--muted);}
+.mline.used .add{border-color:var(--line);color:var(--muted3);}
+/* 할 일 한 줄 — 왼쪽 9px 사각형이 상태입니다 */
+#tasklist{margin-top:2px;}
+.task{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--hairline);}
+.task:last-child{border-bottom:none;}
+.task .st{flex:0 0 auto;width:18px;height:18px;padding:0;border:none;background:none;
+  display:flex;align-items:center;justify-content:center;}
+.task .st .dot{width:9px;height:9px;}
+.task .tx{flex:1 1 auto;min-width:0;font-size:12px;line-height:1.5;}
+.task.doing .tx{font-weight:700;}
+.task.done .tx{color:var(--muted2);text-decoration:line-through;}
+.task .rm{flex:0 0 auto;border:none;background:none;color:var(--line);font-size:13px;line-height:1;padding:0 2px;}
+.task .rm:hover{color:var(--accent-ink);}
+#taskadd{display:flex;gap:6px;margin-top:12px;}
+#taskadd input{flex:1 1 auto;min-width:0;height:28px;padding:0 8px;border:none;
+  border-bottom:2px solid var(--line);border-radius:0;background:none;outline:none;font-size:12px;}
+#taskadd input:focus{border-bottom-color:var(--accent);}
+#taskadd button{height:28px;padding:0 10px;border:none;border-radius:0;background:var(--accent);
+  color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
+#taskadd button:hover{background:var(--accent-hover);}
+.legend{font-size:10.5px;color:var(--muted2);margin-top:10px;line-height:1.6;}
 
 /* ---------- Executive Summary (구조 요약) ---------- */
 /* [0] 은 늘 펼쳐진 상자, [1]~[4] 는 눌러서 펴는 하이어라키입니다 */
@@ -1764,8 +1782,8 @@ function renderRight(){
 
   /* 잠금/풀기 단추 — 잠겨 있으면 Add(내용 없음) · Edit(내용 있음), 풀려 있으면 완료 */
   const lockBtn = (id, has, editing) => editing
-    ? `<button class="mini" data-lock="${id}">✓ 완료</button>`
-    : `<button class="mini" data-lock="${id}">${has ? "✎ Edit" : "＋ Add"}</button>`;
+    ? `<button class="mini" data-lock="${id}">완료</button>`
+    : `<button class="mini" data-lock="${id}">${has ? "편집" : "추가"}</button>`;
 
   /* 위쪽 고정 — 탭 줄 (자료 이름은 뷰어 툴바에 이미 있습니다) */
   top.innerHTML = rtabsHtml(tab, tasks.length, false);
@@ -1806,9 +1824,9 @@ function renderRight(){
     ? `<div class="sect grow">
         <h4 class="aihead">${sumTools}</h4>
         ${sumStatus}
-        ${ whenTxt ? `<div class="tip"><b>Edit</b> 로 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
+        ${ whenTxt ? `<div class="tip"><b>편집</b> 을 눌러 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
         <textarea class="sum fill" id="sumA" ${S.editA?"":"readonly"}
-          placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
+          placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "추가 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
         ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
         ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
                  위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }
@@ -1817,68 +1835,80 @@ function renderRight(){
 
   /* ── 탭 2 : Meeting Notes — Agenda · 회의록 요약 · 회의록 원문 ───────────── */
   const paneNote = `
-    <div class="sect">
-      <h4>Agenda
-        <button class="mini" id="agedit-open">${ agText ? "✎ 편집" : "＋ 등록" }</button></h4>
+    <div class="sblk">
+      <div class="skick">Agenda
+        <span class="chip ${agText ? "on" : ""}">
+          <i class="dot ${agText ? "bad" : ""}"></i>${agText ? "등록됨" : "없음"}</span>
+        <span class="sp"></span>
+        <button class="mini" id="agedit-open">${ agText ? "편집" : "등록" }</button></div>
       ${ agText
         ? `<textarea class="sum" readonly>${esc(agText)}</textarea>`
         : `<div class="nonote">이 회의(${esc(d.cat)} · ${fmtYMW(d)})의 Agenda가 없습니다.<br>
-           위 <b>＋ 등록</b> 으로 입력하거나, 상단바 <b>Agenda</b> 표에서 채울 수 있습니다.</div>` }
+           위 <b>등록</b> 으로 입력하거나, 상단바 <b>Agenda</b> 표에서 채울 수 있습니다.</div>` }
       ${ agText ? `<div class="tip">같은 회의 종류·같은 주의 자료·회의록과 함께 묶입니다.</div>` : "" }
     </div>
 
-    <div class="sect">
-      <h4>회의록 요약
-        ${ lockBtn("B", !!b, S.editB) }
-      </h4>
+    <div class="sblk">
+      <div class="skick">회의록 요약<span class="sp"></span>${ lockBtn("B", !!b, S.editB) }</div>
       <textarea class="sum" id="sumB" ${S.editB?"":"readonly"}
-        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "＋ Add 를 눌러 회의록 요약을 적으세요"}">${esc(b)}</textarea>
+        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "추가 를 눌러 회의록 요약을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
     </div>
 
-    <div class="sect">
-      <h4>회의록
-        <button class="mini" id="noteedit">${note ? "수정" : "＋ 등록"}</button></h4>
+    <div class="sblk major">
+      <div class="skick">회의록
+        ${ note ? `<span class="chip">${lines.length}줄</span>` : "" }
+        <span class="sp"></span>
+        <button class="mini" id="noteedit">${note ? "수정" : "등록"}</button></div>
       ${ note
         ? lines.map(s => `<div class="mline ${used.has(s)?"used":""}">
              <span>${esc(s)}</span>
-             <button class="add" data-line="${esc(s)}" title="할 일로 추가">${used.has(s)?"✓":"＋"}</button>
+             <button class="add" data-line="${esc(s)}" title="할 일로 추가">${used.has(s)?"✓":"+"}</button>
            </div>`).join("")
         : `<div class="nonote">이 회의(${esc(d.cat)} · ${fmtYMW(d)})에는 회의록이 없습니다.<br>
-           위 <b>＋ 등록</b> 으로 붙여넣거나 파일에서 가져오세요.</div>` }
-      ${ note ? `<div class="tip">문장 옆 <b>＋</b> 를 누르면 <b>Tasks</b> 탭으로 들어갑니다.</div>` : "" }
+           위 <b>등록</b> 으로 붙여넣거나 파일에서 가져오세요.</div>` }
+      ${ note ? `<div class="tip">문장 옆 <b>+</b> 를 누르면 <b>할 일</b> 탭으로 들어갑니다.</div>` : "" }
     </div>
   `;
 
   /* ── 탭 3 : 할 일 (AI 후보 + 할 일 목록) ────────────────────── */
+  const openCnt = tasks.filter(t => t.s !== 2).length;
+  const doneCnt = tasks.length - openCnt;
+
   const paneTask = `
     ${ sug.length ? `
-    <div class="sect">
-      <h4>AI가 뽑은 할 일 후보 <button class="mini" id="sugclear">치우기</button></h4>
+    <div class="sblk">
+      <div class="skick">AI가 뽑은 할 일 후보
+        <span class="chip">${sug.length}</span>
+        <span class="sp"></span>
+        <button class="mini" id="sugclear">치우기</button></div>
       ${ sug.map(s => `<div class="mline"><span>${esc(s)}</span>
-           <button class="add" data-line="${esc(s)}" title="할 일로 추가">＋</button></div>`).join("") }
-      <div class="tip"><b>＋</b> 를 누른 것만 아래 할 일에 들어갑니다.</div>
+           <button class="add" data-line="${esc(s)}" title="할 일로 추가">+</button></div>`).join("") }
+      <div class="tip"><b>+</b> 를 누른 것만 아래 할 일에 들어갑니다.</div>
     </div>` : "" }
 
-    <div class="sect">
-      <h4>Tasks <span style="font-weight:400">${tasks.length}개</span></h4>
+    <div class="sblk">
+      <div class="skick">Tasks
+        <span class="chip ${openCnt ? "on" : ""}"><i class="dot ${openCnt ? "bad" : ""}"></i>${openCnt} 남음</span>
+        <span class="chip"><i class="dot warn"></i>${doneCnt} 완료</span></div>
       <div id="tasklist">
         ${ tasks.length ? tasks.map((t,i) => {
             const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
-            const ico = t.s===2 ? "☑" : (t.s===1 ? "◐" : "☐");
-            const col = t.s===2 ? "var(--ok)" : (t.s===1 ? "var(--warn)" : "#bab6b6");
+            const dot = t.s===2 ? "warn" : (t.s===1 ? "bad" : "");
+            const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행 중" : "시작 전");
             return `<div class="task ${cls}">
-              <button class="st" data-i="${i}" style="color:${col}" title="상태 바꾸기">${ico}</button>
+              <button class="st" data-i="${i}" title="상태 바꾸기 (지금 ${nm})"
+                ><i class="dot ${dot}"></i></button>
               <div class="tx">${esc(t.t)}</div>
               <button class="rm" data-rm="${i}" title="삭제">✕</button></div>`;
           }).join("")
-          : `<div class="nonote">아직 할 일이 없습니다. 아래에 입력하거나, 회의록 문장 옆 ＋ 를 눌러 추가하세요.</div>` }
+          : `<div class="nonote">아직 할 일이 없습니다. 아래에 입력하거나, 회의록 문장 옆 + 를 눌러 추가하세요.</div>` }
       </div>
       <div id="taskadd">
         <input id="newtask" type="text" placeholder="할 일 직접 입력" autocomplete="off">
         <button id="addtask">추가</button>
       </div>
-      <div class="legend">☐ 시작 전 → ◐ 진행 중 → ☑ 완료 (아이콘을 누를 때마다 바뀝니다)</div>
+      <div class="legend">사각형을 누를 때마다 시작 전 → 진행 중 → 완료 로 바뀝니다.</div>
     </div>
   `;
 
