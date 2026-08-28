@@ -108,6 +108,35 @@ button[disabled]{opacity:.45;cursor:default;}
 .plainbtn svg{display:block;}
 #btn-agenda{border-left:2px solid var(--line);}
 
+/* ---------- 커맨드 바 — 회의 종류 거르개 ---------- */
+#cmdbar{
+  flex:0 0 auto;height:40px;display:flex;align-items:center;gap:8px;padding:0 20px;
+  border-bottom:2px solid var(--rule);background:var(--panel2);
+}
+.cmdlabel{flex:0 0 auto;margin-right:4px;font-size:10px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+#cats{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none;}
+#cats::-webkit-scrollbar{display:none;}
+/* 회의 종류 칩 — 눌러서 켜고 끕니다 */
+.cat{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;
+  border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);
+  font-size:11.5px;font-weight:700;white-space:nowrap;user-select:none;}
+.cat .cnt{font-weight:500;opacity:.7;}
+.cat.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+.cat:not(.on):hover{border-color:var(--accent);color:var(--accent-ink);}
+#addcat{flex:0 0 auto;width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);}
+#addcat:hover{border-color:var(--accent);color:var(--accent-ink);}
+#addcat svg{display:block;}
+#cmdcount{margin-left:auto;flex:0 0 auto;white-space:nowrap;font-size:11.5px;color:var(--muted);}
+/* 칩을 오른쪽 단추(또는 길게 누르기)로 열면 나오는 쪽지 */
+#catmenu{position:fixed;z-index:60;display:none;flex-direction:column;min-width:132px;
+  background:var(--bg);border:2px solid var(--rule);box-shadow:var(--shadow);}
+#catmenu.on{display:flex;}
+#catmenu button{text-align:left;padding:7px 12px;border:none;background:none;font-size:12px;font-weight:600;}
+#catmenu button + button{border-top:1px solid var(--hairline);}
+#catmenu button:hover{background:var(--accent-soft);color:var(--accent-ink);}
+
 /* ---------- 작업 영역 ---------- */
 #workspace{flex:1 1 auto;display:flex;min-height:0;position:relative;}
 aside{position:relative;background:var(--panel);display:flex;min-height:0;flex:0 0 auto;
@@ -144,23 +173,6 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 #btn-manage{border:1px solid var(--line);background:var(--bg);border-radius:0;
   font-size:11px;font-weight:700;color:var(--muted);padding:2px 8px;letter-spacing:0;}
 #btn-manage:hover{border-color:var(--accent);color:var(--accent);}
-#cats{padding:0 6px 6px;}
-.cat{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:0;cursor:pointer;user-select:none;}
-.cat:hover{background:var(--panel2);}
-.cat .box{width:15px;height:15px;flex:0 0 auto;border:1.5px solid #bab6b6;border-radius:0;
-  display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:#fff;}
-.cat.on .box{background:var(--accent);border-color:var(--accent);}
-.cat .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cat .cnt{color:var(--muted);font-size:11.5px;}
-.cat .del,.cat .edit{border:none;background:none;color:#bab6b6;font-size:12.5px;padding:0 2px;display:none;line-height:1;}
-.cat:hover .del,.cat:hover .edit{display:block;}
-.cat .del:hover{color:var(--bad);}
-.cat .edit:hover{color:var(--accent);}
-/* 손가락으로 쓰는 기기(아이패드·아이폰)는 마우스를 올릴 수 없으므로 항상 보이게 합니다 */
-@media (hover: none){ .cat .del,.cat .edit{display:block;} }
-#addcat{display:block;width:calc(100% - 12px);margin:2px 6px 0;text-align:left;padding:6px 8px;
-  border:1px dashed #d7d3d3;border-radius:0;background:none;color:var(--muted);font-size:12.5px;}
-#addcat:hover{border-color:var(--accent);color:var(--accent);}
 .divider{height:1px;background:var(--line);margin:10px 0 0;}
 
 #tree{padding:0 6px 8px;}
@@ -437,7 +449,7 @@ table.ext td.sub .k0{padding-left:11px;color:var(--muted);font-weight:600;}
 .aibusy .step{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;}
 
 /* ---------- 전체화면 ---------- */
-body.full #topbar,body.full #left,body.full #right{display:none;}
+body.full #topbar,body.full #cmdbar,body.full #left,body.full #right{display:none;}
 body.full #viewbar{background:#2d2b2b;border-bottom-color:#201e1d;color:#f3f2f2;}
 body.full #viewbar .iconbtn{background:#444141;border-color:#605d5d;color:#f3f2f2;}
 body.full #viewbar .sep{background:#605d5d;}
@@ -553,6 +565,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   :root{--left-w:min(84vw,300px);--right-w:min(92vw,560px);}
   #center{padding-left:var(--rail);padding-right:var(--rail);}
   #brand{display:none;}
+  #cmdbar{padding:0 10px;}
   #viewbar .doctitle{display:none;}
   #stage{padding:8px;}
   #searchpop .pop{margin-top:12px;max-height:80vh;}
@@ -591,6 +604,20 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   </div>
 </header>
 
+<div id="cmdbar">
+  <span class="cmdlabel">Filter</span>
+  <div id="cats"></div>
+  <button id="addcat" title="회의 종류 추가" aria-label="회의 종류 추가">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="3" stroke-linecap="round" aria-hidden="true" focusable="false">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  </button>
+  <span id="cmdcount"></span>
+</div>
+
+<div id="catmenu" role="menu"></div>
+
 <div id="workspace">
 
   <aside id="left">
@@ -600,10 +627,6 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
     <div class="side-inner">
       <div class="side-head">Meeting Materials <button class="closebtn" data-close="left" title="접기">«</button></div>
       <div class="side-scroll">
-        <div class="grouphead">회의 종류</div>
-        <div id="cats"></div>
-        <button id="addcat">＋ 종류 추가</button>
-        <div class="divider"></div>
         <div class="grouphead">자료 목록 <span id="listcount" style="font-weight:400"></span>
           <button id="btn-upload" title="PDF 자료 올리기">＋ Upload</button>
           <button id="btn-manage" title="자료 이름 바꾸기 · 옮기기 · 삭제">Manage</button></div>
@@ -1058,17 +1081,18 @@ function renderCats(){
   $("#cats").innerHTML = KV.cats.map(c => {
     const n = DOCS.filter(d => d.cat === c).length;
     const on = !S.offCats.has(c);
-    return `<div class="cat ${on?"on":""}" data-cat="${esc(c)}">
-      <span class="box">${on?"✓":""}</span><span class="nm">${esc(c)}</span>
-      <span class="cnt">${n}</span>
-      <button class="edit" data-ren="${esc(c)}" title="이름 바꾸기">✎</button>
-      <button class="del" data-del="${esc(c)}" title="이 종류 삭제">✕</button></div>`;
+    return `<button class="cat ${on?"on":""}" data-cat="${esc(c)}"
+      title="${esc(c)} · 눌러서 켜고 끄기 (오른쪽 단추 또는 길게 누르면 이름 바꾸기·삭제)"
+      >${esc(c)}<span class="cnt">${n}</span></button>`;
   }).join("");
 }
 
 function renderTree(){
   const list = activeDocs();
   $("#listcount").textContent = `(${list.length})`;
+  /* 커맨드 바 오른쪽 끝 — 지금 걸러진 자료 수와 회의록이 붙은 자료 수 */
+  $("#cmdcount").textContent =
+    `${list.length}개 자료 · ${list.filter(d => noteOf(d)).length}개 회의록`;
 
   if(!DOCS.length){
     $("#tree").innerHTML = `<div class="emptybox">아직 등록된 자료가 없습니다.<br>
@@ -1867,33 +1891,67 @@ $("#ageditdel").onclick = () => {
 /* =========================================================
    9) 회의 종류 · 폴더 · 자료 선택
    ========================================================= */
+/* 칩을 누르면 그 종류를 켜고 끕니다 */
 $("#cats").addEventListener("click", e => {
-  const ren = e.target.closest("[data-ren]");
-  if(ren){ renameCat(ren.dataset.ren); return; }
-  const del = e.target.closest("[data-del]");
-  if(del){
-    const c = del.dataset.del, n = DOCS.filter(d => d.cat === c).length;
-    if(n){ alert(`'${c}' 안에 자료가 ${n}개 있습니다.\n자료를 먼저 옮기거나 지운 뒤에 종류를 삭제할 수 있습니다.`); return; }
-    if(confirm(`'${c}' 종류를 지울까요?`)){
-      KV.cats = KV.cats.filter(x => x !== c); saveKV("cats");
-      if(KV.agendas){
-        let hit = false;
-        Object.keys(KV.agendas).forEach(k => {
-          if(k.slice(0, k.indexOf("|")) === c){ delete KV.agendas[k]; hit = true; }
-        });
-        if(hit) saveKV("agendas");
-      }
-      S.agOff.delete(c); KV.agOff = Array.from(S.agOff); saveKV("agOff");
-      renderCats(); renderTree();
-    }
-    return;
-  }
   const row = e.target.closest(".cat"); if(!row) return;
   const c = row.dataset.cat;
   S.offCats.has(c) ? S.offCats.delete(c) : S.offCats.add(c);
   KV.offcats = Array.from(S.offCats); saveKV("offcats");
   renderCats(); renderTree();
 });
+
+function deleteCat(c){
+  const n = DOCS.filter(d => d.cat === c).length;
+  if(n){ alert(`'${c}' 안에 자료가 ${n}개 있습니다.\n자료를 먼저 옮기거나 지운 뒤에 종류를 삭제할 수 있습니다.`); return; }
+  if(!confirm(`'${c}' 종류를 지울까요?`)) return;
+  KV.cats = KV.cats.filter(x => x !== c); saveKV("cats");
+  if(KV.agendas){
+    let hit = false;
+    Object.keys(KV.agendas).forEach(k => {
+      if(k.slice(0, k.indexOf("|")) === c){ delete KV.agendas[k]; hit = true; }
+    });
+    if(hit) saveKV("agendas");
+  }
+  S.agOff.delete(c); KV.agOff = Array.from(S.agOff); saveKV("agOff");
+  renderCats(); renderTree();
+}
+
+/* 칩 위에서 오른쪽 단추(또는 길게 누르기) — 이름 바꾸기 · 삭제 쪽지 */
+function openCatMenu(cat, x, y){
+  const m = $("#catmenu");
+  m.dataset.cat = cat;
+  m.innerHTML = `<button data-act="ren">이름 바꾸기</button><button data-act="del">삭제</button>`;
+  m.classList.add("on");
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(x, innerWidth  - r.width  - 8)) + "px";
+  m.style.top  = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+}
+function closeCatMenu(){ $("#catmenu").classList.remove("on"); }
+
+$("#cats").addEventListener("contextmenu", e => {
+  const row = e.target.closest(".cat"); if(!row) return;
+  e.preventDefault();
+  openCatMenu(row.dataset.cat, e.clientX, e.clientY);
+});
+/* 손가락으로 쓰는 기기 — 0.6초 길게 누르면 같은 쪽지가 열립니다 */
+let catHold = null;
+$("#cats").addEventListener("touchstart", e => {
+  const row = e.target.closest(".cat"); if(!row) return;
+  const t = e.touches[0];
+  catHold = setTimeout(() => { catHold = null; openCatMenu(row.dataset.cat, t.clientX, t.clientY); }, 600);
+}, {passive:true});
+["touchend","touchmove","touchcancel"].forEach(ev =>
+  $("#cats").addEventListener(ev, () => { clearTimeout(catHold); catHold = null; }, {passive:true}));
+
+$("#catmenu").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const c = $("#catmenu").dataset.cat;
+  closeCatMenu();
+  if(b.dataset.act === "ren") renameCat(c); else deleteCat(c);
+});
+document.addEventListener("pointerdown", e => {
+  if(!e.target.closest("#catmenu") && !e.target.closest(".cat")) closeCatMenu();
+}, true);
 
 /* 회의 종류 이름 바꾸기 —
    그 종류로 등록해 둔 자료와 회의록의 소속도 함께 옮깁니다.
