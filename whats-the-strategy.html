@@ -134,14 +134,10 @@ button[disabled]{opacity:.45;cursor:default;}
   border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);}
 #addcat:hover{border-color:var(--accent);color:var(--accent-ink);}
 #addcat svg{display:block;}
-/* 주차 고르개 — 칸이 서로 맞닿는 한 덩어리 */
+/* 연·월 고르개 */
 .cmdsep{flex:0 0 auto;width:2px;height:20px;background:var(--line);margin:0 6px;}
 #weeknav{flex:0 0 auto;display:flex;align-items:center;}
-.wkbtn{height:24px;min-width:38px;padding:0 8px;border:1px solid var(--line);border-right:none;
-  border-radius:0;background:none;color:var(--muted);font-size:11px;font-weight:700;}
-.wkbtn:hover{color:var(--accent-ink);}
-.wkbtn.on{background:var(--rule);color:var(--bg);}
-/* 오른쪽 끝 기간 칸 — 눌러서 연·월을 바꿉니다 */
+/* 연·월 칸 — 눌러서 기간·연도별 전체보기를 바꿉니다 */
 #periodbtn{height:24px;padding:0 10px;border:1px solid var(--line);border-radius:0;background:none;
   color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;white-space:nowrap;}
 #periodbtn:hover{border-color:var(--accent);color:var(--accent-ink);}
@@ -154,6 +150,10 @@ button[disabled]{opacity:.45;cursor:default;}
 #periodmenu .yr button{width:24px;height:24px;padding:0;border:2px solid var(--line);
   background:none;color:var(--muted);font-size:11px;line-height:1;}
 #periodmenu .yr button:hover{border-color:var(--accent);color:var(--accent-ink);}
+#periodmenu .allbtn{width:100%;height:28px;margin-bottom:8px;padding:0;border:1px solid var(--line);
+  border-radius:0;background:none;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.04em;}
+#periodmenu .allbtn:hover{border-color:var(--accent);color:var(--accent-ink);}
+#periodmenu .allbtn.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
 #periodmenu .ms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
 #periodmenu .ms button{height:26px;border:1px solid var(--line);background:none;
   color:var(--muted);font-size:11px;font-weight:700;padding:0;}
@@ -804,10 +804,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   </button>
   <div class="cmdsep"></div>
   <div id="weeknav">
-    <button class="wkbtn" data-w="1">W1</button><button class="wkbtn" data-w="2">W2</button
-    ><button class="wkbtn" data-w="3">W3</button><button class="wkbtn" data-w="4">W4</button
-    ><button class="wkbtn" data-w="5">W5</button>
-    <button id="periodbtn" title="연·월 고르기"></button>
+    <button id="periodbtn" title="연·월 · 연도별 전체보기 고르기"></button>
   </div>
   <span id="cmdcount"></span>
 </div>
@@ -1301,8 +1298,8 @@ const S = {
   editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
-  /* 주차 거르개 — week 가 null 이면 기간과 상관없이 전부 보여 줍니다 */
-  pY:new Date().getFullYear(), pM:new Date().getMonth() + 1, week:null,
+  /* 기간 보기 — "year" 는 그 해 전체, "month" 는 그 해 · 그 달만 */
+  pY:new Date().getFullYear(), pM:new Date().getMonth() + 1, periodView:"year",
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"width",                          /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
@@ -1313,32 +1310,35 @@ const S = {
 /* =========================================================
    4) 왼쪽 — 회의 종류 · 폴더 목록
    ========================================================= */
-/* 목록은 오름차순입니다 — 1월 → 12월, 1주차 → 5주차 순으로 보입니다 */
+/* 왼쪽 목록은 연도·월이 내림차순(최근이 위) — 26년→25년, 12월→11월.
+   한 달 안에서는 주차 오름차순(1주차 → 5주차)으로 보입니다 */
 function activeDocs(){
   return DOCS
     .filter(d => !S.offCats.has(d.cat))
-    .filter(d => S.week == null ||
-      (+yearOf(d) === S.pY && monthOf(d) === S.pM && weekOf(d) === S.week))
+    .filter(d => S.periodView === "year"
+      ? +yearOf(d) === S.pY
+      : (+yearOf(d) === S.pY && monthOf(d) === S.pM))
     .sort((a,b) => (a.date+a.addedAt).localeCompare(b.date+b.addedAt));
 }
 
 /* ---- 커맨드 바 오른쪽 — 주차 · 기간 ---- */
 function renderWeekNav(){
-  $$("#weeknav .wkbtn").forEach(b => b.classList.toggle("on", S.week === +b.dataset.w));
-  $$("#weeknav .wkbtn").forEach(b => b.title = S.week === +b.dataset.w
-    ? `${b.dataset.w}주차만 보는 중 — 다시 누르면 전체 기간으로 돌아갑니다`
-    : `${S.pY}년 ${S.pM}월 ${b.dataset.w}주차만 보기`);
-  $("#periodbtn").textContent = `${S.pY} · ${S.pM}월`;
+  $("#periodbtn").textContent = S.periodView === "year"
+    ? `${S.pY} 전체보기`
+    : `${S.pY} · ${S.pM}월`;
 }
 
 function renderPeriodMenu(){
+  const yv = S.periodView === "year";
   const ms = [];
   for(let m = 1; m <= 12; m++)
-    ms.push(`<button data-m="${m}" class="${m === S.pM ? "on" : ""}">${m}월</button>`);
+    ms.push(`<button data-m="${m}" class="${!yv && m === S.pM ? "on" : ""}">${m}월</button>`);
   $("#periodmenu").innerHTML =
     `<div class="yr"><button data-y="-1" title="이전 해">◀</button>` +
     `<b>${S.pY}년</b>` +
     `<button data-y="1" title="다음 해">▶</button></div>` +
+    `<button class="allbtn ${yv ? "on" : ""}" data-all="1"
+      title="${S.pY}년 모든 월·주차를 왼쪽에 펼쳐 봅니다">${S.pY}년 전체보기</button>` +
     `<div class="ms">${ms.join("")}</div>`;
 }
 
@@ -1387,9 +1387,9 @@ function renderTree(){
   }
   if(!list.length){
     $("#tree").innerHTML = `<div class="emptybox">표시할 자료가 없습니다.<br>` +
-      (S.week != null
-        ? `위 <b>${S.pY} · ${S.pM}월 ${S.week}주차</b> 를 다시 눌러 전체 기간을 보거나,<br>회의 종류를 켜 보세요.`
-        : `위에서 회의 종류를 켜 보세요.`) + `</div>`;
+      (S.periodView === "year"
+        ? `<b>${S.pY}년</b> 에 등록된 자료가 없습니다.<br>위에서 연도를 바꾸거나 회의 종류를 켜 보세요.`
+        : `<b>${S.pY} · ${S.pM}월</b> 에 자료가 없습니다.<br><b>${S.pY} 전체보기</b> 를 누르거나 회의 종류를 켜 보세요.`) + `</div>`;
     return;
   }
 
@@ -1401,7 +1401,7 @@ function renderTree(){
   });
 
   let html = "";
-  Object.keys(years).sort().forEach(y => {
+  Object.keys(years).sort().reverse().forEach(y => {
     const months = years[y];
     const yCnt = Object.values(months).reduce((a,b) => a + b.length, 0);
     const yOpen = S.open.has(y);
@@ -1409,7 +1409,7 @@ function renderTree(){
       <span class="nm">${y}</span><span class="cnt">${yCnt}</span></div>`;
     if(!yOpen) return;
 
-    Object.keys(months).sort().forEach(m => {
+    Object.keys(months).sort().reverse().forEach(m => {
       const docs = months[m], mOpen = S.open.has(m);
       html += `<div class="fold mo ${mOpen?"":"shut"}" data-k="${m}">${caretSvg(11)}
         <span class="nm">${parseInt(m.slice(5),10)}월</span>
@@ -2277,10 +2277,7 @@ $("#ageditdel").onclick = () => {
 /* =========================================================
    9) 회의 종류 · 폴더 · 자료 선택
    ========================================================= */
-/* 주차 단추 — 한 번 더 누르면 전체 기간으로 돌아갑니다 */
 $("#weeknav").addEventListener("click", e => {
-  const b = e.target.closest(".wkbtn");
-  if(b){ const w = +b.dataset.w; S.week = (S.week === w) ? null : w; renderTree(); return; }
   if(e.target.closest("#periodbtn")){
     $("#periodmenu").classList.contains("on") ? closePeriodMenu() : openPeriodMenu();
   }
@@ -2288,13 +2285,19 @@ $("#weeknav").addEventListener("click", e => {
 
 $("#periodmenu").addEventListener("click", e => {
   const y = e.target.closest("[data-y]");
-  if(y){ S.pY += +y.dataset.y; renderPeriodMenu(); renderWeekNav(); if(S.week != null) renderTree(); return; }
+  if(y){ S.pY += +y.dataset.y; renderPeriodMenu(); renderWeekNav(); renderTree(); return; }
+  /* 연도별 전체보기 토글 — 켜면 그 해 모든 월·주차, 끄면 다시 그 달만 */
+  if(e.target.closest("[data-all]")){
+    S.periodView = S.periodView === "year" ? "month" : "year";
+    renderPeriodMenu(); renderWeekNav(); renderTree();
+    return;
+  }
   const m = e.target.closest("[data-m]");
   if(!m) return;
   S.pM = +m.dataset.m;
+  S.periodView = "month";   /* 달을 고르면 그 달만 봅니다 */
   closePeriodMenu();
-  if(S.week == null) S.week = 1;   /* 달을 고르면 그 달을 보러 온 것으로 봅니다 */
-  renderTree();
+  renderWeekNav(); renderTree();
 });
 document.addEventListener("pointerdown", e => {
   if(!e.target.closest("#periodmenu") && !e.target.closest("#periodbtn")) closePeriodMenu();
