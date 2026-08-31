@@ -295,7 +295,7 @@ table.agtable th{position:sticky;top:0;background:var(--panel2);color:var(--mute
   white-space:nowrap;z-index:1;}
 table.agtable th.wkh{left:0;z-index:3;min-width:40px;}
 table.agtable td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);
-  vertical-align:top;padding:2px;min-width:118px;}
+  vertical-align:top;padding:2px;min-width:236px;}
 table.agtable td.agcell:hover{background:var(--accent-soft);}
 table.agtable tbody th.wkh{position:sticky;left:0;z-index:2;background:var(--panel2);
   text-align:center;vertical-align:middle;}
@@ -2254,9 +2254,17 @@ let agEditCtx = null;
 function agCurKey(){
   return agEditCtx ? noteKey($("#ageditcat").value, mkDate(agEditCtx.y, agEditCtx.m, agEditCtx.w)) : "";
 }
+const AG_BULLET = "ㆍ ";
+/* 저장된 텍스트에서 빈 글머리 줄을 정리합니다 */
+function cleanAgenda(raw){
+  return String(raw || "").split("\n")
+    .map(l => l.replace(/\s+$/, ""))
+    .filter(l => l.replace(/^ㆍ\s*/, "").trim() !== "")
+    .join("\n").trim();
+}
 function syncAgEdit(){
   const cur = String((KV.agendas || {})[agCurKey()] || "");
-  $("#agedittext").value = cur;
+  $("#agedittext").value = cur || AG_BULLET;
   $("#ageditdel").style.display = cur ? "" : "none";
 }
 function openAgEdit(cat, y, m, w){
@@ -2271,11 +2279,20 @@ function openAgEdit(cat, y, m, w){
 }
 function closeAgEdit(){ $("#ageditbg").classList.remove("on"); agEditCtx = null; }
 $("#ageditcat").addEventListener("change", syncAgEdit);
+/* 줄바꿈할 때마다 글머리 기호(ㆍ)를 자동으로 넣습니다 */
+$("#agedittext").addEventListener("keydown", e => {
+  if(e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+  e.preventDefault();
+  const el = e.target, s = el.selectionStart, en = el.selectionEnd, v = el.value;
+  const ins = "\n" + AG_BULLET;
+  el.value = v.slice(0, s) + ins + v.slice(en);
+  el.selectionStart = el.selectionEnd = s + ins.length;
+});
 $("#ageditx").onclick = $("#ageditcancel").onclick = closeAgEdit;
 $("#ageditbg").addEventListener("click", e => { if(e.target.id === "ageditbg") closeAgEdit(); });
 $("#ageditsave").onclick = () => {
   if(!agEditCtx) return;
-  const key = agCurKey(), text = $("#agedittext").value.trim();
+  const key = agCurKey(), text = cleanAgenda($("#agedittext").value);
   KV.agendas = KV.agendas || {};
   if(text) KV.agendas[key] = text; else delete KV.agendas[key];
   saveKV("agendas");
