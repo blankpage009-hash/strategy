@@ -403,7 +403,7 @@ body.rendering #spin{display:block;}
 /* ---------- 오른쪽 ---------- */
 #right .side-scroll{padding:12px 12px 28px;}
 #rbody[data-tab="sum"],#rbody[data-tab="note"],#rbody[data-tab="task"]{padding:0 0 20px;}
-#rbody[data-tab="sum"][data-mode="text"]{padding:12px 12px 28px;}
+#rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"]{padding:12px 12px 28px;}
 /* 탭 줄은 스크롤과 상관없이 위에 붙어 있습니다.
    고른 탭만 이름과 함께 넓게 펴지고, 나머지는 아이콘 칸으로 접힙니다. */
 #rtop{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
@@ -453,14 +453,10 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 .airow{display:flex;align-items:center;gap:6px;margin:0 0 6px;}
 .aiwhen{flex:1 1 auto;min-width:0;font-size:10.5px;color:#7d7979;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* Executive Summary 탭(텍스트로 볼 때) — 요약 상자가 패널 전체를 채웁니다 */
-#rbody[data-tab="sum"][data-mode="text"]{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px;}
-#rbody[data-tab="sum"][data-mode="text"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
-#rbody[data-tab="sum"][data-mode="text"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
-/* 회의록 탭 — 수정 중이면 입력창이 오른쪽 패널을 꽉 채웁니다 */
-#rbody[data-tab="note"][data-mode="edit"]{display:flex;flex-direction:column;overflow:hidden;}
-#rbody[data-tab="note"][data-mode="edit"] .sblk.notewrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border-bottom:none;}
-#rbody[data-tab="note"][data-mode="edit"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;margin-top:2px;}
+/* Executive Summary(텍스트로 볼 때) · 회의록 탭 — 입력창이 패널 전체를 채웁니다 */
+#rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"]{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px;}
+#rbody[data-tab="sum"][data-mode="text"] .sect.grow,#rbody[data-tab="note"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
+#rbody[data-tab="sum"][data-mode="text"] textarea.sum.fill,#rbody[data-tab="note"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
 .tip{font-size:10.5px;color:#7d7979;margin-top:3px;}
 .nonote{font-size:12px;color:var(--muted);line-height:1.6;}
 /* 상태 딱지 — 9px 사각형 하나에 글자 하나 */
@@ -1297,7 +1293,7 @@ function indexDoc(d){
 const S = {
   sel:null, q:"", zoom:1, page:1, rtab:"sum",
   /* 오른쪽 탭 : sum(회의자료 요약) · note(회의록) · task(할 일) */
-  editA:false, editB:false, editN:false, focusSum:null, focusNote:null,  /* 요약·회의록 상자 잠금 해제 여부 (저장하지 않습니다) */
+  editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
   /* 주차 거르개 — week 가 null 이면 기간과 상관없이 전부 보여 줍니다 */
@@ -1943,31 +1939,13 @@ function renderRight(){
       </div>`
     : execBox(ex, sumTools, sumStatus) + exSections(ex);
 
-  /* ── 탭 2 : Meeting Notes — 회의록 요약 · 회의록 원문 ───────────── */
+  /* ── 탭 2 : Meeting Notes — 입력창 하나가 패널을 꽉 채웁니다 ───────────── */
   const paneNote = `
-    <div class="sblk">
-      <div class="skick"><span class="sp"></span>${ lockBtn("B", !!b, S.editB) }</div>
-      <textarea class="sum" id="sumB" ${S.editB?"":"readonly"}
-        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "편집 을 눌러 회의록 요약을 적으세요"}">${esc(b)}</textarea>
+    <div class="sect grow">
+      <h4 class="aihead">${ lockBtn("B", !!b, S.editB) }</h4>
+      <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
+        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "편집 을 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
-    </div>
-
-    <div class="sblk major notewrap">
-      <div class="skick">회의록
-        ${ note && !S.editN ? `<span class="chip">${lines.length}줄</span>` : "" }
-        <span class="sp"></span>
-        ${ S.editN && note ? `<button class="mini" id="notedelN">삭제</button>` : "" }
-        <button class="mini" id="noteeditN">${ S.editN ? "완료" : (note ? "수정" : "등록") }</button></div>
-      ${ S.editN
-        ? `<textarea class="sum fill" id="noteN" placeholder="회의록 내용을 붙여넣으세요.">${esc(note ? note.text : "")}</textarea>
-           <div class="tip">적는 대로 저장됩니다. <b>완료</b> 를 누르면 문장별로 볼 수 있습니다.</div>`
-        : (note
-            ? lines.map(s => `<div class="mline ${used.has(s)?"used":""}">
-                 <span>${esc(s)}</span>
-                 <button class="add" data-line="${esc(s)}" title="할 일로 추가">${used.has(s)?"✓":"+"}</button>
-               </div>`).join("") + `<div class="tip">문장 옆 <b>+</b> 를 누르면 <b>할 일</b> 탭으로 들어갑니다.</div>`
-            : `<div class="nonote">이 회의(${esc(d.cat)} · ${fmtYMW(d)})에는 회의록이 없습니다.<br>
-               위 <b>등록</b> 으로 붙여넣으세요.</div>`) }
     </div>
   `;
 
@@ -2015,8 +1993,7 @@ function renderRight(){
   `;
 
   /* 같은 탭을 다시 그릴 때는 보던 위치를 그대로 둡니다 */
-  const mode = tab === "sum" ? (asText ? "text" : "ex")
-             : (tab === "note" && S.editN) ? "edit" : "";
+  const mode = tab === "sum" ? (asText ? "text" : "ex") : "";
   const keep = (body.dataset.tab === tab && body.dataset.mode === mode) ? body.scrollTop : 0;
   body.innerHTML = tab === "task" ? paneTask : (tab === "note" ? paneNote : paneSum);
   body.dataset.tab = tab;
@@ -2032,11 +2009,6 @@ function renderRight(){
       t.selectionStart = t.selectionEnd = t.value.length;
     }
   }
-  if(S.focusNote){
-    S.focusNote = null;
-    const t = $("#noteN");
-    if(t){ t.focus(); t.selectionStart = t.selectionEnd = t.value.length; }
-  }
 }
 
 /* 탭 바꾸기 — 어느 탭을 보고 있었는지 기억합니다 */
@@ -2044,7 +2016,7 @@ $("#rtop").addEventListener("click", e => {
   const t = e.target.closest("[data-tab]"); if(!t) return;
   if(S.rtab === t.dataset.tab) return;
   S.rtab = t.dataset.tab; KV.rtab = S.rtab; saveKV("rtab");
-  S.editA = S.editB = S.editN = false;          /* 탭을 옮기면 다시 잠급니다 */
+  S.editA = S.editB = false;          /* 탭을 옮기면 다시 잠급니다 */
   renderRight();
 });
 
@@ -2611,7 +2583,7 @@ $("#mgdelsel").onclick = async () => {
 
 async function selectDoc(id){
   S.sel = id; revealDoc(id);
-  S.editA = S.editB = S.editN = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
+  S.editA = S.editB = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
   renderTree(); renderRight();
@@ -2758,16 +2730,6 @@ $("#rbody").addEventListener("input", e => {
     cur.by = "me";                   /* 손으로 고친 요약은 AI가 덮어쓰지 않습니다 */
     KV.sums[S.sel] = cur; saveKV("sums");
   }
-  if(e.target.id === "noteN"){
-    const d = DOCS.find(x => x.id === S.sel); if(!d) return;
-    const key = noteKey(d.cat, d.date), text = e.target.value;
-    if(text.trim()){
-      NOTES[key] = { key, cat:d.cat, date:d.date, text, updatedAt:new Date().toISOString() };
-      dbPut("notes", NOTES[key]);
-    }else if(NOTES[key]){
-      delete NOTES[key]; dbDel("notes", key);
-    }
-  }
 });
 $("#rbody").addEventListener("focusin", e => {
   const t = e.target;
@@ -2867,24 +2829,6 @@ $("#rbody").addEventListener("click", async e => {
   if(rm){ KV.tasks[S.sel].splice(+rm.dataset.rm,1); saveKV("tasks"); renderRight(); return; }
   if(e.target.id === "addtask"){ addTask($("#newtask").value); return; }
   if(e.target.id === "alltasks"){ openAllTasks(); return; }
-  if(e.target.id === "noteeditN"){
-    if(!S.editN) S.focusNote = true;
-    S.editN = !S.editN;
-    renderTree(); renderRight();
-    return;
-  }
-  if(e.target.id === "notedelN"){
-    const d = DOCS.find(x => x.id === S.sel); if(!d) return;
-    if(!confirm("이 회의록을 지울까요?")) return;
-    const key = noteKey(d.cat, d.date);
-    dbDel("notes", key).then(() => {
-      delete NOTES[key];
-      S.editN = false;
-      renderTree(); renderRight();
-      toast("회의록을 지웠습니다");
-    });
-    return;
-  }
   if(e.target.id === "aigen" || e.target.id === "airetry"){ makeSummary(S.sel); return; }
   if(e.target.id === "sugclear"){
     const cur = KV.sums[S.sel]; if(cur){ cur.sug = []; saveKV("sums"); renderRight(); }
@@ -3529,8 +3473,8 @@ async function makeSummary(docId, opts){
 }
 
 /* =========================================================
-   12) 회의록 — 오른쪽 패널에서 바로 편집합니다 (renderRight 의 paneNote,
-       #rbody 의 input·click 처리기에서 NOTES 를 직접 읽고 씁니다).
+   12) 회의록(NOTES) — 화면 입력은 없어졌고, 옛 데이터와 백업 불러오기로만
+       채워집니다. AI 요약·검색·내보내기·목록 표시에서 계속 읽습니다.
    ========================================================= */
 
 /* =========================================================
@@ -4118,7 +4062,6 @@ document.addEventListener("keydown", e => {
     else if($("#alltasksbg").classList.contains("on")) $("#alltasksbg").classList.remove("on");
     else if($("#uploadbg").classList.contains("on")) closeUpload();
     else if($("#modalbg").classList.contains("on")) $("#modalbg").classList.remove("on");
-    else if(S.editN){ S.editN = false; renderTree(); renderRight(); }
     else if(document.body.classList.contains("full")) setFull(false);
     return;
   }
