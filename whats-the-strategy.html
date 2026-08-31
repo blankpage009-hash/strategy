@@ -897,7 +897,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 
   <aside id="right">
     <button class="rail" data-open="right" title="오른쪽 사이드바 열기">
-      <span class="arw">«</span><span class="lbl">요약 · 회의록 · 할 일</span>
+      <span class="arw">«</span><span class="lbl">SUMMARY · NOTE · TASKS</span>
     </button>
     <div class="side-inner">
       <div id="rtop"></div>
@@ -1830,9 +1830,9 @@ function rtabsHtml(tab, taskCount, off){
   const one = (k, label, extra) =>
     `<button class="rtab ${tab === k ? "on" : ""}" data-tab="${k}" title="${label}"
       ${off ? "disabled" : ""}>${RTAB_ICONS[k]}<span class="t">${label}</span>${extra || ""}</button>`;
-  return one("sum", "요약")
-       + one("note", "회의록")
-       + one("task", "할 일", taskCount ? `<span class="num">${taskCount}</span>` : "")
+  return one("sum", "SUMMARY")
+       + one("note", "NOTE")
+       + one("task", "TASKS", taskCount ? `<span class="num">${taskCount}</span>` : "")
        + `<button class="closebtn" data-close="right" title="접기">»</button>`;
 }
 
