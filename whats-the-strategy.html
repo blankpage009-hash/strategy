@@ -429,6 +429,8 @@ body.rendering #spin{display:block;}
 .sect > h4 .mini{margin-left:auto;border:1px solid var(--line);background:var(--bg);border-radius:0;
   font-size:11px;padding:2px 7px;font-weight:600;color:var(--muted);}
 .sect > h4 .mini:hover{border-color:var(--accent);color:var(--accent);}
+.sect > h4 .mini.addbtn{background:var(--accent);border-color:var(--accent);color:#fff;}
+.sect > h4 .mini.addbtn:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff;}
 .aioff{font-size:10.5px;font-weight:600;color:var(--warn);background:#eae9e9;border:1px solid #d7d3d3;
   border-radius:0;padding:0 5px;line-height:16px;}
 .aion{font-size:10.5px;font-weight:600;color:var(--ok);background:#eae9e9;border:1px solid #d7d3d3;
@@ -477,8 +479,7 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 .mline.used .add{border-color:var(--line);color:var(--muted3);}
 /* 할 일 한 줄 — 왼쪽 9px 사각형이 상태입니다 */
 #tasklist{margin-top:2px;}
-.task{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--hairline);}
-.task:last-child{border-bottom:none;}
+.task{display:flex;gap:12px;align-items:flex-start;padding:6px 0;}
 .task .st{flex:0 0 auto;width:18px;height:18px;padding:0;border:none;background:none;
   display:flex;align-items:center;justify-content:center;}
 .task .st .dot{width:9px;height:9px;}
@@ -491,8 +492,9 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 #taskadd input{flex:1 1 auto;min-width:0;height:28px;padding:0 8px;border:none;
   border-bottom:2px solid var(--line);border-radius:0;background:none;font-size:12px;}
 #taskadd input:focus{border-bottom-color:var(--accent);}
-#taskadd button{height:28px;padding:0 10px;border:none;border-radius:0;background:var(--accent);
-  color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
+#taskadd button{height:28px;padding:0 10px;border:1px solid var(--accent);border-radius:0;
+  background:var(--accent);color:#fff;font-size:11px;font-weight:600;}
+#taskadd button:hover{background:var(--accent-hover);border-color:var(--accent-hover);}
 #taskadd button:hover{background:var(--accent-hover);}
 .legend{font-size:10.5px;color:var(--muted2);margin-top:10px;line-height:1.6;}
 
@@ -567,6 +569,7 @@ table.ext td.sub .k0{padding-left:11px;color:var(--muted);font-weight:600;}
   font-size:11px;color:var(--muted);}
 .dot{width:9px;height:9px;border-radius:0;background:#d7d3d3;flex:0 0 auto;}
 .dot.ok{background:var(--ok);} .dot.warn{background:var(--warn);} .dot.bad{background:var(--accent);}
+.dot.go{background:#2b8a3e;}
 
 /* 쪽별 요약 — 쪽 번호 딱지를 누르면 그 쪽으로 갑니다 */
 .pgdept{margin:10px 0 2px;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--muted2);}
@@ -1868,7 +1871,7 @@ function renderRight(){
   /* 잠금/풀기 단추 — 잠겨 있으면 Add(내용 없음) · Edit(내용 있음), 풀려 있으면 완료 */
   const lockBtn = (id, has, editing) => editing
     ? `<button class="mini" data-lock="${id}">완료</button>`
-    : `<button class="mini" data-lock="${id}">${has ? "편집" : "추가"}</button>`;
+    : `<button class="mini${has ? "" : " addbtn"}" data-lock="${id}">${has ? "Edit" : "Add"}</button>`;
 
   /* 위쪽 고정 — 탭 줄 (자료 이름은 뷰어 툴바에 이미 있습니다) */
   top.innerHTML = rtabsHtml(tab, tasks.length, false);
@@ -1878,8 +1881,6 @@ function renderRight(){
        없으면(또는 ‘텍스트’ 를 누르면) 예전처럼 글상자로 보여 줍니다. */
   const ex       = (mine.ex && mine.ex.ver === 3) ? mine.ex : null;
   const asText   = !ex || S.sumText;
-  /* 요약이 하나도 없는 상태 — 빈 글상자 대신 만들기를 권합니다 */
-  const noSum    = !ex && !a && !S.sumText;
   /* 만든 시각은 배지 바로 오른쪽에 한 줄로 붙습니다 (자리가 좁으면 … 로 줄입니다) */
   const whenTxt = (mine.by === "ai" && mine.at)
     ? `AI가 ${fmtWhen(mine.at)}에 만든 요약입니다.` : "";
@@ -1924,27 +1925,14 @@ function renderRight(){
       <div class="skel line w90"></div><div class="skel line w50"></div>
     </div>`;
 
-  const noSumBlk = `
-    <div class="sblk major">
-      <div class="skick">Executive summary<span class="sp"></span>
-        ${ aiOn ? `<button class="mini" id="aigen">AI로 요약 만들기</button>` : "" }
-        <button class="mini" id="sumview">직접 적기</button></div>
-      ${sumStatus}
-      <div class="nonote">아직 요약이 없습니다.${
-        aiOn ? ` 위 <b>AI로 요약 만들기</b> 를 누르거나, <b>직접 적기</b> 로 손수 적을 수 있습니다.`
-             : ` <b>직접 적기</b> 로 손수 적거나, 설정에서 AI 요약을 켜 주세요.`}</div>
-    </div>`;
-
   const paneSum =
       (busy && !ex) ? skelBlk
-    : noSum ? noSumBlk
     : asText
     ? `<div class="sect grow">
         <h4 class="aihead">${sumTools}</h4>
         ${sumStatus}
-        ${ whenTxt ? `<div class="tip"><b>편집</b> 을 눌러 고쳐 쓰면 그대로 저장됩니다.</div>` : "" }
         <textarea class="sum fill" id="sumA" ${S.editA?"":"readonly"}
-          placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "추가 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
+          placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
         ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
         ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
                  위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }
@@ -1956,14 +1944,15 @@ function renderRight(){
     <div class="sect grow">
       <h4 class="aihead">${ lockBtn("B", !!b, S.editB) }</h4>
       <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
-        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "편집 을 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
+        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
     </div>
   `;
 
   /* ── 탭 3 : 할 일 (AI 후보 + 할 일 목록) ────────────────────── */
-  const openCnt = tasks.filter(t => t.s !== 2).length;
-  const doneCnt = tasks.length - openCnt;
+  const leftCnt  = tasks.filter(t => t.s === 0).length;
+  const doingCnt = tasks.filter(t => t.s === 1).length;
+  const doneCnt  = tasks.filter(t => t.s === 2).length;
 
   const paneTask = `
     ${ sug.length ? `
@@ -1979,15 +1968,16 @@ function renderRight(){
 
     <div class="sblk">
       <div class="skick">Tasks
-        <span class="chip ${openCnt ? "on" : ""}"><i class="dot ${openCnt ? "bad" : ""}"></i>${openCnt} 남음</span>
+        <span class="chip ${leftCnt ? "on" : ""}"><i class="dot ${leftCnt ? "bad" : ""}"></i>${leftCnt} 남음</span>
+        <span class="chip"><i class="dot ${doingCnt ? "go" : ""}"></i>${doingCnt} 진행중</span>
         <span class="chip"><i class="dot warn"></i>${doneCnt} 완료</span>
         <span class="sp"></span>
         <button class="mini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">모든 할 일 보기</button></div>
       <div id="tasklist">
         ${ tasks.length ? tasks.map((t,i) => {
             const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
-            const dot = t.s===2 ? "warn" : (t.s===1 ? "bad" : "");
-            const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행 중" : "시작 전");
+            const dot = t.s===2 ? "warn" : (t.s===1 ? "go" : "bad");
+            const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행중" : "남음");
             return `<div class="task ${cls}">
               <button class="st" data-i="${i}" title="상태 바꾸기 (지금 ${nm})"
                 ><i class="dot ${dot}"></i></button>
@@ -1998,9 +1988,8 @@ function renderRight(){
       </div>
       <div id="taskadd">
         <input id="newtask" type="text" placeholder="할 일 직접 입력" autocomplete="off">
-        <button id="addtask">추가</button>
+        <button id="addtask">Add</button>
       </div>
-      <div class="legend">사각형을 누를 때마다 시작 전 → 진행 중 → 완료 로 바뀝니다.</div>
     </div>
   `;
 
@@ -2764,14 +2753,17 @@ $("#rbody").addEventListener("keydown", e => {
 });
 
 function addTask(text){
-  const t = (text||"").trim(); if(!t || !S.sel) return;
+  const t = (text||"").trim();
+  if(!t){ toast("할 일 내용을 입력하세요"); return; }
+  if(!S.sel){ toast("먼저 왼쪽에서 자료를 고르세요"); return; }
   const arr = KV.tasks[S.sel] || [];
-  if(arr.some(x => x.t === t)) return;
   arr.push({ t, s:0 });
   KV.tasks[S.sel] = arr; saveKV("tasks");
   /* 다른 탭에서 넣었으면 어디로 갔는지 알려 줍니다 */
   if(S.rtab !== "task") toast("Tasks 탭에 추가했습니다");
   renderRight();
+  /* 이어서 더 넣을 수 있게 입력창에 커서를 둡니다 */
+  if(S.rtab === "task"){ const inp = $("#newtask"); if(inp) inp.focus(); }
 }
 
 /* ---- 모든 할 일 팝업 — 주차·종류 상관없이 전부 모아서 보여 줍니다 ---- */
@@ -2791,8 +2783,8 @@ function renderAllTasks(){
       <div class="athead">${esc(head)}<span class="atsub">${esc(d.short || d.title || "")}</span></div>
       ${ arr.map((t,i) => {
         const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
-        const dot = t.s===2 ? "warn" : (t.s===1 ? "bad" : "");
-        const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행 중" : "시작 전");
+        const dot = t.s===2 ? "warn" : (t.s===1 ? "go" : "bad");
+        const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행중" : "남음");
         return `<div class="task ${cls}">
           <button class="st" data-doc="${d.id}" data-ti="${i}" title="상태 바꾸기 (지금 ${nm})"
             ><i class="dot ${dot}"></i></button>
