@@ -1455,7 +1455,7 @@ const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
 const MAX_DIM    = IS_IOS ? 4096    : 8192;
 const MAX_PIXELS = IS_IOS ? 16.7e6  : 32e6;
 function outScale(vp){
-  let s = Math.min((window.devicePixelRatio || 1) * 1.5, 3);
+  let s = Math.min((window.devicePixelRatio || 1) * 2, 4);
   s = Math.min(s,
         MAX_DIM / Math.max(vp.width, vp.height),
         Math.sqrt(MAX_PIXELS / (vp.width * vp.height)));
