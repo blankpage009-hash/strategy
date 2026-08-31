@@ -1233,6 +1233,8 @@ const KV_DEFAULT = {
   cats:["정기 보고","주간회의","월간회의","워크샵"],
   offcats:[], folders:null, left:null, right:null,
   tasks:{}, sums:{}, storeMode:"full", rtab:"sum",
+  /* 마지막으로 보던 자료 — 다음에 열 때 그대로 이어서 봅니다 */
+  sel:null,
   ai:"off", aiKey:"", aiModel:"gemini-3.5-flash",
   agendas:{}, agOff:[],
   /* 파일 이름 → 회의 종류 자동 지정 규칙 : { "회의 종류": ["포함 단어", …] } */
@@ -1457,9 +1459,14 @@ async function loadPdfFor(doc){
   if(S.pdf){ try{ S.pdf.destroy(); }catch(e){} S.pdf = null; }
 
   if(!doc){
-    setNoView("자료가 없습니다",
-      "왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.",
-      "Upload", openUpload);
+    if(DOCS.length)
+      setNoView("자료를 고르세요",
+        "왼쪽 <b>자료 목록</b> 에서 볼 자료를 하나 누르면<br>여기에 원본이 열리고, 오른쪽에 요약·회의록·할 일이 나옵니다.",
+        null, null);
+    else
+      setNoView("자료가 없습니다",
+        "왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.",
+        "Upload", openUpload);
     return;
   }
   if(!doc.hasPdf){
@@ -1831,10 +1838,15 @@ function renderRight(){
   const body = $("#rbody"), top = $("#rtop");
 
   if(!d){
+    /* 아직 자료를 고르지 않았을 때 — 탭은 그대로 눌립니다(보던 탭을 기억해 둡니다) */
+    const t = (S.rtab === "task" || S.rtab === "note") ? S.rtab : "sum";
+    const what = t === "task" ? "할 일" : (t === "note" ? "회의록" : "요약");
     top.style.display = "";
-    top.innerHTML = rtabsHtml(S.rtab || "sum", 0, true);
+    top.innerHTML = rtabsHtml(t, 0, false);
     body.dataset.tab = "";
-    body.innerHTML = `<div class="emptybox">자료를 선택하면<br>요약과 할 일이 여기에 나옵니다.</div>`;
+    body.dataset.mode = "";
+    body.innerHTML = `<div class="emptybox">자료를 선택하면<br>여기에 ${what}이 나옵니다.` +
+      (DOCS.length ? `<br><br>왼쪽 <b>자료 목록</b> 에서 자료를 하나 고르세요.` : ``) + `</div>`;
     return;
   }
   top.style.display = "";
@@ -2583,6 +2595,7 @@ $("#mgdelsel").onclick = async () => {
 
 async function selectDoc(id){
   S.sel = id; revealDoc(id);
+  KV.sel = id; saveKV("sel");                                /* 다음에 열 때 이 자료로 돌아옵니다 */
   S.editA = S.editB = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
@@ -2844,7 +2857,8 @@ async function removeDoc(id){
   delete KV.tasks[id]; delete KV.sums[id];
   DOCS = DOCS.filter(x => x.id !== id);
   if(S.sel === id){
-    S.sel = null; S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = false;
+    S.sel = null; KV.sel = null; saveKV("sel");
+    S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = false;
     await loadPdfFor(null);
   }
 }
@@ -4140,8 +4154,13 @@ function registerSW(){
   document.body.classList.toggle("left-closed",  (KV.left  === null || KV.left  === undefined) ? isNarrow() : !KV.left);
   document.body.classList.toggle("right-closed", (KV.right === null || KV.right === undefined) ? isNarrow() : !KV.right);
 
+  /* 지난번에 보던 자료를 그대로 다시 엽니다 (지워졌으면 기억만 지웁니다) */
+  const last = KV.sel ? DOCS.find(d => d.id === KV.sel) : null;
+  if(last){ S.sel = last.id; revealDoc(last.id); }
+  else if(KV.sel){ KV.sel = null; saveKV("sel"); }
+
   renderAll();
-  if(window.pdfjsLib) await loadPdfFor(null);
+  if(window.pdfjsLib) await loadPdfFor(last || null);
   updateUsage();
   updatePersist();
   /* 자료가 있으면 브라우저가 함부로 지우지 않도록 조용히 부탁해 둡니다 */
