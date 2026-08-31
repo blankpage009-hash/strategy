@@ -134,31 +134,13 @@ button[disabled]{opacity:.45;cursor:default;}
   border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);}
 #addcat:hover{border-color:var(--accent);color:var(--accent-ink);}
 #addcat svg{display:block;}
-/* 연·월 고르개 */
+/* 전체 선택 · 해제 단추 */
 .cmdsep{flex:0 0 auto;width:2px;height:20px;background:var(--line);margin:0 6px;}
-#weeknav{flex:0 0 auto;display:flex;align-items:center;}
-/* 연·월 칸 — 눌러서 기간·연도별 전체보기를 바꿉니다 */
-#periodbtn{height:24px;padding:0 10px;border:1px solid var(--line);border-radius:0;background:none;
-  color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;white-space:nowrap;}
-#periodbtn:hover{border-color:var(--accent);color:var(--accent-ink);}
-#periodmenu{position:fixed;z-index:60;display:none;width:212px;padding:8px;
-  background:var(--bg);border:2px solid var(--rule);box-shadow:var(--shadow);}
-#periodmenu.on{display:block;}
-#periodmenu .yr{display:flex;align-items:center;justify-content:space-between;
-  padding:0 2px 8px;border-bottom:1px solid var(--hairline);margin-bottom:8px;}
-#periodmenu .yr b{font-size:13px;font-weight:800;}
-#periodmenu .yr button{width:24px;height:24px;padding:0;border:2px solid var(--line);
-  background:none;color:var(--muted);font-size:11px;line-height:1;}
-#periodmenu .yr button:hover{border-color:var(--accent);color:var(--accent-ink);}
-#periodmenu .allbtn{width:100%;height:28px;margin-bottom:8px;padding:0;border:1px solid var(--line);
-  border-radius:0;background:none;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.04em;}
-#periodmenu .allbtn:hover{border-color:var(--accent);color:var(--accent-ink);}
-#periodmenu .allbtn.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
-#periodmenu .ms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
-#periodmenu .ms button{height:26px;border:1px solid var(--line);background:none;
-  color:var(--muted);font-size:11px;font-weight:700;padding:0;}
-#periodmenu .ms button:hover{border-color:var(--accent);color:var(--accent-ink);}
-#periodmenu .ms button.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
+#bulkcats{flex:0 0 auto;display:flex;align-items:center;gap:6px;}
+#bulkcats button{height:24px;padding:0 10px;border:2px solid var(--line);border-radius:0;
+  background:none;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.03em;white-space:nowrap;}
+#bulkcats button:hover{border-color:var(--accent);color:var(--accent-ink);}
+#bulkcats button.on{background:var(--rule);border-color:var(--rule);color:#fff;}
 #cmdcount{margin-left:auto;flex:0 0 auto;white-space:nowrap;font-size:11.5px;color:var(--muted);}
 /* 칩을 오른쪽 단추(또는 길게 누르기)로 열면 나오는 쪽지 */
 #catmenu{position:fixed;z-index:60;display:none;flex-direction:column;min-width:132px;
@@ -795,6 +777,11 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 
 <div id="cmdbar">
   <span class="cmdlabel">Filter</span>
+  <div id="bulkcats">
+    <button id="selall" type="button" title="모든 회의 종류 선택">Select All</button>
+    <button id="deselall" type="button" title="모든 회의 종류 해제">Deselect All</button>
+  </div>
+  <div class="cmdsep"></div>
   <div id="cats"></div>
   <button id="addcat" title="회의 종류 추가" aria-label="회의 종류 추가">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -802,14 +789,8 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
       <path d="M12 5v14M5 12h14"/>
     </svg>
   </button>
-  <div class="cmdsep"></div>
-  <div id="weeknav">
-    <button id="periodbtn" title="연·월 · 연도별 전체보기 고르기"></button>
-  </div>
   <span id="cmdcount"></span>
 </div>
-
-<div id="periodmenu" role="dialog" aria-label="연·월 고르기"></div>
 
 <div id="catmenu" role="menu"></div>
 
@@ -1298,8 +1279,6 @@ const S = {
   editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
-  /* 기간 보기 — "year" 는 그 해 전체, "month" 는 그 해 · 그 달만 */
-  pY:new Date().getFullYear(), pM:new Date().getMonth() + 1, periodView:"year",
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"width",                          /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
@@ -1315,42 +1294,17 @@ const S = {
 function activeDocs(){
   return DOCS
     .filter(d => !S.offCats.has(d.cat))
-    .filter(d => S.periodView === "year"
-      ? +yearOf(d) === S.pY
-      : (+yearOf(d) === S.pY && monthOf(d) === S.pM))
     .sort((a,b) => (a.date+a.addedAt).localeCompare(b.date+b.addedAt));
 }
 
-/* ---- 커맨드 바 오른쪽 — 주차 · 기간 ---- */
-function renderWeekNav(){
-  $("#periodbtn").textContent = S.periodView === "year"
-    ? `${S.pY} 전체보기`
-    : `${S.pY} · ${S.pM}월`;
+/* ---- 전체 선택 · 해제 단추 상태 ---- */
+function renderBulkCats(){
+  const has  = KV.cats.length;
+  const allOn  = has && KV.cats.every(c => !S.offCats.has(c));
+  const allOff = has && KV.cats.every(c =>  S.offCats.has(c));
+  $("#selall").classList.toggle("on", !!allOn);
+  $("#deselall").classList.toggle("on", !!allOff);
 }
-
-function renderPeriodMenu(){
-  const yv = S.periodView === "year";
-  const ms = [];
-  for(let m = 1; m <= 12; m++)
-    ms.push(`<button data-m="${m}" class="${!yv && m === S.pM ? "on" : ""}">${m}월</button>`);
-  $("#periodmenu").innerHTML =
-    `<div class="yr"><button data-y="-1" title="이전 해">◀</button>` +
-    `<b>${S.pY}년</b>` +
-    `<button data-y="1" title="다음 해">▶</button></div>` +
-    `<button class="allbtn ${yv ? "on" : ""}" data-all="1"
-      title="${S.pY}년 모든 월·주차를 왼쪽에 펼쳐 봅니다">${S.pY}년 전체보기</button>` +
-    `<div class="ms">${ms.join("")}</div>`;
-}
-
-function openPeriodMenu(){
-  renderPeriodMenu();
-  const m = $("#periodmenu"), r = $("#periodbtn").getBoundingClientRect();
-  m.classList.add("on");
-  const h = m.getBoundingClientRect();
-  m.style.left = Math.max(8, Math.min(r.left, innerWidth - h.width - 8)) + "px";
-  m.style.top  = (r.bottom + 6) + "px";
-}
-function closePeriodMenu(){ $("#periodmenu").classList.remove("on"); }
 
 function renderCats(){
   $("#cats").innerHTML = KV.cats.map(c => {
@@ -1360,6 +1314,7 @@ function renderCats(){
       title="${esc(c)} · 눌러서 켜고 끄기 (오른쪽 단추 또는 길게 누르면 이름 바꾸기·삭제)"
       >${esc(c)}<span class="cnt">${n}</span></button>`;
   }).join("");
+  renderBulkCats();
 }
 
 /* 접기 화살표 — 닫혀 있으면 CSS 가 -90도 돌립니다 */
@@ -1375,7 +1330,6 @@ const NOTE_MARK = `<span class="tag" title="회의록 있음"><svg width="12" he
 function renderTree(){
   const list = activeDocs();
   $("#listcount").textContent = list.length;
-  renderWeekNav();
   /* 커맨드 바 오른쪽 끝 — 지금 걸러진 자료 수와 회의록이 붙은 자료 수 */
   $("#cmdcount").textContent =
     `${list.length}개 자료 · ${list.filter(d => noteOf(d)).length}개 회의록`;
@@ -1386,10 +1340,8 @@ function renderTree(){
     return;
   }
   if(!list.length){
-    $("#tree").innerHTML = `<div class="emptybox">표시할 자료가 없습니다.<br>` +
-      (S.periodView === "year"
-        ? `<b>${S.pY}년</b> 에 등록된 자료가 없습니다.<br>위에서 연도를 바꾸거나 회의 종류를 켜 보세요.`
-        : `<b>${S.pY} · ${S.pM}월</b> 에 자료가 없습니다.<br><b>${S.pY} 전체보기</b> 를 누르거나 회의 종류를 켜 보세요.`) + `</div>`;
+    $("#tree").innerHTML = `<div class="emptybox">표시할 자료가 없습니다.<br>
+      위 <b>Filter</b> 에서 <b>Select All</b> 을 누르거나<br>회의 종류를 켜 보세요.</div>`;
     return;
   }
 
@@ -2021,7 +1973,7 @@ $("#rtop").addEventListener("click", e => {
   renderRight();
 });
 
-function renderAll(){ renderCats(); renderWeekNav(); renderTree(); renderRight(); updateBars(); }
+function renderAll(){ renderCats(); renderTree(); renderRight(); updateBars(); }
 
 /* =========================================================
    7) 사이드바
@@ -2277,31 +2229,17 @@ $("#ageditdel").onclick = () => {
 /* =========================================================
    9) 회의 종류 · 폴더 · 자료 선택
    ========================================================= */
-$("#weeknav").addEventListener("click", e => {
-  if(e.target.closest("#periodbtn")){
-    $("#periodmenu").classList.contains("on") ? closePeriodMenu() : openPeriodMenu();
-  }
+/* 전체 선택 · 해제 — 모든 회의 종류를 한 번에 켜고 끕니다 */
+$("#selall").addEventListener("click", () => {
+  S.offCats.clear();
+  KV.offcats = []; saveKV("offcats");
+  renderCats(); renderTree();
 });
-
-$("#periodmenu").addEventListener("click", e => {
-  const y = e.target.closest("[data-y]");
-  if(y){ S.pY += +y.dataset.y; renderPeriodMenu(); renderWeekNav(); renderTree(); return; }
-  /* 연도별 전체보기 토글 — 켜면 그 해 모든 월·주차, 끄면 다시 그 달만 */
-  if(e.target.closest("[data-all]")){
-    S.periodView = S.periodView === "year" ? "month" : "year";
-    renderPeriodMenu(); renderWeekNav(); renderTree();
-    return;
-  }
-  const m = e.target.closest("[data-m]");
-  if(!m) return;
-  S.pM = +m.dataset.m;
-  S.periodView = "month";   /* 달을 고르면 그 달만 봅니다 */
-  closePeriodMenu();
-  renderWeekNav(); renderTree();
+$("#deselall").addEventListener("click", () => {
+  S.offCats = new Set(KV.cats);
+  KV.offcats = Array.from(S.offCats); saveKV("offcats");
+  renderCats(); renderTree();
 });
-document.addEventListener("pointerdown", e => {
-  if(!e.target.closest("#periodmenu") && !e.target.closest("#periodbtn")) closePeriodMenu();
-}, true);
 
 /* 칩을 누르면 그 종류를 켜고 끕니다 */
 $("#cats").addEventListener("click", e => {
