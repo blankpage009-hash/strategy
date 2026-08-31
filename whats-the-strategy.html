@@ -78,6 +78,7 @@ button[disabled]{opacity:.45;cursor:default;}
 }
 #brand{
   display:flex;align-items:center;padding:0 20px;white-space:nowrap;
+  width:calc(var(--left-w) + 2px);box-sizing:border-box;flex:0 0 auto;
   font-weight:800;font-size:18px;letter-spacing:-.01em;
   border-right:2px solid var(--rule);
 }
@@ -334,8 +335,13 @@ table.agtable td.agcell:hover .agadd{color:var(--accent);}
 #viewbar .doctitle .meta{flex:0 0 auto;margin-left:10px;padding-left:10px;
   border-left:1px solid var(--hairline);font-size:10.5px;font-weight:600;
   letter-spacing:.08em;color:var(--muted);}
-#viewbar #btn-full{width:44px;border-right:none;border-left:2px solid var(--line);}
+#viewbar #btn-full{width:auto;min-width:44px;padding:0 14px;gap:6px;
+  border-right:none;border-left:2px solid var(--line);}
+#viewbar #btn-full .t{font-size:10.5px;font-weight:800;letter-spacing:.06em;white-space:nowrap;}
+#viewbar #btn-full .ic{font-size:13px;line-height:1;}
 #viewbar #btn-full:hover{background:var(--accent-soft);color:var(--accent-ink);}
+/* 전체화면일 때는 '나가기' 글자가 오른쪽 끝·세로선에 닿지 않게 안쪽으로 들입니다 */
+body.full #viewbar #btn-full{padding-right:24px;}
 /* 가운데가 좁아지면 자료 이름부터 감추고, 더 좁으면 맞춤 단추 이름도 뗍니다 */
 body.hide-doctitle #viewbar .doctitle .meta{display:none;}
 body.tight-bar #viewbar .doctitle{display:none;}
@@ -634,6 +640,23 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 .mrow .btnrow button:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
 .mrow .chk{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;cursor:pointer;}
 .mrow .chk input{width:15px;height:15px;margin:0;}
+/* ---------- 회의 종류 관리 표 ---------- */
+#catlist{margin-top:8px;}
+.clrow{display:flex;gap:6px;align-items:center;margin-top:6px;}
+.clrow .nm{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:700;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.clrow button{flex:0 0 auto;height:30px;padding:0 10px;border:1px solid var(--line);
+  border-radius:0;background:var(--panel);font-size:11.5px;font-weight:700;color:var(--muted);cursor:pointer;}
+.clrow button:hover{border-color:var(--accent);color:var(--accent-ink);}
+.clrow button.del:hover{border-color:var(--bad);color:var(--bad);}
+/* ---------- 파일 이름 → 회의 종류 규칙 표 ---------- */
+#catmap-list{margin-top:8px;}
+.cmrow{display:flex;gap:6px;align-items:center;margin-top:6px;}
+.cmrow select.cm-cat{flex:0 0 38%;width:auto;margin-top:0;}
+.cmrow input.cm-words{flex:1 1 auto;width:auto;min-width:0;margin-top:0;}
+.cmrow .del{flex:0 0 auto;width:30px;height:32px;padding:0;border:1px solid var(--line);
+  border-radius:0;background:var(--panel);color:var(--muted);font-size:12px;cursor:pointer;}
+.cmrow .del:hover{border-color:var(--bad);color:var(--bad);}
 /* ---------- 자료 관리(Manage) ---------- */
 #mgtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
 #mgsearch{flex:1 1 180px;min-width:0;height:32px;padding:0 9px;border:1px solid var(--line);
@@ -740,7 +763,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
       </svg>
     </span>
-    <input id="search" type="search" placeholder="파일명 또는 자료 안의 단어로 검색" autocomplete="off">
+    <input id="search" type="search" placeholder=" File name or Keyword" autocomplete="off">
     <button id="clearsearch" title="지우기">✕</button>
   </div>
   <div id="topright">
@@ -817,16 +840,16 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
       <button class="vbtn" id="zoom-in" title="확대" aria-label="확대">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-      <button class="vbtn fitbtn" id="fit-width" title="화면 너비에 맞추기">
+      <button class="vbtn fitbtn" id="fit-width" title="Fit to width">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
-             ><path d="m18 8 4 4-4 4M6 8l-4 4 4 4M2 12h20"/></svg><span class="t">화면 너비</span></button>
-      <button class="vbtn fitbtn" id="fit-page" title="한 페이지 전체">
+             ><path d="m18 8 4 4-4 4M6 8l-4 4 4 4M2 12h20"/></svg><span class="t">Fit Width</span></button>
+      <button class="vbtn fitbtn" id="fit-page" title="Whole page">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
-             ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">한 페이지</span></button>
+             ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">One Page</span></button>
       <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span></div>
-      <button class="vbtn" id="btn-full" title="전체화면 (Esc로 나가기)" aria-label="전체화면">
+      <button class="vbtn" id="btn-full" title="Full screen (Esc to exit)" aria-label="Full screen">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
@@ -1061,6 +1084,23 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
       </div>
 
       <div class="mrow">
+        <div class="lbl">회의 종류</div>
+        <div class="hint">필터 막대에 보이는 회의 종류입니다. 여기서 더하거나 이름을 바꾸거나 지울 수 있습니다.
+          <b>자료가 들어 있는 종류는 지울 수 없습니다.</b> (필터 칩을 마우스 오른쪽 클릭해도 같은 메뉴가 열립니다.)</div>
+        <div id="catlist"></div>
+        <div class="btnrow"><button id="catlist-add">＋ 회의 종류 추가</button></div>
+      </div>
+
+      <div class="mrow">
+        <div class="lbl">파일 이름 → 회의 종류 자동 지정</div>
+        <div class="hint">자료를 올릴 때 파일 이름에 아래 <b>포함 단어</b> 중 하나라도 들어 있으면
+          그 줄의 <b>회의 종류</b>로 자동 지정됩니다. 단어는 <b>쉼표(,)</b>로 여러 개 적을 수 있고,
+          띄어쓰기는 무시합니다.<br>예: <b>임원회의</b> ← <b>본부장회의, 부재중 업무보고</b></div>
+        <div id="catmap-list"></div>
+        <div class="btnrow"><button id="catmap-add">＋ 규칙 추가</button></div>
+      </div>
+
+      <div class="mrow">
         <div class="lbl">이 기기에 PDF 원본 저장</div>
         <select id="set-store">
           <option value="full">원본까지 저장 — 앱 안에서 바로 보기 (PC 권장)</option>
@@ -1202,12 +1242,24 @@ const KV_DEFAULT = {
   offcats:[], folders:null, left:null, right:null,
   tasks:{}, sums:{}, storeMode:"full", rtab:"sum",
   ai:"off", aiKey:"", aiModel:"gemini-3.5-flash",
-  agendas:{}, agOff:[]
+  agendas:{}, agOff:[],
+  /* 파일 이름 → 회의 종류 자동 지정 규칙 : { "회의 종류": ["포함 단어", …] } */
+  catMap:{}
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
   const rows = await dbAll("kv");
   rows.forEach(r => { KV[r.k] = r.v; });
+  /* 기본값의 빈 객체를 그대로 쓰지 않도록 제 것으로 복제합니다 */
+  KV.catMap = Object.assign({}, KV.catMap);
+  /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
+  const ren = s => (s === "브리핑" ? "내부토의" : s);
+  if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
+    KV.cats = KV.cats.map(ren); saveKV("cats");
+  }
+  if(Array.isArray(KV.offcats) && KV.offcats.includes("브리핑")){
+    KV.offcats = KV.offcats.map(ren); saveKV("offcats");
+  }
 }
 /* 저장이 막히면(공간 부족·사생활 보호 창 등) 조용히 넘어가지 않고 한 번은 알려 줍니다 */
 let kvWarned = false;
@@ -2278,6 +2330,7 @@ function deleteCat(c){
   if(n){ alert(`'${c}' 안에 자료가 ${n}개 있습니다.\n자료를 먼저 옮기거나 지운 뒤에 종류를 삭제할 수 있습니다.`); return; }
   if(!confirm(`'${c}' 종류를 지울까요?`)) return;
   KV.cats = KV.cats.filter(x => x !== c); saveKV("cats");
+  if(KV.catMap && KV.catMap[c]){ delete KV.catMap[c]; saveKV("catMap"); }
   if(KV.agendas){
     let hit = false;
     Object.keys(KV.agendas).forEach(k => {
@@ -2286,7 +2339,7 @@ function deleteCat(c){
     if(hit) saveKV("agendas");
   }
   S.agOff.delete(c); KV.agOff = Array.from(S.agOff); saveKV("agOff");
-  renderCats(); renderTree();
+  renderCats(); renderTree(); refreshCatUI();
 }
 
 /* 칩 위에서 오른쪽 단추(또는 길게 누르기) — 이름 바꾸기 · 삭제 쪽지 */
@@ -2357,6 +2410,9 @@ async function renameCat(oldName){
   }
 
   KV.cats = KV.cats.map(c => c === oldName ? name : c); saveKV("cats");
+  if(KV.catMap && KV.catMap[oldName]){
+    KV.catMap[name] = KV.catMap[oldName]; delete KV.catMap[oldName]; saveKV("catMap");
+  }
   if(S.offCats.has(oldName)){                    /* 꺼 둔 상태였다면 그대로 유지 */
     S.offCats.delete(oldName); S.offCats.add(name);
     KV.offcats = Array.from(S.offCats); saveKV("offcats");
@@ -2375,17 +2431,24 @@ async function renameCat(oldName){
     S.agOff.delete(oldName); S.agOff.add(name);
     KV.agOff = Array.from(S.agOff); saveKV("agOff");
   }
-  renderAll();
+  renderAll(); refreshCatUI();
   toast(`'${oldName}' → '${name}' 으로 바꿨습니다`);
 }
 
-$("#addcat").onclick = () => {
+function addCat(){
   const name = (prompt("새 회의 종류 이름을 입력하세요.") || "").trim();
   if(!name) return;
   if(KV.cats.includes(name)){ alert("이미 있는 종류입니다."); return; }
   KV.cats.push(name); saveKV("cats");
-  renderCats(); renderTree(); toast(`'${name}' 종류를 추가했습니다`);
-};
+  renderCats(); renderTree(); refreshCatUI(); toast(`'${name}' 종류를 추가했습니다`);
+}
+$("#addcat").onclick = () => addCat();
+
+/* 설정 화면의 회의 종류 목록 · 자동 지정 규칙을 다시 그립니다 */
+function refreshCatUI(){
+  if(typeof renderCatList === "function" && $("#catlist")) renderCatList();
+  if(typeof renderCatMap === "function" && $("#catmap-list")) renderCatMap();
+}
 
 /* =========================================================
    4-2) 자료 관리(Manage) — 이름 바꾸기 · 종류/날짜 옮기기 · 삭제
@@ -2627,9 +2690,9 @@ $("#pagepos").onclick = () => {
 function setFull(on){
   document.body.classList.toggle("full", on);
   $("#btn-full").innerHTML = on
-    ? `<span class="ic">⛶</span><span class="t">나가기 (Esc)</span>`
-    : `<span class="ic">⛶</span><span class="t">전체화면</span>`;
-  $("#btn-full").title = on ? "전체화면 나가기 (Esc)" : "전체화면 (Esc로 나가기)";
+    ? `<span class="ic">⛶</span><span class="t">Exit (Esc)</span>`
+    : `<span class="ic">⛶</span><span class="t">Full Screen</span>`;
+  $("#btn-full").title = on ? "Exit full screen (Esc)" : "Full screen (Esc to exit)";
   setTimeout(autoFit, 200);
 }
 $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full"));
@@ -3546,6 +3609,12 @@ function guessCat(name){
   const flat = s => String(s).replace(/\s+/g, "");
   const n = flat(name);
   for(const c of KV.cats) if(flat(c) && n.includes(flat(c))) return c;
+  /* 설정 화면에서 만든 '파일 이름 → 회의 종류' 규칙을 먼저 봅니다 */
+  const cm = KV.catMap || {};
+  for(const cat of Object.keys(cm)){
+    if(!KV.cats.includes(cat)) continue;
+    for(const w of (cm[cat] || [])){ const k = flat(w); if(k && n.includes(k)) return cat; }
+  }
   const map = [["주간","주간회의"],["월간","월간회의"],["월례","월간회의"],
                ["보고","정기 보고"],["워크샵","워크샵"],["워크숍","워크샵"]];
   for(const [key, val] of map) if(n.includes(key) && KV.cats.includes(val)) return val;
@@ -3804,9 +3873,74 @@ function stripDoc(d){ const { _all, ...rest } = d; return rest; }
 /* =========================================================
    14) 설정 · 백업
    ========================================================= */
-$("#btn-settings").onclick = () => { updateUsage(); $("#modalbg").classList.add("on"); };
+$("#btn-settings").onclick = () => { updateUsage(); renderCatList(); renderCatMap(); $("#modalbg").classList.add("on"); };
+
+/* ---------- 회의 종류 더하기 · 이름 바꾸기 · 삭제 ---------- */
+function renderCatList(){
+  const box = $("#catlist"); if(!box) return;
+  box.innerHTML = KV.cats.length
+    ? KV.cats.map(c => `<div class="clrow" data-cat="${esc(c)}">
+        <span class="nm">${esc(c)}</span>
+        <button type="button" class="ren">이름 바꾸기</button>
+        <button type="button" class="del">삭제</button>
+      </div>`).join("")
+    : `<div class="hint" style="margin-top:6px">회의 종류가 없습니다. 아래에서 추가하세요.</div>`;
+}
+$("#catlist-add").onclick = () => addCat();
+$("#catlist").addEventListener("click", e => {
+  const row = e.target.closest(".clrow"); if(!row) return;
+  const c = row.dataset.cat;
+  if(e.target.classList.contains("ren")) renameCat(c);
+  else if(e.target.classList.contains("del")) deleteCat(c);
+});
 $("#modalclose").onclick   = () => $("#modalbg").classList.remove("on");
 $("#modalbg").addEventListener("click", e => { if(e.target.id === "modalbg") $("#modalbg").classList.remove("on"); });
+
+/* ---------- 파일 이름 → 회의 종류 자동 지정 규칙 ---------- */
+function catMapRowHTML(cat, words){
+  const opts = KV.cats.map(c =>
+    `<option value="${esc(c)}"${c === cat ? " selected" : ""}>${esc(c)}</option>`).join("");
+  return `<div class="cmrow">
+      <select class="cm-cat">${opts}</select>
+      <input type="text" class="cm-words" placeholder="포함 단어 (쉼표로 구분)" value="${esc(words)}">
+      <button type="button" class="del" title="이 규칙 지우기" aria-label="이 규칙 지우기">✕</button>
+    </div>`;
+}
+function renderCatMap(){
+  const box = $("#catmap-list");
+  const m = KV.catMap || {};
+  const keys = Object.keys(m).filter(c => KV.cats.includes(c));
+  box.innerHTML = keys.length
+    ? keys.map(c => catMapRowHTML(c, (m[c] || []).join(", "))).join("")
+    : `<div class="hint" style="margin-top:6px">아직 규칙이 없습니다. 아래 <b>＋ 규칙 추가</b> 를 눌러 만드세요.</div>`;
+}
+function syncCatMap(){
+  const next = {};
+  $$("#catmap-list .cmrow").forEach(row => {
+    const cat = row.querySelector(".cm-cat").value;
+    const words = row.querySelector(".cm-words").value
+      .split(/[,\n]+/).map(s => s.trim()).filter(Boolean);
+    if(!cat || !words.length) return;
+    next[cat] = Array.from(new Set((next[cat] || []).concat(words)));
+  });
+  KV.catMap = next; saveKV("catMap");
+}
+$("#catmap-add").onclick = () => {
+  if(!KV.cats.length){ alert("먼저 회의 종류(Filter)를 하나 이상 추가해 주세요."); return; }
+  const box = $("#catmap-list");
+  if(!box.querySelector(".cmrow")) box.innerHTML = "";
+  const used = new Set($$("#catmap-list .cm-cat").map(s => s.value));
+  const cat = KV.cats.find(c => !used.has(c)) || KV.cats[0];
+  box.insertAdjacentHTML("beforeend", catMapRowHTML(cat, ""));
+  box.querySelector(".cmrow:last-child .cm-words").focus();
+};
+$("#catmap-list").addEventListener("change", syncCatMap);
+$("#catmap-list").addEventListener("click", e => {
+  if(!e.target.closest(".del")) return;
+  e.target.closest(".cmrow").remove();
+  syncCatMap();
+  if(!$("#catmap-list").querySelector(".cmrow")) renderCatMap();
+});
 
 $("#set-store").addEventListener("change", e => {
   KV.storeMode = e.target.value; saveKV("storeMode");
@@ -3928,7 +4062,7 @@ async function updateUsage(){
 $("#btn-export").onclick = async () => {
   const data = {
     app:"whats-the-strategy", ver:2, exportedAt:new Date().toISOString(),
-    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, storeMode:KV.storeMode, agendas:KV.agendas },
+    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap },
     docs: DOCS.map(stripDoc),
     notes: Object.values(NOTES)
   };
@@ -3965,7 +4099,8 @@ $("#importfile").addEventListener("change", async e => {
       if(data.kv.tasks) KV.tasks = Object.assign({}, KV.tasks, data.kv.tasks);
       if(data.kv.sums)  KV.sums  = Object.assign({}, KV.sums,  data.kv.sums);
       if(data.kv.agendas) KV.agendas = Object.assign({}, KV.agendas, data.kv.agendas);
-      saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("agendas");
+      if(data.kv.catMap) KV.catMap = Object.assign({}, KV.catMap, data.kv.catMap);
+      saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("agendas"); saveKV("catMap");
     }
     await loadAll();
     renderAll(); updateUsage();
