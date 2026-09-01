@@ -434,6 +434,27 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 /* Executive Summary 머리 — 단추 줄 밑에 [AI 켜짐·제미나이] 와 만든 시각을 한 줄로 */
 .sect > h4.aihead{min-height:22px;}
 .sect > h4.aihead .mini:first-child{margin-left:auto;}
+/* ---------- 첨부 PDF (Upload · AI Note) ---------- */
+.atbtns{display:flex;align-items:center;gap:6px;margin-right:auto;}
+.skick .atbtns{margin-right:0;}
+.atbtns .mini{margin-left:0 !important;}
+.atbtns .mini .n{font-weight:800;color:var(--accent);margin-left:3px;}
+#atlist{margin-top:10px;}
+.atrow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--hairline);}
+.atrow:last-child{border-bottom:none;}
+.atrow input[type=checkbox]{width:15px;height:15px;margin:0;flex:0 0 auto;}
+.atrow .nm{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:700;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.atrow .sz{flex:0 0 auto;font-size:11px;color:var(--muted);}
+.atnone{font-size:12px;color:var(--muted);padding:14px 0;text-align:center;}
+#atdrop{border:2px dashed var(--line);padding:16px;text-align:center;font-size:12.5px;color:var(--muted);}
+#atdrop.over{border-color:var(--accent);color:var(--accent-ink);}
+#atvpages{overflow:auto;height:calc(88vh - 52px);background:var(--panel2);padding:14px;text-align:center;}
+#atvpages canvas{display:block;margin:0 auto 12px;box-shadow:0 1px 6px rgba(0,0,0,.18);background:#fff;max-width:100%;}
+#atvpages .msg{font-size:12.5px;color:var(--muted);padding:30px 10px;}
+#atvpages .fname{font-size:11.5px;font-weight:800;color:var(--muted);text-align:left;
+  max-width:1000px;margin:4px auto 8px;padding-bottom:4px;border-bottom:1px solid var(--line);}
+
 .airow{display:flex;align-items:center;gap:6px;margin:0 0 6px;}
 .aiwhen{flex:1 1 auto;min-width:0;font-size:10.5px;color:#7d7979;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -982,6 +1003,38 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   </div>
 </div>
 
+<!-- 첨부 PDF 관리 -->
+<div class="modalbg" id="atbg">
+  <div class="modal" role="dialog" aria-label="첨부 PDF 관리">
+    <header>Upload <span id="atwho" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+      <button class="x" id="atclose">&#10005;</button></header>
+    <div class="content">
+      <div id="atdrop">
+        <b>PDF 파일을 여기에 끌어다 놓거나</b><br>
+        <button class="ghostbtn" id="atpick" style="margin-top:8px">파일 선택 (여러 개 가능)</button>
+      </div>
+      <input type="file" id="atfile" accept="application/pdf,.pdf" multiple hidden>
+      <div id="atlist"></div>
+    </div>
+    <footer>
+      <span class="left" id="atleft"></span>
+      <button class="ghostbtn" id="atdel" style="color:var(--bad);border-color:#ff9783" disabled>선택 삭제</button>
+      <button class="ghostbtn" id="atdone">닫기</button>
+    </footer>
+  </div>
+</div>
+
+<!-- 첨부 PDF 보기 -->
+<div class="modalbg" id="atvbg">
+  <div class="modal wide" role="dialog" aria-label="AI Note">
+    <header>AI Note <span id="atvwho" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+      <button class="x" id="atvx">&#10005;</button></header>
+    <div class="content" style="padding:0;overflow:hidden">
+      <div id="atvpages"></div>
+    </div>
+  </div>
+</div>
+
 <!-- 자료 관리 -->
 <div class="modalbg" id="managebg">
   <div class="modal wide" role="dialog" aria-label="자료 관리">
@@ -1175,7 +1228,7 @@ function toast(msg){
       kv   : 설정·회의종류·할 일·요약 등
    ========================================================= */
 /* 저장소 이름은 처음 것을 그대로 씁니다. 바꾸면 이미 저장된 자료를 못 찾습니다. */
-const DB_NAME = "strategy-library", DB_VER = 1;
+const DB_NAME = "strategy-library", DB_VER = 2;
 let DB = null;
 
 function openDB(){
@@ -1187,6 +1240,9 @@ function openDB(){
       if(!db.objectStoreNames.contains("files")) db.createObjectStore("files", { keyPath:"id" });
       if(!db.objectStoreNames.contains("notes")) db.createObjectStore("notes", { keyPath:"key" });
       if(!db.objectStoreNames.contains("kv"))    db.createObjectStore("kv",    { keyPath:"k" });
+      /* 첨부 PDF — 목록(가벼운 정보)과 원본(무거운 파일)을 따로 둡니다 */
+      if(!db.objectStoreNames.contains("attach"))     db.createObjectStore("attach",     { keyPath:"id" });
+      if(!db.objectStoreNames.contains("attachfile")) db.createObjectStore("attachfile", { keyPath:"id" });
     };
     req.onsuccess = () => res(req.result);
     req.onerror   = () => rej(req.error);
@@ -1258,6 +1314,7 @@ function storeErrMsg(err){
    ========================================================= */
 let DOCS = [];    // {id,title,short,cat,date,pages,pageTexts[],hasPdf,size,addedAt}
 let NOTES = {};   // key -> {key,cat,date,text,updatedAt}
+let ATTACH = [];  // [{id,docId,name,size,addedAt}] — 원본은 attachfile 저장소에 따로 둡니다
 
 function noteKey(cat, date){ return cat + "|" + date; }
 function noteOf(d){ return d ? NOTES[noteKey(d.cat, d.date)] : null; }
@@ -1788,6 +1845,17 @@ function rtabsHtml(tab, taskCount, off){
        + `<button class="closebtn" data-close="right" title="접기">»</button>`;
 }
 
+/* 첨부 PDF 단추 — 요약·회의록 탭 머리에 함께 붙습니다 */
+function atOf(id){ return ATTACH.filter(a => a.docId === id); }
+function atBar(d){
+  const n = atOf(d.id).length;
+  return `<span class="atbtns">` +
+    `<button class="mini" data-at="up" title="이 자료에 딸린 PDF를 올리고 관리합니다">Upload</button>` +
+    `<button class="mini" data-at="view" ${n ? "" : "disabled"}` +
+    ` title="${n ? "올린 PDF를 팝업으로 봅니다" : "먼저 Upload 로 PDF를 올리세요"}">AI Note` +
+    `${n ? `<span class="n">${n}</span>` : ""}</button></span>`;
+}
+
 function renderRight(){
   const d = DOCS.find(x => x.id === S.sel);
   const body = $("#rbody"), top = $("#rtop");
@@ -1838,7 +1906,7 @@ function renderRight(){
     ? `AI가 ${fmtWhen(mine.at)}에 만든 요약입니다.` : "";
 
   /* 요약 탭 위쪽 단추들과 상태 줄 — 글상자로 볼 때와 구조로 볼 때가 같은 것을 씁니다 */
-  const sumTools =
+  const sumTools = atBar(d) +
     ( aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
         busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" ) +
     ( ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" ) +
@@ -1894,7 +1962,7 @@ function renderRight(){
   /* ── 탭 2 : Meeting Notes — 입력창 하나가 패널을 꽉 채웁니다 ───────────── */
   const paneNote = `
     <div class="sect grow">
-      <h4 class="aihead">${ lockBtn("B", !!b, S.editB) }</h4>
+      <h4 class="aihead">${ atBar(d) }${ lockBtn("B", !!b, S.editB) }</h4>
       <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
         placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
@@ -2759,6 +2827,13 @@ $("#rbody").addEventListener("click", async e => {
     renderRight();
     return;
   }
+  /* Upload / AI Note — 첨부 PDF */
+  const at = e.target.closest("[data-at]");
+  if(at){
+    if(!S.sel) return;
+    if(at.dataset.at === "up") openAttach(S.sel); else openAtView(S.sel);
+    return;
+  }
   /* 쪽별 요약 — 줄을 누르면 그 쪽으로 넘어갑니다 */
   const pg = e.target.closest(".pgrow[data-page]");
   if(pg){ goPage(+pg.dataset.page); return; }
@@ -2787,6 +2862,11 @@ $("#rbody").addEventListener("click", async e => {
 async function removeDoc(id){
   await dbDel("docs", id);
   await dbDel("files", id).catch(()=>{});
+  for(const a of ATTACH.filter(x => x.docId === id)){
+    await dbDel("attach", a.id).catch(()=>{});
+    await dbDel("attachfile", a.id).catch(()=>{});
+  }
+  ATTACH = ATTACH.filter(x => x.docId !== id);
   delete KV.tasks[id]; delete KV.sums[id];
   DOCS = DOCS.filter(x => x.id !== id);
   if(S.sel === id){
@@ -2795,6 +2875,159 @@ async function removeDoc(id){
     await loadPdfFor(null);
   }
 }
+
+/* =========================================================
+   11-1) 첨부 PDF — Upload(올리고 지우기) · AI Note(팝업으로 보기)
+      · 자료 하나마다 PDF를 여러 개 붙일 수 있습니다.
+      · 목록(attach)과 원본(attachfile)을 따로 저장해, 목록 읽기가 가볍습니다.
+   ========================================================= */
+let atCtx = null;                 /* 관리 팝업이 보고 있는 자료 id */
+const atSel = new Set();          /* 지우려고 고른 첨부 id */
+
+function atTitle(id){ const d = DOCS.find(x => x.id === id); return d ? d.title : ""; }
+
+function openAttach(docId){
+  atCtx = docId; atSel.clear();
+  $("#atwho").textContent = atTitle(docId);
+  renderAtList();
+  $("#atbg").classList.add("on");
+}
+function closeAttach(){ $("#atbg").classList.remove("on"); atCtx = null; }
+
+function renderAtList(){
+  const rows = atCtx ? atOf(atCtx) : [];
+  $("#atlist").innerHTML = rows.length
+    ? rows.map(a => `<div class="atrow">
+        <input type="checkbox" data-atid="${a.id}" ${atSel.has(a.id) ? "checked" : ""}>
+        <span class="nm" title="${esc(a.name)}">${esc(a.name)}</span>
+        <span class="sz">${fmtSize(a.size)}</span></div>`).join("")
+    : `<div class="atnone">아직 올린 PDF가 없습니다.</div>`;
+  $("#atleft").textContent = rows.length
+    ? `${rows.length}개 · ${fmtSize(rows.reduce((n,a) => n + a.size, 0))}` : "";
+  $("#atdel").disabled = atSel.size === 0;
+}
+
+async function atAdd(files){
+  if(!atCtx) return;
+  const list = Array.from(files || [])
+    .filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+  if(!list.length){ toast("PDF 파일만 올릴 수 있습니다"); return; }
+  let done = 0;
+  for(const f of list){
+    const rec = { id: uid(), docId: atCtx, name: f.name, size: f.size, addedAt: new Date().toISOString() };
+    try{
+      const buf = await f.arrayBuffer();
+      await dbPut("attachfile", { id: rec.id, blob: new Blob([buf], { type:"application/pdf" }) });
+      try{ await dbPut("attach", rec); }
+      catch(err){ await dbDel("attachfile", rec.id).catch(() => {}); throw err; }
+      ATTACH.push(rec); done++;
+    }catch(err){
+      toast(f.name + " — " + storeErrMsg(err));
+    }
+  }
+  renderAtList(); renderRight(); updateUsage();
+  if(done) toast(`${done}개 올렸습니다`);
+}
+
+async function atDelete(ids){
+  for(const id of ids){
+    await dbDel("attach", id).catch(() => {});
+    await dbDel("attachfile", id).catch(() => {});
+    ATTACH = ATTACH.filter(a => a.id !== id);
+  }
+  atSel.clear(); renderAtList(); renderRight(); updateUsage();
+  if(atvDoc){ if(atOf(atvDoc).length) atvShow(); else closeAtView(); }
+}
+
+$("#atpick").onclick = () => $("#atfile").click();
+$("#atfile").addEventListener("change", async e => { await atAdd(e.target.files); e.target.value = ""; });
+["dragenter","dragover"].forEach(ev => $("#atdrop").addEventListener(ev, e => {
+  e.preventDefault(); $("#atdrop").classList.add("over"); }));
+["dragleave","drop"].forEach(ev => $("#atdrop").addEventListener(ev, e => {
+  e.preventDefault(); $("#atdrop").classList.remove("over"); }));
+$("#atdrop").addEventListener("drop", e => atAdd(e.dataTransfer && e.dataTransfer.files));
+$("#atlist").addEventListener("change", e => {
+  const cb = e.target.closest("[data-atid]"); if(!cb) return;
+  if(cb.checked) atSel.add(cb.dataset.atid); else atSel.delete(cb.dataset.atid);
+  $("#atdel").disabled = atSel.size === 0;
+});
+$("#atdel").onclick = async () => {
+  const ids = Array.from(atSel);
+  if(!ids.length) return;
+  if(!confirm(`${ids.length}개 파일을 지웁니다. 되돌릴 수 없습니다.`)) return;
+  await atDelete(ids);
+};
+$("#atdone").onclick = $("#atclose").onclick = closeAttach;
+$("#atbg").addEventListener("click", e => { if(e.target.id === "atbg") closeAttach(); });
+
+/* ---------- AI Note — 올린 PDF를 팝업에서 봅니다 ---------- */
+let atvSeq = 0, atvPdf = null, atvDoc = null;
+
+function openAtView(docId){
+  const rows = atOf(docId);
+  if(!rows.length){ toast("먼저 Upload 로 PDF를 올려 주세요"); return; }
+  atvDoc = docId;
+  $("#atvwho").textContent = atTitle(docId);
+  $("#atvbg").classList.add("on");
+  atvShow();
+}
+function closeAtView(){
+  atvSeq++;
+  if(atvPdf){ try{ atvPdf.destroy(); }catch(e){} atvPdf = null; }
+  $("#atvpages").innerHTML = "";
+  $("#atvbg").classList.remove("on"); atvDoc = null;
+}
+
+/* 올린 PDF를 순서대로 이어서 그립니다 (파일이 여럿이면 이름 줄로 구분합니다) */
+async function atvShow(){
+  const seq = ++atvSeq, box = $("#atvpages"), rows = atOf(atvDoc);
+  box.innerHTML = `<div class="msg">여는 중…</div>`;
+  if(atvPdf){ try{ atvPdf.destroy(); }catch(e){} atvPdf = null; }
+  try{
+    if(!window.pdfjsLib) throw new Error("PDF 부품(lib 폴더)을 찾지 못했습니다");
+    box.innerHTML = "";
+    const w = Math.max(280, box.clientWidth - 28);
+    for(const a of rows){
+      if(seq !== atvSeq) return;
+      if(rows.length > 1){
+        const h = document.createElement("div");
+        h.className = "fname"; h.textContent = a.name;
+        box.appendChild(h);
+      }
+      const rec = await dbGet("attachfile", a.id);
+      if(seq !== atvSeq) return;
+      if(!rec || !rec.blob){
+        const m = document.createElement("div");
+        m.className = "msg"; m.textContent = a.name + " — 파일을 찾을 수 없습니다";
+        box.appendChild(m); continue;
+      }
+      const pdf = await pdfjsLib.getDocument({ data: await rec.blob.arrayBuffer() }).promise;
+      if(seq !== atvSeq){ try{ pdf.destroy(); }catch(e){} return; }
+      atvPdf = pdf;
+      for(let i = 1; i <= pdf.numPages; i++){
+        if(seq !== atvSeq) return;
+        const page = await pdf.getPage(i);
+        const base = page.getViewport({ scale: 1 });
+        const vp   = page.getViewport({ scale: w / base.width });
+        const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+        const cv   = document.createElement("canvas");
+        cv.width  = Math.floor(vp.width  * dpr); cv.height = Math.floor(vp.height * dpr);
+        cv.style.width  = Math.floor(vp.width)  + "px";
+        cv.style.height = Math.floor(vp.height) + "px";
+        box.appendChild(cv);
+        await page.render({ canvasContext: cv.getContext("2d"), viewport: vp,
+          transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null }).promise;
+      }
+      try{ pdf.destroy(); }catch(e){}
+      atvPdf = null;
+    }
+    if(!box.childNodes.length) box.innerHTML = `<div class="msg">올린 PDF가 없습니다.</div>`;
+  }catch(err){
+    if(seq === atvSeq) box.innerHTML = `<div class="msg">${esc((err && err.message) || String(err))}</div>`;
+  }
+}
+$("#atvx").onclick = closeAtView;
+$("#atvbg").addEventListener("click", e => { if(e.target.id === "atvbg") closeAtView(); });
 
 /* =========================================================
    11-2) AI 요약 (제미나이)
@@ -4002,7 +4235,9 @@ window.addEventListener("beforeunload", e => {
    ========================================================= */
 document.addEventListener("keydown", e => {
   if(e.key === "Escape"){
-    if($("#ageditbg").classList.contains("on")) closeAgEdit();
+    if($("#atvbg").classList.contains("on")) closeAtView();
+    else if($("#atbg").classList.contains("on")) closeAttach();
+    else if($("#ageditbg").classList.contains("on")) closeAgEdit();
     else if($("#agendapop").classList.contains("on")) closeAgenda();
     else if($("#searchpop").classList.contains("on")) closePop();
     else if($("#managebg").classList.contains("on")) closeManage();
@@ -4034,9 +4269,10 @@ window.addEventListener("resize", () => {
    16) 시작
    ========================================================= */
 async function loadAll(){
-  const [docs, notes] = await Promise.all([dbAll("docs"), dbAll("notes")]);
+  const [docs, notes, atts] = await Promise.all([dbAll("docs"), dbAll("notes"), dbAll("attach")]);
   DOCS = docs.map(indexDoc).sort((a,b) => (b.date+b.addedAt).localeCompare(a.date+a.addedAt));
   NOTES = {}; notes.forEach(n => { NOTES[n.key] = n; });
+  ATTACH = (atts || []).sort((a,b) => String(a.addedAt).localeCompare(String(b.addedAt)));
 }
 
 function defaultFolders(){
