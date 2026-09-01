@@ -1314,7 +1314,8 @@ function storeErrMsg(err){
    ========================================================= */
 let DOCS = [];    // {id,title,short,cat,date,pages,pageTexts[],hasPdf,size,addedAt}
 let NOTES = {};   // key -> {key,cat,date,text,updatedAt}
-let ATTACH = [];  // [{id,docId,name,size,addedAt}] — 원본은 attachfile 저장소에 따로 둡니다
+let ATTACH = [];  // [{id,docId,tab,name,size,addedAt}] — 원본은 attachfile 저장소에 따로 둡니다
+                  // tab: "sum"(SUMMARY) · "note"(NOTE) — 탭마다 체온 목록이 따로 있습니다
 
 function noteKey(cat, date){ return cat + "|" + date; }
 function noteOf(d){ return d ? NOTES[noteKey(d.cat, d.date)] : null; }
@@ -1845,14 +1846,18 @@ function rtabsHtml(tab, taskCount, off){
        + `<button class="closebtn" data-close="right" title="접기">»</button>`;
 }
 
-/* 첨부 PDF 단추 — 요약·회의록 탭 머리에 함께 붙습니다 */
-function atOf(id){ return ATTACH.filter(a => a.docId === id); }
-function atBar(d){
-  const n = atOf(d.id).length;
+/* 첨부 PDF 단추 — 요약·회의록 탭 머리에 함께 붙습니다.
+   SUMMARY와 NOTE는 서로 상관없는 별도 목록을 씁니다. */
+const AT_TABS = { sum:"SUMMARY", note:"NOTE" };
+function atTab(t){ return t === "note" ? "note" : "sum"; }
+function atOf(id, tab){ const t = atTab(tab); return ATTACH.filter(a => a.docId === id && atTab(a.tab) === t); }
+function atBar(d, tab){
+  const t = atTab(tab), n = atOf(d.id, t).length;
   return `<span class="atbtns">` +
-    `<button class="mini" data-at="up" title="이 자료에 딸린 PDF를 올리고 관리합니다">Upload</button>` +
-    `<button class="mini" data-at="view" ${n ? "" : "disabled"}` +
-    ` title="${n ? "올린 PDF를 팝업으로 봅니다" : "먼저 Upload 로 PDF를 올리세요"}">AI Note` +
+    `<button class="mini" data-at="up" data-attab="${t}"` +
+    ` title="${AT_TABS[t]} 탭에 딸린 PDF를 올리고 관리합니다">Upload</button>` +
+    `<button class="mini" data-at="view" data-attab="${t}" ${n ? "" : "disabled"}` +
+    ` title="${n ? AT_TABS[t] + " 탭에 올린 PDF를 팝업으로 봅니다" : "먼저 Upload 로 PDF를 올리세요"}">AI Note` +
     `${n ? `<span class="n">${n}</span>` : ""}</button></span>`;
 }
 
@@ -1906,7 +1911,7 @@ function renderRight(){
     ? `AI가 ${fmtWhen(mine.at)}에 만든 요약입니다.` : "";
 
   /* 요약 탭 위쪽 단추들과 상태 줄 — 글상자로 볼 때와 구조로 볼 때가 같은 것을 씁니다 */
-  const sumTools = atBar(d) +
+  const sumTools = atBar(d, "sum") +
     ( aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
         busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" ) +
     ( ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" ) +
@@ -1962,7 +1967,7 @@ function renderRight(){
   /* ── 탭 2 : Meeting Notes — 입력창 하나가 패널을 꽉 채웁니다 ───────────── */
   const paneNote = `
     <div class="sect grow">
-      <h4 class="aihead">${ atBar(d) }${ lockBtn("B", !!b, S.editB) }</h4>
+      <h4 class="aihead">${ atBar(d, "note") }${ lockBtn("B", !!b, S.editB) }</h4>
       <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
         placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
@@ -2831,7 +2836,8 @@ $("#rbody").addEventListener("click", async e => {
   const at = e.target.closest("[data-at]");
   if(at){
     if(!S.sel) return;
-    if(at.dataset.at === "up") openAttach(S.sel); else openAtView(S.sel);
+    const t = atTab(at.dataset.attab);
+    if(at.dataset.at === "up") openAttach(S.sel, t); else openAtView(S.sel, t);
     return;
   }
   /* 쪽별 요약 — 줄을 누르면 그 쪽으로 넘어갑니다 */
@@ -2882,26 +2888,27 @@ async function removeDoc(id){
       · 목록(attach)과 원본(attachfile)을 따로 저장해, 목록 읽기가 가볍습니다.
    ========================================================= */
 let atCtx = null;                 /* 관리 팝업이 보고 있는 자료 id */
+let atCtxTab = "sum";             /* 그 팝업이 다루는 탭 */
 const atSel = new Set();          /* 지우려고 고른 첨부 id */
 
 function atTitle(id){ const d = DOCS.find(x => x.id === id); return d ? d.title : ""; }
 
-function openAttach(docId){
-  atCtx = docId; atSel.clear();
-  $("#atwho").textContent = atTitle(docId);
+function openAttach(docId, tab){
+  atCtx = docId; atCtxTab = atTab(tab); atSel.clear();
+  $("#atwho").textContent = AT_TABS[atCtxTab] + " · " + atTitle(docId);
   renderAtList();
   $("#atbg").classList.add("on");
 }
 function closeAttach(){ $("#atbg").classList.remove("on"); atCtx = null; }
 
 function renderAtList(){
-  const rows = atCtx ? atOf(atCtx) : [];
+  const rows = atCtx ? atOf(atCtx, atCtxTab) : [];
   $("#atlist").innerHTML = rows.length
     ? rows.map(a => `<div class="atrow">
         <input type="checkbox" data-atid="${a.id}" ${atSel.has(a.id) ? "checked" : ""}>
         <span class="nm" title="${esc(a.name)}">${esc(a.name)}</span>
         <span class="sz">${fmtSize(a.size)}</span></div>`).join("")
-    : `<div class="atnone">아직 올린 PDF가 없습니다.</div>`;
+    : `<div class="atnone">${AT_TABS[atCtxTab]} 탭에 올린 PDF가 아직 없습니다.</div>`;
   $("#atleft").textContent = rows.length
     ? `${rows.length}개 · ${fmtSize(rows.reduce((n,a) => n + a.size, 0))}` : "";
   $("#atdel").disabled = atSel.size === 0;
@@ -2914,7 +2921,8 @@ async function atAdd(files){
   if(!list.length){ toast("PDF 파일만 올릴 수 있습니다"); return; }
   let done = 0;
   for(const f of list){
-    const rec = { id: uid(), docId: atCtx, name: f.name, size: f.size, addedAt: new Date().toISOString() };
+    const rec = { id: uid(), docId: atCtx, tab: atCtxTab,
+                  name: f.name, size: f.size, addedAt: new Date().toISOString() };
     try{
       const buf = await f.arrayBuffer();
       await dbPut("attachfile", { id: rec.id, blob: new Blob([buf], { type:"application/pdf" }) });
@@ -2936,7 +2944,7 @@ async function atDelete(ids){
     ATTACH = ATTACH.filter(a => a.id !== id);
   }
   atSel.clear(); renderAtList(); renderRight(); updateUsage();
-  if(atvDoc){ if(atOf(atvDoc).length) atvShow(); else closeAtView(); }
+  if(atvDoc){ if(atOf(atvDoc, atvTab).length) atvShow(); else closeAtView(); }
 }
 
 $("#atpick").onclick = () => $("#atfile").click();
@@ -2961,13 +2969,13 @@ $("#atdone").onclick = $("#atclose").onclick = closeAttach;
 $("#atbg").addEventListener("click", e => { if(e.target.id === "atbg") closeAttach(); });
 
 /* ---------- AI Note — 올린 PDF를 팝업에서 봅니다 ---------- */
-let atvSeq = 0, atvPdf = null, atvDoc = null;
+let atvSeq = 0, atvPdf = null, atvDoc = null, atvTab = "sum";
 
-function openAtView(docId){
-  const rows = atOf(docId);
-  if(!rows.length){ toast("먼저 Upload 로 PDF를 올려 주세요"); return; }
-  atvDoc = docId;
-  $("#atvwho").textContent = atTitle(docId);
+function openAtView(docId, tab){
+  const t = atTab(tab);
+  if(!atOf(docId, t).length){ toast("먼저 Upload 로 PDF를 올려 주세요"); return; }
+  atvDoc = docId; atvTab = t;
+  $("#atvwho").textContent = AT_TABS[t] + " · " + atTitle(docId);
   $("#atvbg").classList.add("on");
   atvShow();
 }
@@ -2980,7 +2988,7 @@ function closeAtView(){
 
 /* 올린 PDF를 순서대로 이어서 그립니다 (파일이 여럿이면 이름 줄로 구분합니다) */
 async function atvShow(){
-  const seq = ++atvSeq, box = $("#atvpages"), rows = atOf(atvDoc);
+  const seq = ++atvSeq, box = $("#atvpages"), rows = atOf(atvDoc, atvTab);
   box.innerHTML = `<div class="msg">여는 중…</div>`;
   if(atvPdf){ try{ atvPdf.destroy(); }catch(e){} atvPdf = null; }
   try{
@@ -4273,6 +4281,10 @@ async function loadAll(){
   DOCS = docs.map(indexDoc).sort((a,b) => (b.date+b.addedAt).localeCompare(a.date+a.addedAt));
   NOTES = {}; notes.forEach(n => { NOTES[n.key] = n; });
   ATTACH = (atts || []).sort((a,b) => String(a.addedAt).localeCompare(String(b.addedAt)));
+  /* 탭 구분이 없던 예전 첨부는 NOTE 탭 것으로 옮겨 둡니다 */
+  for(const a of ATTACH){
+    if(a.tab !== "sum" && a.tab !== "note"){ a.tab = "note"; dbPut("attach", a).catch(() => {}); }
+  }
 }
 
 function defaultFolders(){
