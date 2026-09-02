@@ -330,6 +330,72 @@ body.tight-bar #viewbar .doctitle{display:none;}
 body.tight-bar #viewbar .fitbtn.on{width:40px;padding:0;}
 body.tight-bar #viewbar .fitbtn.on .t{display:none;}
 
+/* ---------- 자료 내 검색 — 뷰어 툴바 오른쪽 ----------
+   display 를 아이디 선택자로 주므로, 브라우저 기본 [hidden]{display:none} 보다
+   우선순위가 높습니다. 숨김 규칙을 여기서 다시 못 박아 둡니다. */
+#docfind[hidden],#dfpop[hidden]{display:none !important;}
+#docfind{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:0 10px;
+  border-left:2px solid var(--line);}
+#docfind .mag{flex:0 0 auto;display:flex;align-items:center;color:var(--muted2);}
+#docfind .mag svg{display:block;}
+#docfind-in{flex:0 0 auto;width:150px;height:32px;padding:0;border:none;
+  border-bottom:2px solid var(--line);border-radius:0;background:none;
+  font-size:12px;font-weight:500;}
+#docfind-in:focus{border-bottom-color:var(--accent);}
+#docfind-in::placeholder{color:var(--muted2);}
+#docfind-in::-webkit-search-cancel-button{display:none;}
+#docfind-count{flex:0 0 auto;min-width:30px;font-size:10.5px;font-weight:700;
+  color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+#docfind.nohit #docfind-count{color:var(--accent-ink);}
+#docfind .dfbtn{flex:0 0 auto;width:24px;height:24px;padding:0;display:flex;
+  align-items:center;justify-content:center;border:none;border-radius:0;
+  background:none;color:var(--muted2);line-height:1;font-size:12px;}
+#docfind .dfbtn:hover:not([disabled]){color:var(--accent-ink);}
+#docfind .dfbtn[disabled]{opacity:.35;}
+#docfind .dfbtn svg{display:block;}
+body.hide-doctitle #docfind-in{width:120px;}
+body.tight-bar #docfind{padding:0 8px;gap:5px;}
+body.tight-bar #docfind-in{width:88px;}
+body.tight-bar #docfind-count{display:none;}
+body.full #viewbar #docfind{border-left-color:#605d5d;}
+body.full #docfind-in{color:#f3f2f2;border-bottom-color:#605d5d;}
+body.full #docfind-in:focus{border-bottom-color:var(--accent);}
+body.full #docfind-count{color:#9b9797;}
+
+/* 찾은 쪽 목록 — 툴바 바로 아래로 내려오는 쪽지 */
+#dfpop{position:absolute;top:44px;right:0;z-index:60;width:min(360px,92vw);
+  max-height:min(52vh,420px);display:flex;flex-direction:column;
+  background:var(--bg);border:2px solid var(--rule);border-top:none;
+  box-shadow:var(--shadow);overflow:hidden;}
+#dfpop .dfhead{flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-bottom:2px solid var(--rule);
+  font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);}
+#dfpop .dfhead .x{margin-left:auto;border:none;background:none;color:var(--muted);
+  font-size:13px;line-height:1;padding:0 2px;}
+#dfpop .dfhead .x:hover{color:var(--accent-ink);}
+#dfpop .dfscroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.dfres{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+  padding:9px 12px;border:none;border-bottom:1px solid var(--hairline);
+  border-radius:0;background:none;line-height:1.5;}
+.dfres:last-child{border-bottom:none;}
+.dfres:hover{background:var(--panel2);}
+.dfres.cur{background:var(--accent-soft);}
+.dfres .dfp{flex:0 0 auto;min-width:30px;text-align:center;background:var(--rule);
+  color:var(--bg);font-size:10px;font-weight:800;line-height:18px;
+  font-variant-numeric:tabular-nums;}
+.dfres .dfsnip{flex:1 1 auto;min-width:0;font-size:11.5px;color:#444141;}
+.dfres .dfsnip mark{background:#ffc4b8;color:inherit;padding:0 1px;}
+.dfres .dfn{flex:0 0 auto;font-size:10px;color:var(--muted2);white-space:nowrap;}
+#dfpop .dfnone{padding:22px 12px;text-align:center;color:var(--muted);
+  font-size:12px;line-height:1.6;}
+body.full #dfpop{background:#2d2b2b;border-color:#201e1d;color:#f3f2f2;}
+body.full #dfpop .dfhead{color:#9b9797;border-bottom-color:#201e1d;}
+body.full .dfres{border-bottom-color:#444141;}
+body.full .dfres:hover{background:#444141;}
+body.full .dfres .dfsnip{color:#d7d3d3;}
+body.full .dfres .dfsnip mark{color:#201e1d;}
+body.full .dfres.cur{background:#4a2a20;}
+
 /* 무대 — 밝은 회색 바닥 위에 흰 종이 한 장.
    가운데 맞추기는 margin:auto 로 합니다 — 확대해서 넘칠 때도 잘리지 않습니다. */
 #stagewrap{flex:1 1 auto;min-height:0;position:relative;display:flex;}
@@ -859,10 +925,33 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">One Page</span></button>
       <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span></div>
+      <div id="docfind" hidden>
+        <span class="mag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </span>
+        <input id="docfind-in" type="search" autocomplete="off" spellcheck="false"
+               placeholder="이 자료에서 찾기" aria-label="이 자료에서 찾기">
+        <span id="docfind-count" aria-live="polite"></span>
+        <button class="dfbtn" id="docfind-prev" title="이전 (Shift+Enter)" aria-label="이전 결과">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button>
+        <button class="dfbtn" id="docfind-next" title="다음 (Enter)" aria-label="다음 결과">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button class="dfbtn" id="docfind-x" title="닫기 (Esc)" aria-label="검색 닫기">✕</button>
+      </div>
       <button class="vbtn" id="btn-full" title="Full screen (Esc to exit)" aria-label="Full screen">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+    </div>
+
+    <div id="dfpop" hidden>
+      <div class="dfhead"><span id="dfpop-title">찾은 쪽</span>
+        <button class="x" id="dfpop-x" title="닫기 (Esc)" aria-label="닫기">✕</button></div>
+      <div class="dfscroll" id="dfpop-body"></div>
     </div>
 
     <div id="stagewrap">
@@ -1181,6 +1270,49 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---- 띄어쓰기를 무시하고 찾기 --------------------------------------
+   파워포인트로 만든 PDF는 한 낱말이 여러 조각으로 쪼개져 나옵니다.
+   글자를 뽑을 때 그 조각들을 이어 붙이면서 '공 동 영 업' 처럼
+   없던 공백이 끼어들고, 반대로 있어야 할 공백이 빠지기도 합니다.
+   그래서 찾을 때는 찾는 말과 자료 글자 양쪽에서 공백을 모두 걷어 내고 견줍니다.
+     sqz(s).t   : 공백을 뺀 소문자 글자
+     sqz(s).map : 그 글자가 원문에서 몇 번째였는지 (원문 자리를 되찾는 지도) */
+const WS = /[\s\u200b-\u200d]/;
+function sqz(s){
+  s = String(s == null ? "" : s);
+  let t = "";
+  const map = [];
+  for(let i = 0; i < s.length; i++){
+    const c = s[i];
+    if(WS.test(c)) continue;
+    t += c.toLowerCase();
+    map.push(i);
+  }
+  return { t, map };
+}
+/* 찾는 말 — 공백을 걷어 낸 소문자 */
+const sqzQ = q => String(q == null ? "" : q).replace(/[\s\u200b-\u200d]+/g, "").toLowerCase();
+
+/* 한 쪽(또는 한 덩어리)에서 찾은 자리들 — 원문 기준 [시작, 끝] 로 돌려줍니다 */
+function findSpans(sq, needle, limit){
+  const out = [];
+  if(!needle || !sq.t) return out;
+  let from = 0, j;
+  while((j = sq.t.indexOf(needle, from)) >= 0){
+    out.push([ sq.map[j], sq.map[j + needle.length - 1] + 1 ]);
+    from = j + needle.length;
+    if(limit && out.length >= limit) break;
+  }
+  return out;
+}
+/* 찾은 자리 앞뒤를 조금 붙여서 보여 줍니다 */
+function cutSpan(hay, from, to){
+  const a = Math.max(0, from - 28), b = Math.min(hay.length, to + 46);
+  return (a > 0 ? "…" : "") + esc(hay.slice(a, from))
+       + "<mark>" + esc(hay.slice(from, to)) + "</mark>"
+       + esc(hay.slice(to, b)) + (b < hay.length ? "…" : "");
+}
 /* ---- 연도 · 월 · 주차 ----------------------------------------------
    화면에는 '2026년 7월 1주차'로 보이고,
    안쪽에는 그 주가 시작하는 날짜(1주차=01일, 2주차=08일 …)로 저장합니다.
@@ -1320,12 +1452,25 @@ let ATTACH = [];  // [{id,docId,tab,name,size,addedAt}] — 원본은 attachfile
 function noteKey(cat, date){ return cat + "|" + date; }
 function noteOf(d){ return d ? NOTES[noteKey(d.cat, d.date)] : null; }
 
+/* 쪽과 쪽 사이를 갈라 두는 표시 — 공백이 아니라서 걷어 내도 남습니다.
+   덕분에 앞 쪽 끝과 뒤 쪽 첫머리가 붙어서 엉뚱하게 걸리는 일이 없습니다. */
+const SEP = "\u0001";
 function indexDoc(d){
   d.pageTexts = d.pageTexts || [];
   if(!d.week) d.week = weekOfDate(d.date);   /* 옛 자료도 주차를 알아냅니다 */
   d.short = shortTitle(d.title) || d.cat || d.title;
-  d._all = ((d.title||"") + " " + d.pageTexts.join(" ")).toLowerCase();
+  /* 띄어쓰기를 무시하고 찾기 위한 색인 — 자료 목록 전체 검색에서 씁니다 */
+  d._allSq = sqzQ((d.title||"") + SEP + d.pageTexts.join(SEP));
   return d;
+}
+
+/* 자료 하나의 쪽별 색인 — 자료 내 검색·미리보기에서 씁니다.
+   메모리를 아끼려고 마지막에 본 자료 하나만 들고 있습니다. */
+let SQC = { id:null, pages:null };
+function sqzPages(d){
+  if(SQC.id !== d.id || !SQC.pages || SQC.pages.length !== d.pageTexts.length)
+    SQC = { id:d.id, pages:(d.pageTexts || []).map(sqz) };
+  return SQC.pages;
 }
 
 /* =========================================================
@@ -1338,6 +1483,8 @@ const S = {
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
+  /* 자료 내 검색 — 지금 열린 자료에서만. raw=친 그대로, q=공백을 걷어 낸 것 */
+  find:{ raw:"", q:"", hits:[], i:-1, total:0 },
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"width",                          /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"width",                          /* 기본은 화면 너비 — 장표가 늘 칸을 꽉 채우게 */
@@ -1610,6 +1757,7 @@ function updateBars(){
   $("#nav-prev").disabled = !S.pdf || S.page <= 1;
   $("#nav-next").disabled = !S.pdf || S.page >= last;
   renderFitBtns();
+  if(typeof syncDocFind === "function") syncDocFind();
 }
 
 /* 요약이 붙어 있는 쪽 번호 — 구조 요약(ex)의 pages 에서 뽑습니다 */
@@ -2079,39 +2227,38 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
 /* =========================================================
    8) 검색
    ========================================================= */
+/* 찾기는 모두 '띄어쓰기를 무시한' 채로 견줍니다 — PDF에서 뽑은 글자는
+   낱말 사이 공백이 제멋대로라, 그대로 견주면 '공동 영업' 같은 말이 안 걸립니다. */
 function searchDocs(q){
-  q = q.trim().toLowerCase(); if(!q) return [];
+  const nq = sqzQ(q); if(!nq) return [];
   const out = [];
   activeDocs().forEach(d => {
-    const inDoc  = d._all.includes(q);
+    if(!d._allSq) indexDoc(d);                       /* 옛 자료도 색인을 만들어 둡니다 */
+    const inDoc  = d._allSq.includes(nq);
     const note   = noteOf(d);
-    const inNote = note && note.text.toLowerCase().includes(q);
+    const inNote = !!note && sqzQ(note.text).includes(nq);
     if(inDoc || inNote) out.push({ d, inNote });
   });
   return out;
 }
 
 function snippetOf(d, q, inNote){
-  const lower = q.toLowerCase();
-  if(d.title.toLowerCase().includes(lower) && !d._all.slice(d.title.length).includes(lower)){
-    return { html:"", where:"파일명" };
-  }
-  /* 자료 안 — 몇 쪽에서 찾았는지 함께 */
+  const nq = sqzQ(q);
+  const inTitle = sqzQ(d.title).includes(nq);
+  /* 자료 안 — 몇 쪽에서 찾았는지 함께.
+     한 쪽씩 훑다가 처음 찾는 곳에서 멈춥니다 (쪽 수가 많아도 헛일을 하지 않게) */
   for(let i = 0; i < d.pageTexts.length; i++){
-    const hay = d.pageTexts[i], j = hay.toLowerCase().indexOf(lower);
-    if(j >= 0) return { html: cut(hay, j, q.length), where: `자료 ${i+1}쪽` };
+    const hay = d.pageTexts[i] || "";
+    if(!hay) continue;
+    const at = findSpans(sqz(hay), nq, 1)[0];
+    if(at) return { html: cutSpan(hay, at[0], at[1]), where: `자료 ${i+1}쪽` };
   }
   if(inNote){
-    const note = noteOf(d), j = note.text.toLowerCase().indexOf(lower);
-    if(j >= 0) return { html: cut(note.text, j, q.length), where:"회의록" };
+    const note = noteOf(d), at = findSpans(sqz(note.text), nq, 1)[0];
+    if(at) return { html: cutSpan(note.text, at[0], at[1]), where:"회의록" };
   }
-  if(d.title.toLowerCase().includes(lower)) return { html:"", where:"파일명" };
+  if(inTitle) return { html:"", where:"파일명" };
   return { html:"", where:"" };
-}
-function cut(hay, i, len){
-  const from = Math.max(0, i - 28), to = Math.min(hay.length, i + len + 46);
-  return (from>0?"…":"") + esc(hay.slice(from,i)) + "<mark>" + esc(hay.slice(i,i+len)) + "</mark>"
-       + esc(hay.slice(i+len,to)) + (to<hay.length?"…":"");
 }
 
 function openPop(){ $("#searchpop").classList.add("on"); }
@@ -2156,6 +2303,181 @@ $("#popbody").addEventListener("click", async e => {
   await selectDoc(row.dataset.id);
   if(goPageNo && S.pdf){ S.page = Math.min(S.pdf.numPages, goPageNo); await renderPage(); }
 });
+
+/* =========================================================
+   8-3) 자료 내 검색 — 지금 열려 있는 자료의 글자에서만 찾습니다
+        · 뷰어 툴바 오른쪽 검색창. 결과는 '몇 쪽'으로 알려 주고
+          Enter·화살표 단추로 일치하는 쪽을 오갑니다.
+        · 부서명·팀이름을 비롯해 PDF에서 뽑은 모든 글자가 대상입니다.
+   ========================================================= */
+const DF = {
+  box:  () => $("#docfind"),
+  in:   () => $("#docfind-in"),
+  cnt:  () => $("#docfind-count"),
+  pop:  () => $("#dfpop"),
+};
+
+function docFindDoc(){
+  const d = DOCS.find(x => x.id === S.sel);
+  if(!S.pdf || !d) return null;
+  return (d.pageTexts || []).some(t => t) ? d : null;
+}
+
+/* 뷰어 상태가 바뀔 때마다 (updateBars 안에서) — 보이기/숨기기만 합니다 */
+function syncDocFind(){
+  const ok = !!docFindDoc();
+  DF.box().hidden = !ok;
+  if(!ok){ clearDocFind(); return; }
+  if(S.find.q) markCurrentHit();           /* 페이지를 옮기면 목록의 '지금 쪽' 표시를 따라갑니다 */
+}
+
+function clearDocFind(){
+  S.find = { raw:"", q:"", hits:[], i:-1, total:0 };
+  const el = $("#docfind-in"); if(el) el.value = "";
+  const c = $("#docfind-count"); if(c){ c.textContent = ""; c.removeAttribute("title"); }
+  const b = $("#docfind"); if(b) b.classList.remove("nohit");
+  closeDfPop();
+  refreshDfBtns();
+}
+
+function refreshDfBtns(){
+  const none = S.find.hits.length === 0;
+  const p = $("#docfind-prev"), n = $("#docfind-next");
+  if(p) p.disabled = none;
+  if(n) n.disabled = none;
+}
+
+function runDocFind(){
+  const d = docFindDoc();
+  const raw = ($("#docfind-in").value || "").trim();
+  const q = sqzQ(raw);                       /* 띄어쓰기는 무시하고 견줍니다 */
+  S.find.raw = raw; S.find.q = q;
+  S.find.hits = []; S.find.i = -1; S.find.total = 0;
+
+  if(d && q){
+    const pages = sqzPages(d);
+    for(let i = 0; i < pages.length; i++){
+      const spans = findSpans(pages[i], q);
+      if(spans.length){
+        S.find.hits.push({ p:i+1, n:spans.length, at:spans[0] });
+        S.find.total += spans.length;
+      }
+    }
+  }
+
+  $("#docfind").classList.toggle("nohit", !!q && S.find.hits.length === 0);
+  refreshDfBtns();
+  updateDocFindCount();
+  renderDfPop();
+
+  /* 처음 찾았을 때는 지금 쪽 또는 그 다음의 첫 일치로 옮겨 갑니다 */
+  if(S.find.hits.length){
+    let idx = S.find.hits.findIndex(h => h.p >= S.page);
+    if(idx < 0) idx = 0;
+    gotoDocFindHit(idx, true);
+  }
+}
+
+function updateDocFindCount(){
+  const c = $("#docfind-count"), h = S.find.hits;
+  if(!c) return;
+  if(!S.find.q){ c.textContent = ""; c.removeAttribute("title"); return; }
+  if(!h.length){ c.textContent = "없음"; c.title = "일치하는 내용이 없습니다"; return; }
+  const cur = S.find.i >= 0 ? (S.find.i + 1) : "–";
+  c.textContent = `${cur}/${h.length}`;
+  c.title = `${h.length}개 쪽에서 발견 · 모두 ${S.find.total}곳\n쪽: ${h.map(x => x.p).join(", ")}`;
+}
+
+function gotoDocFindHit(idx, quiet){
+  const h = S.find.hits; if(!h.length) return;
+  idx = ((idx % h.length) + h.length) % h.length;
+  S.find.i = idx;
+  updateDocFindCount();
+  markCurrentHit();
+  goPage(h[idx].p);
+  if(!quiet) toast(`‘${S.find.raw || S.find.q}’ · ${h[idx].p}쪽 (이 쪽에 ${h[idx].n}곳)`);
+}
+
+function stepDocFind(dir){
+  if(!S.find.hits.length){ runDocFind(); return; }
+  gotoDocFindHit((S.find.i < 0 ? (dir > 0 ? 0 : -1) : S.find.i + dir));
+}
+
+/* ---- 찾은 쪽 목록 (툴바 아래로 내려오는 쪽지) ---- */
+function dfSnippet(d, h){
+  const hay = d.pageTexts[h.p - 1] || "";
+  return h.at ? cutSpan(hay, h.at[0], h.at[1]) : esc(hay.slice(0, 70));
+}
+function renderDfPop(){
+  const pop = $("#dfpop"), body = $("#dfpop-body"), d = docFindDoc();
+  if(!d || !S.find.q){ closeDfPop(); return; }
+  $("#dfpop-title").textContent = S.find.hits.length
+    ? `찾은 쪽 ${S.find.hits.length}`
+    : "찾은 쪽";
+  body.innerHTML = S.find.hits.length
+    ? S.find.hits.map((h, k) => `<button class="dfres${k === S.find.i ? " cur" : ""}" data-k="${k}">
+        <span class="dfp">${h.p}</span>
+        <span class="dfsnip">${dfSnippet(d, h)}</span>
+        <span class="dfn">${h.n}곳</span></button>`).join("")
+    : `<div class="dfnone">‘${esc(S.find.raw || S.find.q)}’ 는 이 자료에 없습니다.</div>`;
+  pop.hidden = false;
+}
+function markCurrentHit(){
+  const body = $("#dfpop-body"); if(!body) return;
+  $$("#dfpop-body .dfres").forEach(el =>
+    el.classList.toggle("cur", +el.dataset.k === S.find.i));
+}
+function openDfPop(){ if(S.find.q) renderDfPop(); }
+function closeDfPop(){ const p = $("#dfpop"); if(p) p.hidden = true; }
+
+/* ---- 이벤트 ---- */
+let dfTimer = 0;
+document.addEventListener("input", e => {
+  if(e.target.id !== "docfind-in") return;
+  clearTimeout(dfTimer);
+  dfTimer = setTimeout(runDocFind, 140);
+});
+document.addEventListener("keydown", e => {
+  if(e.target.id === "docfind-in"){
+    if(e.key === "Enter"){
+      e.preventDefault(); e.stopImmediatePropagation();
+      stepDocFind(e.shiftKey ? -1 : 1);
+    }else if(e.key === "Escape"){
+      /* 목록이 열려 있으면 목록만, 아니면 검색 자체를 닫습니다 (전체화면은 건드리지 않음) */
+      e.preventDefault(); e.stopImmediatePropagation();
+      if(!$("#dfpop").hidden && (S.find.hits.length || S.find.q)) closeDfPop();
+      else closeDocFind();
+    }
+    return;
+  }
+  /* Ctrl/⌘+F — 자료가 열려 있으면 브라우저 찾기 대신 '자료 내 검색'을 엽니다 */
+  if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "f" || e.key === "F")){
+    if(docFindDoc()){
+      e.preventDefault();
+      $("#docfind").hidden = false;
+      const inp = $("#docfind-in"); inp.focus(); inp.select();
+      openDfPop();
+    }
+  }
+});
+document.addEventListener("click", e => {
+  if(e.target.closest("#docfind-next")){ stepDocFind(1); return; }
+  if(e.target.closest("#docfind-prev")){ stepDocFind(-1); return; }
+  if(e.target.closest("#docfind-x")){ closeDocFind(); return; }
+  if(e.target.closest("#dfpop-x")){ closeDfPop(); $("#docfind-in").focus(); return; }
+  const row = e.target.closest(".dfres");
+  if(row){ gotoDocFindHit(+row.dataset.k); return; }
+  /* 바깥을 누르면 목록만 닫습니다 (검색어는 유지) */
+  if(!e.target.closest("#dfpop") && !e.target.closest("#docfind")) closeDfPop();
+});
+document.addEventListener("focusin", e => {
+  if(e.target.id === "docfind-in") openDfPop();
+});
+
+function closeDocFind(){
+  clearDocFind();
+  const inp = $("#docfind-in"); if(inp) inp.blur();
+}
 
 /* =========================================================
    8-2) 회의 Agenda — 연도·월·주차별 안건 표
@@ -2598,6 +2920,7 @@ $("#mgdelsel").onclick = async () => {
 
 async function selectDoc(id){
   S.sel = id; revealDoc(id);
+  if(typeof clearDocFind === "function") clearDocFind();   /* 자료가 바뀌면 자료 내 검색은 초기화 */
   KV.sel = id; saveKV("sel");                                /* 다음에 열 때 이 자료로 돌아옵니다 */
   S.editA = S.editB = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
@@ -3960,8 +4283,12 @@ async function ingest(p){
   DOCS.push(doc);
   return warns.join(" · ");
 }
-/* 저장할 때는 검색용 임시값(_all)을 뺍니다 */
-function stripDoc(d){ const { _all, ...rest } = d; return rest; }
+/* 저장할 때는 검색용 임시값(_ 로 시작하는 것들)을 뺍니다 */
+function stripDoc(d){
+  const rest = {};
+  for(const k in d) if(k[0] !== "_") rest[k] = d[k];
+  return rest;
+}
 
 /* =========================================================
    14) 설정 · 백업
