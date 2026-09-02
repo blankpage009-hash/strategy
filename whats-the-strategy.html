@@ -753,6 +753,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .ghostbtn{height:32px;padding:0 12px;border:2px solid var(--line);border-radius:0;background:none;
   font-size:12px;font-weight:700;color:var(--muted);}
 .ghostbtn:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
+.ghostbtn.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
+.ghostbtn.on:hover:not([disabled]){background:var(--rule);border-color:var(--rule);color:var(--bg);}
 
 .mrow{padding:12px 0;border-bottom:1px solid var(--hairline);}
 .mrow:last-child{border-bottom:none;}
@@ -1196,7 +1198,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 <div class="modalbg" id="alltasksbg">
   <div class="modal wide" role="dialog" aria-label="모든 할 일">
     <header>모든 할 일 <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
-      <button class="x" id="alltasksclose">✕</button></header>
+      <button class="ghostbtn" id="alltasksdone" style="margin-left:auto;height:26px;padding:0 10px;font-size:11px"
+        title="완료된 할 일을 함께 볼지 정합니다">완료 항목 보기</button>
+      <button class="x" id="alltasksclose" style="margin-left:8px">✕</button></header>
     <div class="content" id="alltasksbody"></div>
   </div>
 </div>
@@ -3274,6 +3278,39 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
   });
 })();
 
+/* 아이패드 — 한 손가락으로 좌우로 밀어 장 넘기기
+   (왼쪽으로 밀면 다음 장, 오른쪽으로 밀면 앞 장) */
+(function swipePage(){
+  const stage = $("#stage");
+  let x0 = 0, y0 = 0, t0 = 0, ok = false;
+  stage.addEventListener("touchstart", e => {
+    ok = e.touches.length === 1 && !!S.pdf;
+    if(!ok) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive:true });
+  stage.addEventListener("touchmove", e => {
+    if(e.touches.length !== 1) ok = false;              /* 두 손가락(확대)이면 취소 */
+  }, { passive:true });
+  stage.addEventListener("touchend", e => {
+    if(!ok || !S.pdf) return;
+    ok = false;
+    const t = e.changedTouches[0]; if(!t) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if(adx < 55 || adx < ady * 1.6) return;             /* 가로로 확실히 민 것만 */
+    if(Date.now() - t0 > 800) return;                    /* 너무 느린 동작은 무시 */
+    /* 확대해서 자료가 화면보다 넓을 때는 먼저 옆으로 움직이고, 끝에 닿으면 그때 넘깁니다 */
+    const room = stage.scrollWidth - stage.clientWidth;
+    if(room > 24){
+      if(dx < 0 && stage.scrollLeft < room - 4) return;
+      if(dx > 0 && stage.scrollLeft > 4)        return;
+    }
+    const to = S.page + (dx < 0 ? 1 : -1);
+    if(to < 1 || to > S.pdf.numPages) return;
+    goPage(to);
+  }, { passive:true });
+})();
+
 /* =========================================================
    11) 요약 · 할 일 · 발표 스크립트
    ========================================================= */
@@ -3333,21 +3370,37 @@ function addTask(text){
 }
 
 /* ---- 모든 할 일 팝업 — 주차·종류 상관없이 전부 모아서 보여 줍니다 ---- */
+/* 완료된 항목은 기본으로 숨기고, 머리의 단추로 켜고 끕니다 */
+let showDoneTasks = false;
 function renderAllTasks(){
-  const list = DOCS.slice()
+  const all = DOCS.slice()
     .sort((a,b) => (a.date + a.addedAt).localeCompare(b.date + b.addedAt))
     .filter(d => (KV.tasks[d.id] || []).length);
 
-  let total = 0, open = 0;
-  list.forEach(d => (KV.tasks[d.id] || []).forEach(t => { total++; if(t.s !== 2) open++; }));
+  let total = 0, open = 0, doneCnt = 0;
+  all.forEach(d => (KV.tasks[d.id] || []).forEach(t => { total++; if(t.s !== 2) open++; else doneCnt++; }));
   $("#alltaskscount").textContent = total ? `· ${open} 남음 / 전체 ${total}개` : "";
 
+  const tg = $("#alltasksdone");
+  if(tg){
+    tg.classList.toggle("on", showDoneTasks);
+    tg.textContent = showDoneTasks ? "완료 항목 숨기기" : `완료 항목 보기${doneCnt ? " (" + doneCnt + ")" : ""}`;
+    tg.hidden = !doneCnt;
+  }
+
+  /* 완료만 있는 자료는 숨김 상태에서 그룹째 빠집니다 */
+  const list = showDoneTasks
+    ? all
+    : all.filter(d => (KV.tasks[d.id] || []).some(t => t.s !== 2));
+
   $("#alltasksbody").innerHTML = list.length ? list.map(d => {
-    const arr = KV.tasks[d.id] || [];
+    const arr = (KV.tasks[d.id] || [])
+      .map((t,i) => ({ t, i }))
+      .filter(x => showDoneTasks || x.t.s !== 2);
     const head = (d.date ? fmtYMW(d) + " · " : "") + (d.cat || "");
     return `<div class="atgrp">
       <div class="athead">${esc(head)}<span class="atsub">${esc(d.short || d.title || "")}</span></div>
-      ${ arr.map((t,i) => {
+      ${ arr.map(({t,i}) => {
         const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
         const dot = t.s===2 ? "warn" : (t.s===1 ? "go" : "bad");
         const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행중" : "남음");
@@ -3357,9 +3410,13 @@ function renderAllTasks(){
           <div class="tx">${esc(t.t)}</div></div>`;
       }).join("") }
     </div>`;
-  }).join("") : `<div class="atempty">아직 등록된 할 일이 없습니다. 자료를 골라 <b>할 일</b> 탭에서 추가해 보세요.</div>`;
+  }).join("") : `<div class="atempty">${
+    total ? "남은 할 일이 없습니다. <b>완료 항목 보기</b>로 지난 할 일을 볼 수 있습니다."
+          : "아직 등록된 할 일이 없습니다. 자료를 골라 <b>할 일</b> 탭에서 추가해 보세요."
+  }</div>`;
 }
 function openAllTasks(){ renderAllTasks(); $("#alltasksbg").classList.add("on"); }
+$("#alltasksdone").onclick = () => { showDoneTasks = !showDoneTasks; renderAllTasks(); };
 $("#alltasksclose").onclick = () => $("#alltasksbg").classList.remove("on");
 $("#alltasksbg").addEventListener("click", e => {
   if(e.target.id === "alltasksbg") $("#alltasksbg").classList.remove("on");
