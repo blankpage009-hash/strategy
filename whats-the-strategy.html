@@ -422,7 +422,7 @@ body.full .dfres.cur{background:#4a2a20;}
 #novideo button{height:32px;padding:0 14px;border-radius:0;border:none;
   background:var(--accent);color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
 #novideo button:hover{background:var(--accent-hover);}
-/* 페이지 자리 띠 — 쪽마다 눈금 하나. 긴 눈금은 요약이 있는 쪽입니다 */
+/* 페이지 자리 띠 — 쪽마다 눈금 하나 */
 #pagebar{flex:0 0 auto;height:44px;display:flex;align-items:center;gap:2px;padding:0 16px;
   background:var(--bg);border-top:2px solid var(--rule);font-size:12.5px;}
 #pagebar .step{flex:0 0 auto;width:28px;height:24px;padding:0;display:flex;align-items:center;
@@ -441,17 +441,14 @@ body.full .dfres.cur{background:#4a2a20;}
   font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
 #pagepos .tot{font-weight:500;color:var(--muted);}
 #pagepos:hover .tot,#pagepos:hover{color:var(--accent-ink);}
-#ticklegend{flex:0 0 auto;margin-left:16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;
-  color:var(--muted2);white-space:nowrap;}
-body.tight-bar #ticklegend{display:none;}
 #spin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:12px;display:none;}
 #center{position:relative;}
 body.rendering #spin{display:block;}
 
 /* ---------- 오른쪽 ---------- */
 #right .side-scroll{padding:12px 12px 28px;}
-#rbody[data-tab="sum"],#rbody[data-tab="note"],#rbody[data-tab="task"]{padding:0 0 20px;}
-#rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"]{padding:12px 12px 28px;}
+#rbody[data-tab="sum"],#rbody[data-tab="note"],#rbody[data-tab="task"],#rbody[data-tab="script"]{padding:0 0 20px;}
+#rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"],#rbody[data-tab="script"]{padding:12px 12px 28px;}
 /* 탭 줄은 스크롤과 상관없이 위에 붙어 있습니다.
    고른 탭만 이름과 함께 넓게 펴지고, 나머지는 아이콘 칸으로 접힙니다. */
 #rtop{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
@@ -525,9 +522,32 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 .aiwhen{flex:1 1 auto;min-width:0;font-size:10.5px;color:#7d7979;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* Executive Summary(텍스트로 볼 때) · 회의록 탭 — 입력창이 패널 전체를 채웁니다 */
-#rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"]{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px;}
-#rbody[data-tab="sum"][data-mode="text"] .sect.grow,#rbody[data-tab="note"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
-#rbody[data-tab="sum"][data-mode="text"] textarea.sum.fill,#rbody[data-tab="note"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
+#rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"],#rbody[data-tab="script"]{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px;}
+#rbody[data-tab="sum"][data-mode="text"] .sect.grow,#rbody[data-tab="note"] .sect.grow,#rbody[data-tab="script"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
+#rbody[data-tab="sum"][data-mode="text"] textarea.sum.fill,#rbody[data-tab="note"] textarea.sum.fill,#rbody[data-tab="script"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
+
+/* ---------- 발표 스크립트 탭 — 쪽마다 따로 적습니다 ---------- */
+/* 머리줄 왼쪽 : 지금 보고 있는 쪽 번호와 앞뒤 쪽 단추 */
+.scpage{flex:0 0 auto;display:flex;align-items:center;gap:4px;}
+.scpage .no{font-size:12.5px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;}
+.scpage .tot{font-size:11px;font-weight:500;color:var(--muted);}
+.scnav{width:20px;height:20px;padding:0;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:0;background:var(--bg);color:var(--muted);
+  font-size:12px;font-weight:800;line-height:1;}
+.scnav:hover:not([disabled]){border-color:var(--accent);color:var(--accent);}
+.scnav[disabled]{opacity:.35;}
+/* 스크립트를 적어 둔 쪽들(SCRIPTED) — 쪽 번호 바로 오른쪽에 붙습니다.
+   많아지면 줄을 늘리지 않고 그 자리에서 옆으로 밀어 봅니다 (막대는 감춥니다) */
+.scjump{flex:1 1 0;min-width:0;display:flex;align-items:center;flex-wrap:nowrap;gap:4px;margin:0 0 0 8px;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;white-space:nowrap;
+  font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted2);}
+.scjump::-webkit-scrollbar{display:none;}
+.scjump .lb{flex:0 0 auto;margin-right:2px;}
+.scjump .pgchip{flex:0 0 auto;min-width:20px;height:18px;padding:0 5px;border:1px solid var(--line);border-radius:0;
+  background:var(--bg);color:var(--muted);font-size:10.5px;font-weight:800;
+  font-variant-numeric:tabular-nums;line-height:1;}
+.scjump .pgchip:hover{border-color:var(--accent);color:var(--accent);}
+.scjump .pgchip.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
 .tip{font-size:10.5px;color:#7d7979;margin-top:3px;}
 .nonote{font-size:12px;color:var(--muted);line-height:1.6;}
 /* 상태 딱지 — 9px 사각형 하나에 글자 하나 */
@@ -949,7 +969,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
     </div>
 
     <div id="dfpop" hidden>
-      <div class="dfhead"><span id="dfpop-title">찾은 쪽</span>
+      <div class="dfhead"><span id="dfpop-title">찾은 p</span>
         <button class="x" id="dfpop-x" title="닫기 (Esc)" aria-label="닫기">✕</button></div>
       <div class="dfscroll" id="dfpop-body"></div>
     </div>
@@ -981,14 +1001,13 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       <div id="ticks"></div>
-      <button id="pagepos" title="쪽 번호로 이동"></button>
-      <span id="ticklegend">긴 눈금은 요약이 있는 쪽</span>
+      <button id="pagepos" title="p 번호로 이동"></button>
     </div>
   </main>
 
   <aside id="right">
     <button class="rail" data-open="right" title="오른쪽 사이드바 열기">
-      <span class="arw">«</span><span class="lbl">SUMMARY · NOTE · TASKS</span>
+      <span class="arw">«</span><span class="lbl">SUMMARY · NOTE · TASKS · SCRIPT</span>
     </button>
     <div class="side-inner">
       <div id="rtop"></div>
@@ -1402,6 +1421,8 @@ const KV_DEFAULT = {
   cats:["정기 보고","주간회의","월간회의","워크샵"],
   offcats:[], folders:null, left:null, right:null,
   tasks:{}, sums:{}, storeMode:"full", rtab:"sum",
+  /* 발표 스크립트 — { 자료 id: { 쪽 번호: "그 쪽에서 할 말" } } */
+  scripts:{},
   /* 마지막으로 보던 자료 — 다음에 열 때 그대로 이어서 봅니다 */
   sel:null,
   ai:"off", aiKey:"", aiModel:"gemini-3.5-flash",
@@ -1414,7 +1435,8 @@ async function loadKV(){
   const rows = await dbAll("kv");
   rows.forEach(r => { KV[r.k] = r.v; });
   /* 기본값의 빈 객체를 그대로 쓰지 않도록 제 것으로 복제합니다 */
-  KV.catMap = Object.assign({}, KV.catMap);
+  KV.catMap  = Object.assign({}, KV.catMap);
+  KV.scripts = Object.assign({}, KV.scripts);
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
   if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
@@ -1478,8 +1500,8 @@ function sqzPages(d){
    ========================================================= */
 const S = {
   sel:null, q:"", zoom:1, page:1, rtab:"sum",
-  /* 오른쪽 탭 : sum(회의자료 요약) · note(회의록) · task(할 일) */
-  editA:false, editB:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
+  /* 오른쪽 탭 : sum(회의자료 요약) · note(회의록) · task(할 일) · script(쪽별 발표 스크립트) */
+  editA:false, editB:false, editS:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
@@ -1746,7 +1768,7 @@ function updateBars(){
   /* 자료 이름 오른쪽의 작은 글씨 — 2026 · 8월 · W3 · 24쪽 */
   $("#viewmeta").textContent = d
     ? `${yearOf(d)} · ${monthOf(d)}월 · W${weekOf(d)} · ${
-        S.pdf ? S.pdf.numPages : (d.pages || 1)}쪽`
+        S.pdf ? S.pdf.numPages : (d.pages || 1)}p`
     : "";
   $("#viewmeta").style.display = d ? "" : "none";
   const last = S.pdf ? S.pdf.numPages : (d ? (d.pages || 1) : 1);
@@ -1758,6 +1780,17 @@ function updateBars(){
   $("#nav-next").disabled = !S.pdf || S.page >= last;
   renderFitBtns();
   if(typeof syncDocFind === "function") syncDocFind();
+  syncScriptPane();
+}
+
+/* 뷰어에 펼쳐진 쪽이 바뀌면 오른쪽 스크립트 판도 그 쪽 글로 갈아 끼웁니다.
+   같은 쪽이면 손대지 않습니다 — 적는 중에 글상자가 다시 만들어지지 않게 합니다. */
+function syncScriptPane(){
+  if(S.rtab !== "script") return;
+  const body = $("#rbody");
+  if(body.dataset.tab !== "script") return;
+  if(body.dataset.page === String(S.page)) return;
+  renderRight();
 }
 
 /* 요약이 붙어 있는 쪽 번호 — 구조 요약(ex)의 pages 에서 뽑습니다 */
@@ -1780,8 +1813,8 @@ function renderTicks(total){
   let html = "";
   for(let n = 1; n <= total; n++){
     const cls = n === S.page ? "now" : (sum.has(n) ? "sum" : "");
-    html += `<button class="tick ${cls}" data-p="${n}" title="${n}쪽${
-      sum.has(n) ? " — 요약 있음" : ""}" aria-label="${n}쪽"></button>`;
+    html += `<button class="tick ${cls}" data-p="${n}" title="${n}p${
+      sum.has(n) ? " — 요약 있음" : ""}" aria-label="${n}p"></button>`;
   }
   box.innerHTML = html;
 }
@@ -1794,7 +1827,7 @@ function renderFitBtns(){
 }
 
 /* =========================================================
-   6) 오른쪽 — 요약 · 회의록 · 할 일
+   6) 오른쪽 — 요약 · 회의록 · 할 일 · 발표 스크립트
    ========================================================= */
 function splitSentences(text){
   return String(text || "")
@@ -1938,7 +1971,7 @@ function exSections(ex){
     if(dept !== lastDept){ rows += `<div class="pgdept">${esc(dept)}</div>`; lastDept = dept; }
     const note = (p.lines || []).filter(Boolean).join(" · ");
     rows += `<button class="pgrow" ${p.page ? `data-page="${p.page}"` : ""}
-        title="${p.page ? p.page + "쪽으로 가기" : ""}">
+        title="${p.page ? p.page + "p로 가기" : ""}">
       <span class="pg">${p.page ? String(p.page).padStart(2,"0") : "―"}</span>
       <span class="bd">
         ${p.title ? `<span class="pt">${esc(p.title)}</span>` : ""}
@@ -1981,17 +2014,35 @@ const RTAB_ICONS = {
            ><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
   task: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" aria-hidden="true"
-           ><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></svg>`
+           ><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></svg>`,
+  script: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+           ><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg>`
 };
 
-function rtabsHtml(tab, taskCount, off){
+/* 오른쪽 탭은 이 넷뿐입니다 — 저장된 값이 이상하면 요약으로 되돌립니다 */
+const RTABS = ["sum", "note", "task", "script"];
+function rtabOf(t){ return RTABS.includes(t) ? t : "sum"; }
+
+function rtabsHtml(tab, taskCount, scriptCount, off){
   const one = (k, label, extra) =>
     `<button class="rtab ${tab === k ? "on" : ""}" data-tab="${k}" title="${label}"
       ${off ? "disabled" : ""}>${RTAB_ICONS[k]}<span class="t">${label}</span>${extra || ""}</button>`;
   return one("sum", "SUMMARY")
        + one("note", "NOTE")
        + one("task", "TASKS", taskCount ? `<span class="num">${taskCount}</span>` : "")
+       + one("script", "SCRIPT", scriptCount ? `<span class="num">${scriptCount}</span>` : "")
        + `<button class="closebtn" data-close="right" title="접기">»</button>`;
+}
+
+/* 자료 하나의 쪽별 스크립트 — { 쪽 번호: 글 } (없으면 빈 객체) */
+function scriptsOf(id){ return (KV.scripts && KV.scripts[id]) || {}; }
+/* 알맹이가 있는 글인지 — ㆍ 와 공백만 남은 것은 안 적은 것으로 봅니다 */
+function scHas(v){ return /[^\sㆍ]/.test(String(v || "")); }
+/* 실제로 글이 들어 있는 쪽 번호만 작은 수부터 */
+function scriptPages(id){
+  const m = scriptsOf(id);
+  return Object.keys(m).map(Number).filter(n => n > 0 && scHas(m[n])).sort((a, b) => a - b);
 }
 
 /* 첨부 PDF 단추 — 요약·회의록 탭 머리에 함께 붙습니다.
@@ -2015,12 +2066,14 @@ function renderRight(){
 
   if(!d){
     /* 아직 자료를 고르지 않았을 때 — 탭은 그대로 눌립니다(보던 탭을 기억해 둡니다) */
-    const t = (S.rtab === "task" || S.rtab === "note") ? S.rtab : "sum";
-    const what = t === "task" ? "할 일" : (t === "note" ? "회의록" : "요약");
+    const t = rtabOf(S.rtab);
+    const what = t === "task" ? "할 일" : (t === "note" ? "회의록"
+               : (t === "script" ? "p별 발표 스크립트" : "요약"));
     top.style.display = "";
-    top.innerHTML = rtabsHtml(t, 0, false);
+    top.innerHTML = rtabsHtml(t, 0, 0, false);
     body.dataset.tab = "";
     body.dataset.mode = "";
+    body.dataset.page = "";
     body.innerHTML = `<div class="emptybox">자료를 선택하면<br>여기에 ${what}이 나옵니다.` +
       (DOCS.length ? `<br><br>왼쪽 <b>자료 목록</b> 에서 자료를 하나 고르세요.` : ``) + `</div>`;
     return;
@@ -2039,7 +2092,14 @@ function renderRight(){
   const err   = (S.aiErrId === d.id && S.aiErr) ? S.aiErr : "";
   const sug   = (mine.sug || []).filter(t => !used.has(t));
 
-  const tab = (S.rtab === "task" || S.rtab === "note") ? S.rtab : "sum";
+  const tab = rtabOf(S.rtab);
+
+  /* 발표 스크립트 — 지금 보고 있는 쪽 하나만 다룹니다 */
+  const scAll   = scriptsOf(d.id);
+  const scPages = scriptPages(d.id);
+  const lastPg  = S.pdf ? S.pdf.numPages : Math.max(1, d.pages || 1);
+  const curPg   = Math.min(Math.max(1, S.page || 1), lastPg);
+  const scText  = String(scAll[curPg] || "");
 
   /* 잠금/풀기 단추 — 잠겨 있으면 Add(내용 없음) · Edit(내용 있음), 풀려 있으면 완료 */
   const lockBtn = (id, has, editing) => editing
@@ -2047,7 +2107,7 @@ function renderRight(){
     : `<button class="mini${has ? "" : " addbtn"}" data-lock="${id}">${has ? "Edit" : "Add"}</button>`;
 
   /* 위쪽 고정 — 탭 줄 (자료 이름은 뷰어 툴바에 이미 있습니다) */
-  top.innerHTML = rtabsHtml(tab, tasks.length, false);
+  top.innerHTML = rtabsHtml(tab, tasks.length, scPages.length, false);
 
   /* ── 탭 1 : Executive Summary ─────────────────────────────
        구조 요약(ex)이 있으면 [0] 상자 + 부서별 하이어라키로 보여 주고,
@@ -2077,9 +2137,9 @@ function renderRight(){
            내용이 많아 답이 중간에 끊겼습니다 — 받은 데까지만 담았습니다.
            <b>다시 만들기</b> 를 누르면 다시 시도합니다.</div>` : "" ) +
     ( ex && ex.src === "image"
-        ? `<div class="tip">이 자료는 글자가 없어 <b>쪽 그림 ${ex.imgPages ? ex.imgPages.sent : ""}쪽</b> 을 AI가 보고 읽었습니다 — 숫자는 원본과 한 번 대조해 주세요.${
+        ? `<div class="tip">이 자료는 글자가 없어 <b>p 그림 ${ex.imgPages ? ex.imgPages.sent : ""}p</b> 를 AI가 보고 읽었습니다 — 숫자는 원본과 한 번 대조해 주세요.${
             ex.imgPages && ex.imgPages.total > ex.imgPages.sent
-              ? ` (전체 ${ex.imgPages.total}쪽 중 앞 ${ex.imgPages.sent}쪽만 보냈습니다)` : ""}</div>` : "" );
+              ? ` (전체 ${ex.imgPages.total}p 중 앞 ${ex.imgPages.sent}p만 보냈습니다)` : ""}</div>` : "" );
 
   /* 요약이 아직 없을 때 · 만드는 중일 때 — 자리만 잡아 두거나 만들기를 권합니다 */
   const skelBlk = `
@@ -2119,6 +2179,31 @@ function renderRight(){
       <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
         placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
+    </div>
+  `;
+
+  /* ── 탭 4 : 발표 스크립트 — 회의록과 같은 글상자를 쪽마다 하나씩 ─────
+       지금 뷰어에 펼쳐진 쪽의 스크립트만 보이고, 쪽을 넘기면 그 쪽 글로 바뀝니다. */
+  const paneScript = `
+    <div class="sect grow">
+      <h4 class="aihead">
+        <span class="scpage">
+          <button class="scnav" data-scp="prev" ${curPg <= 1 ? "disabled" : ""}
+            title="앞 p">‹</button>
+          <span class="no">${curPg}p</span><span class="tot">/ ${lastPg}p</span>
+          <button class="scnav" data-scp="next" ${curPg >= lastPg ? "disabled" : ""}
+            title="다음 p">›</button>
+        </span>
+        ${ scPages.length ? `<span class="scjump"><span class="lb">SCRIPTED</span>${
+            scPages.map(n => `<button class="pgchip ${n === curPg ? "on" : ""}" data-scgo="${n}"
+              title="${n}p로 가기">${n}</button>`).join("") }</span>` : "" }
+        ${ lockBtn("S", scHas(scText), S.editS) }
+      </h4>
+      <textarea class="sum fill" id="sumS" ${S.editS?"":"readonly"}
+        placeholder="${S.editS ? "ㆍ이 p에서 할 말을 한 줄씩"
+                    : `Add 를 눌러 ${curPg}p에서 할 말을 적으세요`}">${esc(scText)}</textarea>
+      ${ S.editS ? `<div class="tip">지금 보고 있는 <b>${curPg}p</b> 의 스크립트입니다.
+             줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙고, 적는 대로 저장됩니다.</div>` : "" }
     </div>
   `;
 
@@ -2169,9 +2254,13 @@ function renderRight(){
   /* 같은 탭을 다시 그릴 때는 보던 위치를 그대로 둡니다 */
   const mode = tab === "sum" ? (asText ? "text" : "ex") : "";
   const keep = (body.dataset.tab === tab && body.dataset.mode === mode) ? body.scrollTop : 0;
-  body.innerHTML = tab === "task" ? paneTask : (tab === "note" ? paneNote : paneSum);
+  body.innerHTML = tab === "task"   ? paneTask
+                 : tab === "note"   ? paneNote
+                 : tab === "script" ? paneScript : paneSum;
   body.dataset.tab = tab;
   body.dataset.mode = mode;
+  /* 스크립트 탭은 어느 쪽을 그렸는지 적어 둡니다 — 쪽이 바뀌면 다시 그립니다 */
+  body.dataset.page = tab === "script" ? String(curPg) : "";
   body.scrollTop = keep;
 
   /* 방금 잠금을 푼 상자로 바로 들어갑니다 (비어 있으면 ㆍ 를 하나 놓아 둡니다) */
@@ -2189,8 +2278,8 @@ function renderRight(){
 $("#rtop").addEventListener("click", e => {
   const t = e.target.closest("[data-tab]"); if(!t) return;
   if(S.rtab === t.dataset.tab) return;
-  S.rtab = t.dataset.tab; KV.rtab = S.rtab; saveKV("rtab");
-  S.editA = S.editB = false;          /* 탭을 옮기면 다시 잠급니다 */
+  S.rtab = rtabOf(t.dataset.tab); KV.rtab = S.rtab; saveKV("rtab");
+  S.editA = S.editB = S.editS = false;   /* 탭을 옮기면 다시 잠급니다 */
   renderRight();
 });
 
@@ -2251,7 +2340,7 @@ function snippetOf(d, q, inNote){
     const hay = d.pageTexts[i] || "";
     if(!hay) continue;
     const at = findSpans(sqz(hay), nq, 1)[0];
-    if(at) return { html: cutSpan(hay, at[0], at[1]), where: `자료 ${i+1}쪽` };
+    if(at) return { html: cutSpan(hay, at[0], at[1]), where: `자료 ${i+1}p` };
   }
   if(inNote){
     const note = noteOf(d), at = findSpans(sqz(note.text), nq, 1)[0];
@@ -2272,11 +2361,11 @@ function renderPop(){
   $("#popbody").innerHTML = found.length
     ? found.map(({d, inNote}) => {
         const s = snippetOf(d, q, inNote);
-        const pageNo = (s.where.match(/자료 (\d+)쪽/) || [])[1] || "";
+        const pageNo = (s.where.match(/자료 (\d+)p/) || [])[1] || "";
         return `<div class="res" data-id="${d.id}" data-page="${pageNo}">
           <div class="t">${esc(d.title)}</div>
           <div class="m"><span>${esc(d.cat)}</span><span class="dot">·</span><span>${fmtYMW(d)}</span>
-            <span class="dot">·</span><span>${d.pages}쪽</span></div>
+            <span class="dot">·</span><span>${d.pages}p</span></div>
           ${s.html ? `<div class="snip">${s.html}</div>` : ""}
           ${s.where ? `<div class="where">${esc(s.where)}에서 찾음</div>` : ""}
         </div>`;
@@ -2385,7 +2474,7 @@ function updateDocFindCount(){
   if(!h.length){ c.textContent = "없음"; c.title = "일치하는 내용이 없습니다"; return; }
   const cur = S.find.i >= 0 ? (S.find.i + 1) : "–";
   c.textContent = `${cur}/${h.length}`;
-  c.title = `${h.length}개 쪽에서 발견 · 모두 ${S.find.total}곳\n쪽: ${h.map(x => x.p).join(", ")}`;
+  c.title = `${h.length}개 p에서 발견 · 모두 ${S.find.total}곳\np: ${h.map(x => x.p).join(", ")}`;
 }
 
 function gotoDocFindHit(idx, quiet){
@@ -2395,7 +2484,7 @@ function gotoDocFindHit(idx, quiet){
   updateDocFindCount();
   markCurrentHit();
   goPage(h[idx].p);
-  if(!quiet) toast(`‘${S.find.raw || S.find.q}’ · ${h[idx].p}쪽 (이 쪽에 ${h[idx].n}곳)`);
+  if(!quiet) toast(`‘${S.find.raw || S.find.q}’ · ${h[idx].p}p (이 p에 ${h[idx].n}곳)`);
 }
 
 function stepDocFind(dir){
@@ -2412,8 +2501,8 @@ function renderDfPop(){
   const pop = $("#dfpop"), body = $("#dfpop-body"), d = docFindDoc();
   if(!d || !S.find.q){ closeDfPop(); return; }
   $("#dfpop-title").textContent = S.find.hits.length
-    ? `찾은 쪽 ${S.find.hits.length}`
-    : "찾은 쪽";
+    ? `찾은 p ${S.find.hits.length}`
+    : "찾은 p";
   body.innerHTML = S.find.hits.length
     ? S.find.hits.map((h, k) => `<button class="dfres${k === S.find.i ? " cur" : ""}" data-k="${k}">
         <span class="dfp">${h.p}</span>
@@ -2784,7 +2873,7 @@ const mgYearOptions = cur => {
   return extra + yearOptions(cur);
 };
 const mgMeta = d =>
-  `${d.pages || 1}쪽${d.hasPdf ? "" : " · 글자만"}${noteOf(d) ? " · 회의록 있음" : ""}`;
+  `${d.pages || 1}p${d.hasPdf ? "" : " · 글자만"}${noteOf(d) ? " · 회의록 있음" : ""}`;
 
 function mgRows(){
   const q = ($("#mgsearch").value || "").trim().toLowerCase();
@@ -2904,7 +2993,7 @@ $("#mglist").addEventListener("click", async e => {
   const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
   if(!confirm(`'${d.title}' 을(를) 지울까요?\n요약과 할 일도 함께 지워집니다. 되돌릴 수 없습니다.`)) return;
   await removeDoc(d.id);
-  saveKV("tasks"); saveKV("sums");
+  saveKV("tasks"); saveKV("sums"); saveKV("scripts");
   renderAll(); mgRender();
   toast("자료를 지웠습니다");
 });
@@ -2913,7 +3002,7 @@ $("#mgdelsel").onclick = async () => {
   const ids = mgChecked(); if(!ids.length) return;
   if(!confirm(`고른 자료 ${ids.length}개를 지울까요?\n요약과 할 일도 함께 지워집니다. 되돌릴 수 없습니다.`)) return;
   for(const id of ids) await removeDoc(id);
-  saveKV("tasks"); saveKV("sums");
+  saveKV("tasks"); saveKV("sums"); saveKV("scripts");
   renderAll(); mgRender();
   toast(`자료 ${ids.length}개를 지웠습니다`);
 };
@@ -2922,7 +3011,7 @@ async function selectDoc(id){
   S.sel = id; revealDoc(id);
   if(typeof clearDocFind === "function") clearDocFind();   /* 자료가 바뀌면 자료 내 검색은 초기화 */
   KV.sel = id; saveKV("sel");                                /* 다음에 열 때 이 자료로 돌아옵니다 */
-  S.editA = S.editB = false;                                  /* 새 자료는 잠긴 채로 엽니다 */
+  S.editA = S.editB = S.editS = false;                        /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
   renderTree(); renderRight();
@@ -2964,6 +3053,16 @@ function goPage(n){
   if(p === S.page){ updateBars(); return; }
   S.page = p; renderPage();
 }
+/* 스크립트 탭에서 쪽 옮기기 — PDF가 있으면 뷰어까지 같이 넘어가고,
+   원본 없이 글자만 있는 자료는 쪽 번호만 옮깁니다 */
+function scGo(n){
+  const d = DOCS.find(x => x.id === S.sel); if(!d) return;
+  const last = S.pdf ? S.pdf.numPages : Math.max(1, d.pages || 1);
+  const p = Math.min(last, Math.max(1, n|0));
+  if(p === S.page) return;
+  if(S.pdf){ goPage(p); return; }
+  S.page = p; renderRight();
+}
 $("#prev").onclick = () => goPage(S.page - 1);
 $("#next").onclick = () => goPage(S.page + 1);
 $("#ticks").addEventListener("click", e => {
@@ -2972,7 +3071,7 @@ $("#ticks").addEventListener("click", e => {
 /* 쪽이 많아 눈금이 촘촘할 때를 위해 — 숫자를 눌러 바로 이동합니다 */
 $("#pagepos").onclick = () => {
   if(!S.pdf) return;
-  const n = parseInt(prompt(`몇 쪽으로 갈까요? (1 ~ ${S.pdf.numPages})`, S.page) || "", 10);
+  const n = parseInt(prompt(`몇 p로 갈까요? (1 ~ ${S.pdf.numPages})`, S.page) || "", 10);
   if(n) goPage(n);
 };
 
@@ -3058,11 +3157,23 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
 })();
 
 /* =========================================================
-   11) 요약 · 할 일
+   11) 요약 · 할 일 · 발표 스크립트
    ========================================================= */
 const BULLET = "ㆍ";
+/* ㆍ 를 붙여 주고 적는 대로 저장하는 글상자들 — 요약 · 회의록 · 발표 스크립트 */
+const SUMBOX = new Set(["sumA", "sumB", "sumS"]);
 $("#rbody").addEventListener("input", e => {
   if(!S.sel) return;
+  /* 발표 스크립트는 지금 그려 둔 쪽에 저장합니다 (뷰어에 펼쳐진 쪽) */
+  if(e.target.id === "sumS"){
+    const pg = +($("#rbody").dataset.page || S.page || 1);
+    if(!(pg > 0)) return;
+    const cur = Object.assign({}, KV.scripts[S.sel]);
+    const v = e.target.value;
+    if(scHas(v)) cur[pg] = v; else delete cur[pg];
+    KV.scripts[S.sel] = cur; saveKV("scripts");
+    return;
+  }
   if(e.target.id === "sumA" || e.target.id === "sumB"){
     const cur = KV.sums[S.sel] || {};
     cur[e.target.id === "sumA" ? "a" : "b"] = e.target.value;
@@ -3072,13 +3183,13 @@ $("#rbody").addEventListener("input", e => {
 });
 $("#rbody").addEventListener("focusin", e => {
   const t = e.target;
-  if((t.id==="sumA"||t.id==="sumB") && !t.readOnly && t.value===""){
+  if(SUMBOX.has(t.id) && !t.readOnly && t.value===""){
     t.value = BULLET; t.dispatchEvent(new Event("input",{bubbles:true}));
   }
 });
 $("#rbody").addEventListener("keydown", e => {
   const t = e.target;
-  if((t.id==="sumA"||t.id==="sumB") && !t.readOnly && e.key==="Enter"){
+  if(SUMBOX.has(t.id) && !t.readOnly && e.key==="Enter"){
     e.preventDefault();
     const i = t.selectionStart, ins = "\n" + BULLET;
     t.value = t.value.slice(0,i) + ins + t.value.slice(t.selectionEnd);
@@ -3149,12 +3260,18 @@ $("#rbody").addEventListener("click", async e => {
   /* Add / Edit — 잠금을 풀거나 다시 잠급니다 */
   const lk = e.target.closest("[data-lock]");
   if(lk){
-    const which = lk.dataset.lock === "B" ? "editB" : "editA";
+    const k = lk.dataset.lock;                       /* A(요약) · B(회의록) · S(스크립트) */
+    const which = k === "B" ? "editB" : (k === "S" ? "editS" : "editA");
     S[which] = !S[which];
-    if(S[which]) S.focusSum = lk.dataset.lock === "B" ? "sumB" : "sumA";
+    if(S[which]) S.focusSum = "sum" + (k === "B" ? "B" : (k === "S" ? "S" : "A"));
     renderRight();
     return;
   }
+  /* 스크립트 탭 — 앞뒤 쪽 단추와 ‘적어 둔 쪽’ 딱지는 뷰어를 그 쪽으로 넘깁니다 */
+  const scp = e.target.closest("[data-scp]");
+  if(scp){ scGo(S.page + (scp.dataset.scp === "next" ? 1 : -1)); return; }
+  const scgo = e.target.closest("[data-scgo]");
+  if(scgo){ scGo(+scgo.dataset.scgo); return; }
   /* Upload / AI Note — 첨부 PDF */
   const at = e.target.closest("[data-at]");
   if(at){
@@ -3196,11 +3313,11 @@ async function removeDoc(id){
     await dbDel("attachfile", a.id).catch(()=>{});
   }
   ATTACH = ATTACH.filter(x => x.docId !== id);
-  delete KV.tasks[id]; delete KV.sums[id];
+  delete KV.tasks[id]; delete KV.sums[id]; delete KV.scripts[id];
   DOCS = DOCS.filter(x => x.id !== id);
   if(S.sel === id){
     S.sel = null; KV.sel = null; saveKV("sel");
-    S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = false;
+    S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = S.editS = false;
     await loadPdfFor(null);
   }
 }
@@ -3508,7 +3625,7 @@ async function callAI(prompt, opts){
     if(err && err.name === "AbortError"){
       const e = new Error(
         `시간이 너무 오래 걸려 멈췄습니다 (${Math.round((o.timeout || AI_TIMEOUT)/1000)}초). ` +
-        (imgs.length ? `${imgs.length}쪽짜리 자료라 오래 걸립니다. ` : "자료가 길면 오래 걸립니다. ") +
+        (imgs.length ? `${imgs.length}p짜리 자료라 오래 걸립니다. ` : "자료가 길면 오래 걸립니다. ") +
         "잠시 뒤 <다시 시도> 를 눌러 주세요. 계속 실패하면 설정에서 더 가벼운 모델(flash-lite)로 바꿔 보세요.");
       e.timeout = true;
       throw e;
@@ -3858,6 +3975,20 @@ function aiParseEx(text){
   return any ? ex : null;
 }
 
+/* 쪽별 요약을 부서 단위로 묶습니다 — [{dept, rows:[쪽]}, …].
+   쪽 번호 차례로 늘어놓고 부서가 바뀌는 자리에서 끊습니다 (화면의 By page 와 같은 묶음). */
+function exGroupPages(pages){
+  const list = (pages || []).slice().sort((a, b) => (a.page || 0) - (b.page || 0));
+  const out = [];
+  list.forEach(p => {
+    const dept = p.dept || "공통";
+    const last = out[out.length - 1];
+    if(last && last.dept === dept) last.rows.push(p);
+    else out.push({ dept, rows:[p] });
+  });
+  return out;
+}
+
 /* 구조 요약을 글로도 남깁니다 — 검색·내보내기·손으로 고치기에 씁니다 */
 function exToText(ex){
   const L = [], put = t => L.push(BULLET + t);
@@ -3881,11 +4012,11 @@ function exToText(ex){
     `${s.sub ? "└ " : ""}${s.org} — 매출 ${exVal(s.rev)} · 영업이익 ${exVal(s.op)} · ${exVal(s.state)}`));
 
   if((ex.pages || []).length){
-    L.push("", "1. 부서별 쪽 요약");
+    L.push("", "1. 부서별 p 요약");
     exGroupPages(ex.pages).forEach(g => {
-      L.push(`◆ ${g.dept} (${g.rows.length}쪽)`);
+      L.push(`◆ ${g.dept} (${g.rows.length}p)`);
       g.rows.forEach(p => many(
-        `[${p.page ? p.page + "쪽" : "쪽"}]${p.title ? " " + p.title : ""}`, p.lines));
+        `[${p.page ? p.page + "p" : "p"}]${p.title ? " " + p.title : ""}`, p.lines));
     });
   }
   if(ex.schedule.length){
@@ -3939,10 +4070,10 @@ async function makeSummary(docId, opts){
       if(!d.hasPdf)
         throw new Error("이 자료는 글자를 뽑지 못했고 PDF 원본도 저장되어 있지 않습니다. " +
                         "설정에서 ‘PDF 원본까지 저장’ 으로 바꾼 뒤 같은 파일을 다시 올려 주세요.");
-      const r = await pageImages(d, (i, n) => step(`쪽을 그림으로 바꾸는 중 ${i}/${n}`));
+      const r = await pageImages(d, (i, n) => step(`p를 그림으로 바꾸는 중 ${i}/${n}`));
       images = r.images; sent = r.sent; total = r.total;
-      if(!images.length) throw new Error("쪽 그림을 만들지 못했습니다.");
-      step(`AI가 ${sent}쪽을 읽는 중`);
+      if(!images.length) throw new Error("p 그림을 만들지 못했습니다.");
+      step(`AI가 ${sent}p를 읽는 중`);
     }
 
     const prompt = aiPrompt(d, noteOf(d), byImage ? "image" : "text");
@@ -4482,7 +4613,8 @@ async function updateUsage(){
 $("#btn-export").onclick = async () => {
   const data = {
     app:"whats-the-strategy", ver:2, exportedAt:new Date().toISOString(),
-    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap },
+    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts,
+         storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap },
     docs: DOCS.map(stripDoc),
     notes: Object.values(NOTES)
   };
@@ -4518,9 +4650,11 @@ $("#importfile").addEventListener("change", async e => {
       if(data.kv.cats)  KV.cats  = Array.from(new Set(KV.cats.concat(data.kv.cats)));
       if(data.kv.tasks) KV.tasks = Object.assign({}, KV.tasks, data.kv.tasks);
       if(data.kv.sums)  KV.sums  = Object.assign({}, KV.sums,  data.kv.sums);
+      if(data.kv.scripts) KV.scripts = Object.assign({}, KV.scripts, data.kv.scripts);
       if(data.kv.agendas) KV.agendas = Object.assign({}, KV.agendas, data.kv.agendas);
       if(data.kv.catMap) KV.catMap = Object.assign({}, KV.catMap, data.kv.catMap);
-      saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("agendas"); saveKV("catMap");
+      saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("scripts");
+      saveKV("agendas"); saveKV("catMap");
     }
     await loadAll();
     renderAll(); updateUsage();
@@ -4532,7 +4666,7 @@ $("#btn-wipe").onclick = async () => {
   if(!confirm("이 기기의 자료·회의록·할 일을 전부 지웁니다.\n되돌릴 수 없습니다. 계속할까요?")) return;
   if(!confirm("정말 지울까요? 마지막 확인입니다.")) return;
   await dbClear("docs"); await dbClear("files"); await dbClear("notes"); await dbClear("kv");
-  KV = Object.assign({}, KV_DEFAULT);
+  KV = Object.assign({}, KV_DEFAULT, { scripts:{} });
   DOCS = []; NOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
@@ -4655,7 +4789,7 @@ function registerSW(){
   S.offCats = new Set(KV.offcats || []);
   S.agOff   = new Set(KV.agOff || []);
   S.open    = new Set(KV.folders || defaultFolders());
-  S.rtab    = (KV.rtab === "task" || KV.rtab === "note") ? KV.rtab : "sum";
+  S.rtab    = rtabOf(KV.rtab);
   $("#set-store").value = KV.storeMode || "full";
   syncAiRow();
 
