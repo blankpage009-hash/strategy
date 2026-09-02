@@ -8,7 +8,7 @@
    다음에 열 때 바로 반영됩니다. pdf.js 같은 부품을 바꿨을 때만
    아래 CACHE 뒤의 번호를 1 올려 주세요.
    ===================================================================== */
-const CACHE = "wts-v4";
+const CACHE = "wts-v5";
 
 const ASSETS = [
   "./",
@@ -18,7 +18,9 @@ const ASSETS = [
   "lib/pdf.worker.min.js",
   "manifest.webmanifest",
   "icon-180.png",
-  "icon-512.png"
+  "icon-512.png",
+  "icon-maskable-512.png",
+  "icon-mark.png"
 ];
 
 self.addEventListener("install", e => {

@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#ec3013">
 <title>What's the Strategy?</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <!-- 본문 글꼴 Archivo — 인터넷이 없으면 시스템 글꼴로 대체됩니다 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,7 +47,7 @@
   --warn:#9b9797; --ok:#605d5d; --bad:#ae1800;
   --shadow:0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
   /* 오른쪽 칸은 화면의 절반 정도까지 넓게 씁니다 */
-  --left-w:268px; --right-w:clamp(420px, 30vw, 720px); --rail:26px;
+  --left-w:268px; --right-w:clamp(420px, 30vw, 720px); --rail:26px; --thumb-w:132px;
 }
 
 *{box-sizing:border-box;}
@@ -66,7 +66,7 @@ button{font:inherit;color:inherit;cursor:pointer;}
 /* 키보드로 옮겨 다닐 때의 표시 — 브라우저 기본 파란 테두리를 쓰지 않습니다 */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 /* 색이 바뀌는 것은 모두 0.12초에 걸쳐 — 움직임은 이것뿐입니다 */
-button,input,select,textarea,.cat,.doc,.fold,.res,.tick,.mline,.task,.agitem,.agtog,.mgrow{
+button,input,select,textarea,.cat,.doc,.fold,.res,.mline,.task,.agitem,.agtog,.mgrow{
   transition:background-color .12s ease,color .12s ease,border-color .12s ease;}
 input,textarea,select{font:inherit;color:inherit;}
 button[disabled]{opacity:.45;cursor:default;}
@@ -77,11 +77,13 @@ button[disabled]{opacity:.45;cursor:default;}
   border-bottom:1px solid var(--hairline);background:var(--bg);
 }
 #brand{
-  display:flex;align-items:center;padding:0 20px;white-space:nowrap;
+  display:flex;align-items:center;gap:9px;padding:0 18px;white-space:nowrap;
   width:calc(var(--left-w) + 2px);box-sizing:border-box;flex:0 0 auto;
   font-weight:800;font-size:18px;letter-spacing:-.01em;
   border-right:2px solid var(--rule);
 }
+/* 제목 앞 폴더 표시 — 홈화면 아이콘과 같은 그림입니다 */
+#brandmark{flex:0 0 auto;display:block;width:26px;height:22px;}
 .iconbtn{
   display:inline-flex;align-items:center;justify-content:center;
   min-width:32px;height:32px;padding:0 8px;background:var(--bg);
@@ -305,6 +307,9 @@ table.agtable td.agcell:hover .agadd{color:var(--accent);}
 #zoomval{flex:0 0 auto;width:58px;display:flex;align-items:center;justify-content:center;
   border-right:1px solid var(--hairline);font-size:12px;font-weight:600;
   color:var(--text);font-variant-numeric:tabular-nums;}
+#viewbar #btn-thumbs{border-right:2px solid var(--line);}
+#viewbar #btn-thumbs.on{background:var(--rule);color:var(--bg);}
+#viewbar #btn-thumbs.on:hover{background:var(--rule);}
 #viewbar #zoom-in{border-right:2px solid var(--line);}
 /* 맞춤 단추 — 지금 쓰는 방식만 이름과 함께 검게 채워집니다 */
 #viewbar .fitbtn .t{display:none;}
@@ -312,11 +317,22 @@ table.agtable td.agcell:hover .agadd{color:var(--accent);}
 #viewbar .fitbtn.on:hover{background:var(--rule);}
 #viewbar .fitbtn.on .t{display:inline;font-size:10.5px;font-weight:800;letter-spacing:.1em;}
 #viewbar #fit-page{border-right:2px solid var(--line);}
-#viewbar .doctitle{flex:1 1 auto;min-width:0;display:flex;align-items:center;padding:0 14px;}
+/* min-width 를 0 으로 두지 않습니다 — 좁아져도 쪽 번호가 찌그러져
+   검색칸 위로 올라타지 않게, 자료 이름(.nm) 쪽에서만 줄어들게 합니다 */
+#viewbar .doctitle{flex:1 1 auto;display:flex;align-items:center;padding:0 14px;}
 #viewbar .doctitle .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:700;}
 #viewbar .doctitle .meta{flex:0 0 auto;margin-left:10px;padding-left:10px;
   border-left:1px solid var(--hairline);font-size:10.5px;font-weight:600;
   letter-spacing:.08em;color:var(--muted);}
+/* 지금 보는 쪽 — 눌러서 쪽 번호로 바로 뜁니다 */
+#viewbar #pagejump{flex:0 0 auto;display:flex;align-items:center;height:24px;
+  margin-left:10px;padding:0 0 0 10px;border:none;border-left:1px solid var(--hairline);
+  border-radius:0;background:none;font-size:11.5px;font-weight:800;color:var(--text);
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+#viewbar #pagejump .tot{font-weight:500;color:var(--muted);}
+#viewbar #pagejump:not([disabled]):hover,#viewbar #pagejump:not([disabled]):hover .tot{color:var(--accent-ink);}
+#viewbar #pagejump[disabled]{color:var(--muted);}
+#viewbar #pagejump[hidden]{display:none;}
 #viewbar #btn-full{width:auto;min-width:44px;padding:0 14px;gap:6px;
   border-right:none;border-left:2px solid var(--line);}
 #viewbar #btn-full .t{font-size:10.5px;font-weight:800;letter-spacing:.06em;white-space:nowrap;}
@@ -326,7 +342,9 @@ table.agtable td.agcell:hover .agadd{color:var(--accent);}
 body.full #viewbar #btn-full{padding-right:24px;}
 /* 가운데가 좁아지면 자료 이름부터 감추고, 더 좁으면 맞춤 단추 이름도 뗍니다 */
 body.hide-doctitle #viewbar .doctitle .meta{display:none;}
-body.tight-bar #viewbar .doctitle{display:none;}
+body.tight-bar #viewbar .doctitle{padding:0 8px;}
+body.tight-bar #viewbar .doctitle .nm{display:none;}
+body.tight-bar #viewbar #pagejump{margin-left:0;padding-left:0;border-left:none;}
 body.tight-bar #viewbar .fitbtn.on{width:40px;padding:0;}
 body.tight-bar #viewbar .fitbtn.on .t{display:none;}
 
@@ -399,6 +417,25 @@ body.full .dfres.cur{background:#4a2a20;}
 /* 무대 — 밝은 회색 바닥 위에 흰 종이 한 장.
    가운데 맞추기는 margin:auto 로 합니다 — 확대해서 넘칠 때도 잘리지 않습니다. */
 #stagewrap{flex:1 1 auto;min-height:0;position:relative;display:flex;}
+/* 쪽 미리보기 띠 — 무대 왼쪽에 쪽마다 작은 그림 하나를 세로로 늘어놓습니다.
+   자리는 미리 다 만들어 두고 화면에 들어온 것만 그려서, 쪽이 많아도 곧바로 열립니다. */
+#thumbs{flex:0 0 auto;display:block;position:relative;width:var(--thumb-w);overflow-y:auto;overflow-x:hidden;
+  background:var(--panel);border-right:2px solid var(--rule);padding:10px 8px 20px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:thin;overscroll-behavior:contain;}
+body.thumbs-off #thumbs{display:none;}
+.thumb{display:block;width:100%;padding:0;margin:0 0 10px;border:2px solid transparent;border-radius:0;
+  background:var(--card);position:relative;line-height:0;box-shadow:var(--shadow);}
+.thumb:last-child{margin-bottom:0;}
+.thumb canvas{display:block;width:100%;height:auto;}
+.thumb .ph{width:100%;height:0;background:var(--panel2);}
+.thumb .no{position:absolute;left:0;bottom:0;min-width:18px;padding:1px 4px;text-align:center;
+  background:var(--rule);color:var(--bg);font-size:9.5px;font-weight:800;line-height:1.5;
+  font-variant-numeric:tabular-nums;}
+/* 요약이 붙어 있는 쪽은 오른쪽 위에 작은 점 하나 — 페이지 자리 띠와 같은 뜻입니다 */
+.thumb.sum::after{content:"";position:absolute;right:4px;top:4px;width:6px;height:6px;background:var(--rule);}
+.thumb:hover{border-color:var(--line);}
+.thumb.now{border-color:var(--accent);}
+.thumb.now .no{background:var(--accent);}
 #stage{flex:1 1 auto;min-width:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
   background:var(--panel2);padding:12px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;}
 #canvaswrap{flex:0 0 auto;margin:auto;background:var(--card);box-shadow:var(--shadow);border-radius:0;
@@ -412,7 +449,9 @@ body.full .dfres.cur{background:#4a2a20;}
 .pagenav:hover{background:var(--accent);opacity:1;}
 .pagenav[disabled]{display:none;}
 .pagenav svg{display:block;}
-#nav-prev{left:12px;} #nav-next{right:12px;}
+/* 앞 장 단추는 미리보기 띠를 비켜 본문 안쪽에 둡니다 */
+#nav-prev{left:calc(var(--thumb-w) + 12px);} #nav-next{right:12px;}
+body.thumbs-off #nav-prev{left:12px;}
 /* 마우스가 없는 기기는 올려놓을 수가 없으니 늘 보여 줍니다 */
 @media (hover: none){ .pagenav{opacity:1;} }
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
@@ -422,25 +461,6 @@ body.full .dfres.cur{background:#4a2a20;}
 #novideo button{height:32px;padding:0 14px;border-radius:0;border:none;
   background:var(--accent);color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;}
 #novideo button:hover{background:var(--accent-hover);}
-/* 페이지 자리 띠 — 쪽마다 눈금 하나 */
-#pagebar{flex:0 0 auto;height:44px;display:flex;align-items:center;gap:2px;padding:0 16px;
-  background:var(--bg);border-top:2px solid var(--rule);font-size:12.5px;}
-#pagebar .step{flex:0 0 auto;width:28px;height:24px;padding:0;display:flex;align-items:center;
-  justify-content:center;border:none;border-radius:0;background:none;color:var(--text);}
-#pagebar .step:hover:not([disabled]){color:var(--accent-ink);}
-#pagebar .step svg{display:block;}
-#ticks{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:2px;overflow:hidden;margin-left:6px;}
-.tick{flex:0 1 14px;min-width:3px;height:8px;padding:0;border:none;border-radius:0;background:var(--line);}
-/* 쪽이 많으면 눈금을 더 가늘게 — 띠가 넘치지 않게 합니다 */
-#ticks.dense .tick{min-width:2px;}
-#ticks.denser .tick{min-width:1px;}
-.tick.sum{height:14px;background:var(--rule);}
-.tick.now{height:20px;background:var(--accent);}
-.tick:hover{background:var(--accent-ink);}
-#pagepos{flex:0 0 auto;margin-left:12px;padding:0;border:none;background:none;
-  font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
-#pagepos .tot{font-weight:500;color:var(--muted);}
-#pagepos:hover .tot,#pagepos:hover{color:var(--accent-ink);}
 #spin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:12px;display:none;}
 #center{position:relative;}
 body.rendering #spin{display:block;}
@@ -695,16 +715,24 @@ body.full #topbar,body.full #cmdbar,body.full #left,body.full #right{display:non
 body.full #viewbar{background:#2d2b2b;border-bottom-color:#201e1d;color:#f3f2f2;}
 body.full #viewbar .vbtn,body.full #zoomval{border-right-color:#605d5d;color:#f3f2f2;}
 body.full #viewbar .vbtn:hover:not([disabled]){background:#444141;}
-body.full #viewbar #zoom-in,body.full #viewbar #fit-page{border-right-color:#605d5d;}
+body.full #viewbar #zoom-in,body.full #viewbar #fit-page,
+body.full #viewbar #btn-thumbs{border-right-color:#605d5d;}
+body.full #viewbar #btn-thumbs.on{background:#f3f2f2;color:#201e1d;}
 body.full #viewbar #btn-full{border-left-color:#605d5d;}
 body.full #viewbar .fitbtn.on{background:#f3f2f2;color:#201e1d;}
 body.full #viewbar .doctitle .meta{border-left-color:#605d5d;}
-body.full #pagebar{background:#2d2b2b;border-top-color:#201e1d;color:#f3f2f2;}
-body.full #pagebar .step,body.full #pagepos{color:#f3f2f2;}
-body.full #pagepos .tot,body.full #ticklegend{color:#9b9797;}
-body.full .tick{background:#605d5d;}
-body.full .tick.sum{background:#f3f2f2;}
+body.full #viewbar #pagejump{color:#f3f2f2;border-left-color:#605d5d;}
+body.full #viewbar #pagejump .tot{color:#9b9797;}
+body.full #viewbar #pagejump[disabled]{color:#9b9797;}
 body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
+body.full #thumbs{background:#2d2b2b;border-right-color:#201e1d;}
+body.full .thumb{background:#444141;box-shadow:none;}
+body.full .thumb .ph{background:#444141;}
+body.full .thumb .no{background:#605d5d;color:#f3f2f2;}
+body.full .thumb:hover{border-color:#605d5d;}
+body.full .thumb.now{border-color:var(--accent);}
+body.full .thumb.now .no{background:var(--accent);}
+body.full .thumb.sum::after{background:#f3f2f2;}
 
 /* ---------- 공통 모달 ---------- */
 .modalbg{position:fixed;inset:0;background:color-mix(in srgb, #201e1d 45%, transparent);display:none;z-index:80;
@@ -843,7 +871,8 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
   #cats{flex:0 0 auto;overflow:visible;}
   #cmdcount{display:none;}
   .cmdlabel{display:none;}
-  #viewbar .doctitle{display:none;}
+  #viewbar .doctitle .nm,#viewbar .doctitle .meta{display:none;}
+  :root{--thumb-w:96px;}
   #stage{padding:8px;}
   .pagenav{width:34px;height:54px;}
   #searchpop .pop{margin-top:12px;max-height:80vh;}
@@ -855,7 +884,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 <body>
 
 <header id="topbar">
-  <div id="brand">What's the Strategy?</div>
+  <div id="brand"><img id="brandmark" src="icon-mark.png" alt="" width="26" height="22">What's the Strategy?</div>
   <div id="searchwrap">
     <span class="mag">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -929,6 +958,10 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 
   <main id="center">
     <div id="viewbar">
+      <button class="vbtn" id="btn-thumbs" title="쪽 미리보기 여닫기" aria-label="쪽 미리보기 여닫기">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+             ><rect x="3" y="3" width="18" height="18"/><path d="M10 3v18"/></svg></button>
       <button class="vbtn" id="zoom-out" title="축소" aria-label="축소">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
@@ -944,7 +977,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">One Page</span></button>
-      <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span></div>
+      <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span><button id="pagejump" title="p 번호로 이동" aria-label="p 번호로 이동" hidden></button></div>
       <div id="docfind" hidden>
         <span class="mag">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -975,6 +1008,7 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
     </div>
 
     <div id="stagewrap">
+    <div id="thumbs" role="navigation" aria-label="쪽 미리보기"></div>
     <div id="stage">
       <div id="canvaswrap" style="display:none"><canvas id="pdfcanvas"></canvas></div>
       <div id="novideo">
@@ -993,16 +1027,6 @@ body.full #zoomval,body.full #viewbar .doctitle{color:#9b9797;}
 
     <div id="spin">불러오는 중…</div>
 
-    <div id="pagebar">
-      <button class="step" id="prev" title="앞 장" aria-label="앞 장">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-      <button class="step" id="next" title="다음 장" aria-label="다음 장">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-      <div id="ticks"></div>
-      <button id="pagepos" title="p 번호로 이동"></button>
-    </div>
   </main>
 
   <aside id="right">
@@ -1419,7 +1443,7 @@ const KV_DEFAULT = {
   /* 처음 켰을 때 보이는 기본 이름입니다. 각자 기기에서 자유롭게 추가·삭제해 쓰면 됩니다.
      (이미 쓰던 기기에는 그동안 쓰던 이름이 그대로 남습니다) */
   cats:["정기 보고","주간회의","월간회의","워크샵"],
-  offcats:[], folders:null, left:null, right:null,
+  offcats:[], folders:null, left:null, right:null, thumbs:null,
   tasks:{}, sums:{}, storeMode:"full", rtab:"sum",
   /* 발표 스크립트 — { 자료 id: { 쪽 번호: "그 쪽에서 할 말" } } */
   scripts:{},
@@ -1638,6 +1662,7 @@ function setNoView(title, msg, btnLabel, btnFn){
 async function loadPdfFor(doc){
   /* 이전 문서 정리 */
   if(S.renderTask){ try{ S.renderTask.cancel(); }catch(e){} S.renderTask = null; }
+  clearThumbs();
   if(S.pdf){ try{ S.pdf.destroy(); }catch(e){} S.pdf = null; }
 
   if(!doc){
@@ -1672,7 +1697,9 @@ async function loadPdfFor(doc){
     showViewer(true);
     S.page = 1;
     await fitTo(S.fitPref);
+    buildThumbs();
   }catch(err){
+    clearThumbs();
     setNoView("PDF를 열지 못했습니다", esc(err.message || String(err)), null, null);
   }finally{
     document.body.classList.remove("rendering");
@@ -1765,20 +1792,19 @@ function updateBars(){
   const d = DOCS.find(x => x.id === S.sel);
   $("#zoomval").textContent = Math.round(S.zoom * 100) + "%";
   $("#viewtitle").textContent = d ? d.title : "";
-  /* 자료 이름 오른쪽의 작은 글씨 — 2026 · 8월 · W3 · 24쪽 */
-  $("#viewmeta").textContent = d
-    ? `${yearOf(d)} · ${monthOf(d)}월 · W${weekOf(d)} · ${
-        S.pdf ? S.pdf.numPages : (d.pages || 1)}p`
-    : "";
+  /* 자료 이름 오른쪽의 작은 글씨 — 2026 · 8월 · W3 */
+  $("#viewmeta").textContent = d ? `${yearOf(d)} · ${monthOf(d)}월 · W${weekOf(d)}` : "";
   $("#viewmeta").style.display = d ? "" : "none";
   const last = S.pdf ? S.pdf.numPages : (d ? (d.pages || 1) : 1);
-  $("#pagepos").innerHTML = `${S.page}<span class="tot"> / ${last}</span>`;
-  renderTicks(last);
-  $("#prev").disabled = !S.pdf || S.page <= 1;
-  $("#next").disabled = !S.pdf || S.page >= last;
+  /* 그 옆에 지금 보는 쪽 — 22 / 51p. 누르면 쪽 번호로 바로 뜁니다 */
+  const pj = $("#pagejump");
+  pj.hidden = !d;
+  pj.disabled = !S.pdf;
+  if(d) pj.innerHTML = `${S.page}<span class="tot"> / ${last}p</span>`;
   $("#nav-prev").disabled = !S.pdf || S.page <= 1;
   $("#nav-next").disabled = !S.pdf || S.page >= last;
   renderFitBtns();
+  syncThumbs(false);
   if(typeof syncDocFind === "function") syncDocFind();
   syncScriptPane();
 }
@@ -1801,22 +1827,116 @@ function summaryPages(){
   return new Set(ex.pages.map(x => +x.page).filter(n => n > 0));
 }
 
-/* 페이지 자리 띠 — 쪽마다 눈금 하나.
-   지금 보는 쪽은 가장 길고 빨갛게, 요약이 있는 쪽은 중간 길이의 검은 눈금입니다. */
-function renderTicks(total){
-  const box = $("#ticks");
-  if(!S.pdf){ box.innerHTML = ""; return; }
-  const sum = summaryPages();
-  box.classList.toggle("dense",  total > 60  && total <= 150);
-  box.classList.toggle("denser", total > 150);
-  box.style.gap = total > 150 ? "0px" : (total > 60 ? "1px" : "2px");
+/* ---- 쪽 미리보기 띠 -------------------------------------------------
+   무대 왼쪽에 쪽마다 작은 그림 하나. 자리(빈 칸)는 열 때 한 번에 다 만들어 두고,
+   그림은 띠에 들어온 쪽만 차례로 그립니다 — 쪽이 많은 자료도 곧바로 열립니다. */
+const THUMB_W = 240;                       /* 미리보기 그림의 가로 점 개수 */
+let thumbIO = null, thumbTask = null, thumbSeq = 0, thumbQ = [], thumbBusy = false;
+
+function clearThumbs(){
+  thumbSeq++;
+  if(thumbIO){ thumbIO.disconnect(); thumbIO = null; }
+  if(thumbTask){ try{ thumbTask.cancel(); }catch(e){} thumbTask = null; }
+  thumbQ = [];
+  $("#thumbs").innerHTML = "";
+}
+
+async function buildThumbs(){
+  clearThumbs();
+  if(!S.pdf) return;
+  const box = $("#thumbs"), seq = thumbSeq, total = S.pdf.numPages;
+  /* 첫 쪽의 가로세로 비로 빈 칸을 잡아 둡니다 — 그림이 들어오면 각자 제 비율이 됩니다 */
+  let ratio = 1.414;
+  try{
+    const vp = (await S.pdf.getPage(1)).getViewport({ scale: 1 });
+    if(vp.width > 0) ratio = vp.height / vp.width;
+  }catch(e){}
+  if(seq !== thumbSeq) return;
   let html = "";
-  for(let n = 1; n <= total; n++){
-    const cls = n === S.page ? "now" : (sum.has(n) ? "sum" : "");
-    html += `<button class="tick ${cls}" data-p="${n}" title="${n}p${
-      sum.has(n) ? " — 요약 있음" : ""}" aria-label="${n}p"></button>`;
-  }
+  for(let n = 1; n <= total; n++)
+    html += `<button class="thumb" data-p="${n}" title="${n}p" aria-label="${n}p">` +
+            `<div class="ph" style="padding-top:${(ratio * 100).toFixed(2)}%"></div>` +
+            `<span class="no">${n}</span></button>`;
   box.innerHTML = html;
+  /* 띠에 들어오기 조금 전(300px 앞)부터 미리 그려 둡니다 */
+  thumbIO = new IntersectionObserver(ents => {
+    ents.forEach(en => {
+      if(!en.isIntersecting) return;
+      thumbIO.unobserve(en.target);
+      thumbQ.push(en.target);
+    });
+    pumpThumbs(seq);
+  }, { root: box, rootMargin: "300px 0px" });
+  $$("#thumbs .thumb").forEach(el => thumbIO.observe(el));
+  syncThumbs(true);
+}
+
+/* 한 장씩 차례로 그립니다 — 한꺼번에 몰아 그리면 화면이 잠깐 멎습니다 */
+async function pumpThumbs(seq){
+  if(thumbBusy || seq !== thumbSeq) return;
+  thumbBusy = true;
+  try{
+    while(thumbQ.length && seq === thumbSeq && S.pdf){
+      const el = thumbQ.shift();
+      if(!el || !el.isConnected || el.dataset.done) continue;
+      el.dataset.done = "1";
+      try{
+        const page = await S.pdf.getPage(+el.dataset.p);
+        if(seq !== thumbSeq) return;
+        const v1 = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: THUMB_W / v1.width });
+        const cv = document.createElement("canvas");
+        cv.width  = Math.max(1, Math.round(vp.width));
+        cv.height = Math.max(1, Math.round(vp.height));
+        thumbTask = page.render({ canvasContext: cv.getContext("2d"), viewport: vp });
+        await thumbTask.promise;
+        thumbTask = null;
+        if(seq !== thumbSeq) return;
+        const ph = el.querySelector(".ph");
+        if(ph) ph.replaceWith(cv); else el.prepend(cv);
+      }catch(err){
+        thumbTask = null;
+        /* 못 그렸으면 한 번만 더 해 봅니다 — 계속 실패하는 쪽은 빈 칸으로 둡니다 */
+        const tries = (+el.dataset.try || 0) + 1;
+        el.dataset.try = tries;
+        if(tries < 2){ el.dataset.done = ""; thumbQ.push(el); }
+        if(!(err && err.name === "RenderingCancelledException")) console.warn(err);
+      }
+    }
+  }finally{ thumbBusy = false; }
+}
+
+/* 지금 보는 쪽에 표시를 옮기고, 띠도 그 쪽이 보이도록 굴려 줍니다.
+   jump 는 자료를 새로 열었을 때 — 스르륵 대신 곧바로 옮깁니다. */
+function syncThumbs(jump){
+  const box = $("#thumbs");
+  if(!box.children.length) return;
+  const sum = summaryPages();
+  let cur = null;
+  Array.prototype.forEach.call(box.children, el => {
+    const n = +el.dataset.p;
+    el.classList.toggle("sum", sum.has(n));
+    const on = n === S.page;
+    el.classList.toggle("now", on);
+    if(on) cur = el;
+  });
+  if(!cur || document.body.classList.contains("thumbs-off")) return;
+  const top = cur.offsetTop, bot = top + cur.offsetHeight;
+  if(jump || top < box.scrollTop + 8 || bot > box.scrollTop + box.clientHeight - 8)
+    box.scrollTo({ top: Math.max(0, top - (box.clientHeight - cur.offsetHeight) / 2),
+                   behavior: jump ? "auto" : "smooth" });
+}
+
+/* 미리보기 띠 여닫기 — 폭이 바뀌므로 자료 크기도 다시 맞춥니다 */
+function toggleThumbs(force){
+  const on = (force !== undefined) ? !!force : document.body.classList.contains("thumbs-off");
+  document.body.classList.toggle("thumbs-off", !on);
+  $("#btn-thumbs").classList.toggle("on", on);
+  /* 사람이 직접 여닫았을 때만 기억합니다 — 처음 켤 때의 자동 판단은 남기지 않습니다 */
+  if(force === undefined){
+    KV.thumbs = on; saveKV("thumbs");
+    if(S.pdf) setTimeout(() => { autoFit(); syncThumbs(true); }, 0);
+  }
 }
 
 /* 맞춤 단추 — 지금 쓰는 방식 하나만 이름과 함께 채워 둡니다.
@@ -3063,18 +3183,16 @@ function scGo(n){
   if(S.pdf){ goPage(p); return; }
   S.page = p; renderRight();
 }
-$("#prev").onclick = () => goPage(S.page - 1);
-$("#next").onclick = () => goPage(S.page + 1);
-$("#ticks").addEventListener("click", e => {
-  const t = e.target.closest(".tick"); if(t) goPage(+t.dataset.p);
-});
-/* 쪽이 많아 눈금이 촘촘할 때를 위해 — 숫자를 눌러 바로 이동합니다 */
-$("#pagepos").onclick = () => {
+/* 쪽이 많을 때를 위해 — 번호를 눌러 그 쪽으로 바로 갑니다 */
+$("#pagejump").onclick = () => {
   if(!S.pdf) return;
   const n = parseInt(prompt(`몇 p로 갈까요? (1 ~ ${S.pdf.numPages})`, S.page) || "", 10);
   if(n) goPage(n);
 };
-
+$("#btn-thumbs").onclick = () => toggleThumbs();
+$("#thumbs").addEventListener("click", e => {
+  const t = e.target.closest(".thumb"); if(t) goPage(+t.dataset.p);
+});
 /* 마우스 휠로 쪽 넘기기 — 아래로 굴리면 다음 장, 위로 굴리면 이전 장.
    확대해서 자료가 화면보다 클 때는 먼저 위아래로 움직이고, 끝에 닿으면 다음(이전) 장으로 갑니다. */
 (function wheelPage(){
@@ -4793,6 +4911,7 @@ function registerSW(){
   $("#set-store").value = KV.storeMode || "full";
   syncAiRow();
 
+  toggleThumbs((KV.thumbs === null || KV.thumbs === undefined) ? !isNarrow() : KV.thumbs);
   document.body.classList.toggle("left-closed",  (KV.left  === null || KV.left  === undefined) ? isNarrow() : !KV.left);
   document.body.classList.toggle("right-closed", (KV.right === null || KV.right === undefined) ? isNarrow() : !KV.right);
 
