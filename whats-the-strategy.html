@@ -1197,10 +1197,10 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 <!-- 모든 할 일 -->
 <div class="modalbg" id="alltasksbg">
   <div class="modal wide" role="dialog" aria-label="모든 할 일">
-    <header>모든 할 일 <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+    <header>All Tasks <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
       <button class="ghostbtn" id="alltasksdone" style="margin-left:auto;height:26px;padding:0 10px;font-size:11px"
         title="완료된 할 일을 함께 볼지 정합니다">완료 항목 보기</button>
-      <button class="x" id="alltasksclose" style="margin-left:8px">✕</button></header>
+      <button class="x" id="alltasksclose" style="margin-left:auto">✕</button></header>
     <div class="content" id="alltasksbody"></div>
   </div>
 </div>
@@ -2354,7 +2354,7 @@ function renderRight(){
         <span class="chip"><i class="dot ${doingCnt ? "go" : ""}"></i>${doingCnt} 진행중</span>
         <span class="chip"><i class="dot warn"></i>${doneCnt} 완료</span>
         <span class="sp"></span>
-        <button class="mini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">모든 할 일 보기</button></div>
+        <button class="mini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">View All Tasks</button></div>
       <div id="tasklist">
         ${ tasks.length ? tasks.map((t,i) => {
             const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
