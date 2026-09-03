@@ -1290,7 +1290,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <div class="mrow">
         <div class="lbl">백업</div>
         <div class="hint">회의록·요약·할 일·스크립트·자료 종류 설정을 파일 하나로 내보냅니다(.json).
-          <b>원본 포함</b>은 PDF 원본까지 함께 담은 .zip 으로 내보냅니다(용량이 큽니다).
+          <b>원본 포함</b>은 PDF 원본과 AI Note 첨부 파일까지 함께 담은 .zip 으로 내보냅니다(용량이 큽니다).
           불러오기는 두 형식 모두 받습니다.</div>
         <div class="btnrow">
           <button id="btn-export">내보내기 (원본 제외)</button>
@@ -4909,6 +4909,18 @@ async function exportBackup(withPdf){
       }else miss++;
     }catch(err){ miss++; }
   }
+  /* AI Note(요약·회의록 탭)에 올린 첨부 PDF */
+  meta.attach = ATTACH.map(a => Object.assign({}, a));
+  for(const a of ATTACH){
+    try{
+      const rec = await dbGet("attachfile", a.id);
+      if(rec && rec.blob){
+        const u8 = new Uint8Array(await rec.blob.arrayBuffer());
+        entries.push({ name:`attachfiles/${a.id}.pdf`, crc:crc32(u8), size:u8.length,
+                       part:new Blob([u8], { type:"application/pdf" }) });
+      }else miss++;
+    }catch(err){ miss++; }
+  }
   const mb = new TextEncoder().encode(JSON.stringify(meta));
   entries.unshift({ name:"backup.json", crc:crc32(mb), size:mb.length, part:mb });
   downloadBlob(zipStore(entries), `whats-the-strategy-백업-원본포함-${stamp}.zip`);
@@ -4922,7 +4934,7 @@ $("#btn-import").onclick = () => $("#importfile").click();
 $("#importfile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if(!f) return;
   try{
-    let data, fileMap = {};   // fileMap: 자료 id → PDF 바이트(Uint8Array)
+    let data, fileMap = {}, attachMap = {};   // id → PDF 바이트(Uint8Array)
     const head = new Uint8Array(await f.slice(0, 4).arrayBuffer());
     const isZip = head[0] === 0x50 && head[1] === 0x4B && head[2] === 0x03 && head[3] === 0x04;
     if(isZip){
@@ -4932,8 +4944,11 @@ $("#importfile").addEventListener("change", async e => {
       if(!jsonName || !zf[jsonName]) throw new Error("백업 안에 backup.json 이 없습니다");
       data = JSON.parse(new TextDecoder().decode(zf[jsonName]));
       for(const name in zf){
-        const m = name.match(/^files\/(.+)\.pdf$/);
-        if(m && zf[name]) fileMap[m[1]] = zf[name];
+        if(!zf[name]) continue;
+        let m = name.match(/^files\/(.+)\.pdf$/);
+        if(m){ fileMap[m[1]] = zf[name]; continue; }
+        m = name.match(/^attachfiles\/(.+)\.pdf$/);
+        if(m) attachMap[m[1]] = zf[name];
       }
     }else{
       data = JSON.parse(await f.text());
@@ -4942,8 +4957,10 @@ $("#importfile").addEventListener("change", async e => {
     if(data.app !== "whats-the-strategy" && data.app !== "strategy-library")
       throw new Error("이 프로그램의 백업 파일이 아닙니다");
     const nPdf = Object.keys(fileMap).length;
+    const nAtt = Object.keys(attachMap).length;
     if(!confirm(`백업을 불러올까요?\n\n자료 ${(data.docs||[]).length}개 · 회의록 ${(data.notes||[]).length}개` +
-                (nPdf ? ` · PDF 원본 ${nPdf}개` : "") + `\n\n` +
+                (nPdf ? ` · PDF 원본 ${nPdf}개` : "") +
+                (nAtt ? ` · AI Note 첨부 ${nAtt}개` : "") + `\n\n` +
                 `같은 자료가 있으면 덮어씁니다.` +
                 (nPdf ? "" : ` PDF 원본은 백업에 없으므로 '글자만'으로 들어옵니다.`))) return;
 
@@ -4965,6 +4982,18 @@ $("#importfile").addEventListener("change", async e => {
       await dbPut("docs", rec);
     }
     for(const n of (data.notes || [])) await dbPut("notes", n);
+    for(const a of (data.attach || [])){
+      if(!a || !a.id) continue;
+      const bytes = attachMap[a.id];
+      if(bytes){
+        try{
+          await dbPut("attachfile", { id:a.id, blob: new Blob([bytes], { type:"application/pdf" }) });
+          await dbPut("attach", a);
+        }catch(err){}
+      }else if(ATTACH.some(x => x.id === a.id)){
+        await dbPut("attach", a).catch(() => {});
+      }
+    }
     if(data.kv){
       if(data.kv.cats)  KV.cats  = Array.from(new Set(KV.cats.concat(data.kv.cats)));
       if(data.kv.tasks) KV.tasks = Object.assign({}, KV.tasks, data.kv.tasks);
