@@ -1289,10 +1289,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 
       <div class="mrow">
         <div class="lbl">백업</div>
-        <div class="hint">회의록·요약·할 일·자료 목록을 파일 하나로 내보냅니다.
-          <b>PDF 원본은 용량이 커서 빠집니다.</b></div>
+        <div class="hint">회의록·요약·할 일·스크립트·자료 종류 설정을 파일 하나로 내보냅니다.
+          <b>원본 포함</b>은 PDF 원본까지 함께 담습니다(용량이 큽니다).</div>
         <div class="btnrow">
-          <button id="btn-export">내보내기</button>
+          <button id="btn-export">내보내기 (원본 제외)</button>
+          <button id="btn-export-pdf">내보내기 (원본 포함)</button>
           <button id="btn-import">불러오기</button>
           <input type="file" id="importfile" accept=".json,application/json" hidden>
         </div>
@@ -4800,22 +4801,50 @@ async function updateUsage(){
     `자료 ${n}개 (원본 저장 ${withPdf}개) · 회의록 ${Object.keys(NOTES).length}개${extra}`;
 }
 
-$("#btn-export").onclick = async () => {
+const blobToB64 = blob => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload  = () => res(String(r.result).split(",")[1] || "");
+  r.onerror = () => rej(r.error);
+  r.readAsDataURL(blob);
+});
+const b64ToBlob = (b64, type) => {
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type });
+};
+
+async function exportBackup(withPdf){
   const data = {
-    app:"whats-the-strategy", ver:2, exportedAt:new Date().toISOString(),
+    app:"whats-the-strategy", ver:withPdf ? 3 : 2, exportedAt:new Date().toISOString(),
     kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts,
          storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap },
     docs: DOCS.map(stripDoc),
     notes: Object.values(NOTES)
   };
+  if(withPdf){
+    data.files = [];
+    let miss = 0;
+    for(const d of DOCS){
+      if(!d.hasPdf) continue;
+      try{
+        const rec = await dbGet("files", d.id);
+        if(rec && rec.blob) data.files.push({ id:d.id, b64: await blobToB64(rec.blob) });
+        else miss++;
+      }catch(err){ miss++; }
+    }
+    if(miss) toast(`원본 ${miss}개는 찾지 못해 건너뜁니다`);
+  }
   const blob = new Blob([JSON.stringify(data)], { type:"application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `whats-the-strategy-백업-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `whats-the-strategy-백업${withPdf ? "-원본포함" : ""}-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  toast("백업 파일을 내려받았습니다 (PDF 원본 제외)");
-};
+  toast(withPdf ? "백업 파일을 내려받았습니다 (PDF 원본 포함)"
+                : "백업 파일을 내려받았습니다 (PDF 원본 제외)");
+}
+$("#btn-export").onclick     = () => exportBackup(false);
+$("#btn-export-pdf").onclick = () => exportBackup(true);
 
 $("#btn-import").onclick = () => $("#importfile").click();
 $("#importfile").addEventListener("change", async e => {
@@ -4825,14 +4854,29 @@ $("#importfile").addEventListener("change", async e => {
     /* 이름을 바꾸기 전에 내보낸 백업(strategy-library)도 받아들입니다 */
     if(data.app !== "whats-the-strategy" && data.app !== "strategy-library")
       throw new Error("이 프로그램의 백업 파일이 아닙니다");
-    if(!confirm(`백업을 불러올까요?\n\n자료 ${(data.docs||[]).length}개 · 회의록 ${(data.notes||[]).length}개\n` +
-                `같은 자료가 있으면 덮어씁니다. PDF 원본은 백업에 없으므로 '글자만'으로 들어옵니다.`)) return;
+    const fileMap = {};
+    for(const rec of (data.files || [])) if(rec && rec.id && rec.b64) fileMap[rec.id] = rec.b64;
+    const nPdf = Object.keys(fileMap).length;
+    if(!confirm(`백업을 불러올까요?\n\n자료 ${(data.docs||[]).length}개 · 회의록 ${(data.notes||[]).length}개` +
+                (nPdf ? ` · PDF 원본 ${nPdf}개` : "") + `\n\n` +
+                `같은 자료가 있으면 덮어씁니다.` +
+                (nPdf ? "" : ` PDF 원본은 백업에 없으므로 '글자만'으로 들어옵니다.`))) return;
 
     for(const d of (data.docs || [])){
       const exist = DOCS.find(x => x.id === d.id);
       const rec = Object.assign({}, d);
-      if(!exist || !exist.hasPdf) rec.hasPdf = !!(exist && exist.hasPdf);
-      else rec.hasPdf = true;
+      if(fileMap[d.id]){
+        try{
+          await dbPut("files", { id:d.id, blob: b64ToBlob(fileMap[d.id], "application/pdf") });
+          rec.hasPdf = true;
+        }catch(err){
+          rec.hasPdf = !!(exist && exist.hasPdf);
+        }
+      }else if(!exist || !exist.hasPdf){
+        rec.hasPdf = !!(exist && exist.hasPdf);
+      }else{
+        rec.hasPdf = true;
+      }
       await dbPut("docs", rec);
     }
     for(const n of (data.notes || [])) await dbPut("notes", n);
