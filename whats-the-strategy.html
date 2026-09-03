@@ -452,8 +452,8 @@ body.thumbs-off #thumbs{display:none;}
 /* 앞 장 단추는 미리보기 띠를 비켜 본문 안쪽에 둡니다 */
 #nav-prev{left:calc(var(--thumb-w) + 12px);} #nav-next{right:12px;}
 body.thumbs-off #nav-prev{left:12px;}
-/* 마우스가 없는 기기는 올려놓을 수가 없으니 늘 보여 줍니다 */
-@media (hover: none){ .pagenav{opacity:1;} }
+/* 아이패드 등 터치 기기에서는 넘김 단추를 감춥니다 (위아래로 밀어 넘깁니다) */
+@media (hover: none){ .pagenav{display:none;} }
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   color:var(--muted);text-align:center;padding:30px;margin:auto;max-width:460px;line-height:1.7;font-size:13px;}
 #novideo .big{font-size:15px;font-weight:800;color:var(--text);}
@@ -3278,8 +3278,8 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
   });
 })();
 
-/* 아이패드 — 한 손가락으로 좌우로 밀어 장 넘기기
-   (왼쪽으로 밀면 다음 장, 오른쪽으로 밀면 앞 장) */
+/* 아이패드 — 한 손가락으로 위아래로 밀어 장 넘기기
+   (위로 밀면 다음 장, 아래로 밀면 앞 장) */
 (function swipePage(){
   const stage = $("#stage");
   let x0 = 0, y0 = 0, t0 = 0, ok = false;
@@ -3297,15 +3297,15 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
     const t = e.changedTouches[0]; if(!t) return;
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const adx = Math.abs(dx), ady = Math.abs(dy);
-    if(adx < 55 || adx < ady * 1.6) return;             /* 가로로 확실히 민 것만 */
+    if(ady < 55 || ady < adx * 1.6) return;             /* 세로로 확실히 민 것만 */
     if(Date.now() - t0 > 800) return;                    /* 너무 느린 동작은 무시 */
-    /* 확대해서 자료가 화면보다 넓을 때는 먼저 옆으로 움직이고, 끝에 닿으면 그때 넘깁니다 */
-    const room = stage.scrollWidth - stage.clientWidth;
+    /* 확대해서 자료가 화면보다 길 때는 먼저 위아래로 움직이고, 끝에 닿으면 그때 넘깁니다 */
+    const room = stage.scrollHeight - stage.clientHeight;
     if(room > 24){
-      if(dx < 0 && stage.scrollLeft < room - 4) return;
-      if(dx > 0 && stage.scrollLeft > 4)        return;
+      if(dy < 0 && stage.scrollTop < room - 4) return;
+      if(dy > 0 && stage.scrollTop > 4)        return;
     }
-    const to = S.page + (dx < 0 ? 1 : -1);
+    const to = S.page + (dy < 0 ? 1 : -1);
     if(to < 1 || to > S.pdf.numPages) return;
     goPage(to);
   }, { passive:true });
