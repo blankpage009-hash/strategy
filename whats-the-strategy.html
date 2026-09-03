@@ -779,6 +779,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-radius:0;background:var(--panel);font-size:11.5px;font-weight:700;color:var(--muted);cursor:pointer;}
 .clrow button:hover{border-color:var(--accent);color:var(--accent-ink);}
 .clrow button.del:hover{border-color:var(--bad);color:var(--bad);}
+.clrow button.mv{width:30px;padding:0;}
+.clrow button.mv[disabled]{opacity:.3;cursor:default;border-color:var(--line);color:var(--muted);}
 /* ---------- 파일 이름 → 회의 종류 규칙 표 ---------- */
 #catmap-list{margin-top:8px;}
 .cmrow{display:flex;gap:6px;align-items:center;margin-top:6px;}
@@ -1246,17 +1248,17 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       </div>
 
       <div class="mrow">
-        <div class="lbl">회의 종류</div>
-        <div class="hint">필터 막대에 보이는 회의 종류입니다. 여기서 더하거나 이름을 바꾸거나 지울 수 있습니다.
+        <div class="lbl">자료 종류</div>
+        <div class="hint">필터 막대에 보이는 자료 종류입니다. 여기서 더하거나 이름을 바꾸거나 지우고, <b>↑ ↓ 로 순서를 바꿀 수 있습니다.</b>
           <b>자료가 들어 있는 종류는 지울 수 없습니다.</b> (필터 칩을 마우스 오른쪽 클릭해도 같은 메뉴가 열립니다.)</div>
         <div id="catlist"></div>
-        <div class="btnrow"><button id="catlist-add">＋ 회의 종류 추가</button></div>
+        <div class="btnrow"><button id="catlist-add">＋ 자료 종류 추가</button></div>
       </div>
 
       <div class="mrow">
-        <div class="lbl">파일 이름 → 회의 종류 자동 지정</div>
+        <div class="lbl">파일 이름 → 자료 종류 자동 지정</div>
         <div class="hint">자료를 올릴 때 파일 이름에 아래 <b>포함 단어</b> 중 하나라도 들어 있으면
-          그 줄의 <b>회의 종류</b>로 자동 지정됩니다. 단어는 <b>쉼표(,)</b>로 여러 개 적을 수 있고,
+          그 줄의 <b>자료 종류</b>로 자동 지정됩니다. 단어는 <b>쉼표(,)</b>로 여러 개 적을 수 있고,
           띄어쓰기는 무시합니다.<br>예: <b>임원회의</b> ← <b>본부장회의, 부재중 업무보고</b></div>
         <div id="catmap-list"></div>
         <div class="btnrow"><button id="catmap-add">＋ 규칙 추가</button></div>
@@ -1446,7 +1448,7 @@ const dbClear= s     => idb(s,"readwrite", st => st.clear());
 const KV_DEFAULT = {
   /* 처음 켰을 때 보이는 기본 이름입니다. 각자 기기에서 자유롭게 추가·삭제해 쓰면 됩니다.
      (이미 쓰던 기기에는 그동안 쓰던 이름이 그대로 남습니다) */
-  cats:["정기 보고","주간회의","월간회의","워크샵"],
+  cats:["손익보고","주간회의","임원회의","본부장회의","전략 워크샵","내부토의","비상경영회의"],
   offcats:[], folders:null, left:null, right:null, thumbs:null,
   tasks:{}, sums:{}, storeMode:"full", rtab:"sum",
   /* 발표 스크립트 — { 자료 id: { 쪽 번호: "그 쪽에서 할 말" } } */
@@ -1796,9 +1798,8 @@ function updateBars(){
   const d = DOCS.find(x => x.id === S.sel);
   $("#zoomval").textContent = Math.round(S.zoom * 100) + "%";
   $("#viewtitle").textContent = d ? d.title : "";
-  /* 자료 이름 오른쪽의 작은 글씨 — 2026 · 8월 · W3 */
-  $("#viewmeta").textContent = d ? `${yearOf(d)} · ${monthOf(d)}월 · W${weekOf(d)}` : "";
-  $("#viewmeta").style.display = d ? "" : "none";
+  $("#viewmeta").textContent = "";
+  $("#viewmeta").style.display = "none";
   const last = S.pdf ? S.pdf.numPages : (d ? (d.pages || 1) : 1);
   /* 그 옆에 지금 보는 쪽 — 22 / 51p. 누르면 쪽 번호로 바로 뜁니다 */
   const pj = $("#pagejump");
@@ -4605,18 +4606,32 @@ $("#btn-settings").onclick = () => { updateUsage(); renderCatList(); renderCatMa
 function renderCatList(){
   const box = $("#catlist"); if(!box) return;
   box.innerHTML = KV.cats.length
-    ? KV.cats.map(c => `<div class="clrow" data-cat="${esc(c)}">
+    ? KV.cats.map((c, i) => `<div class="clrow" data-cat="${esc(c)}">
         <span class="nm">${esc(c)}</span>
+        <button type="button" class="mv up" title="위로"${i === 0 ? " disabled" : ""}>↑</button>
+        <button type="button" class="mv dn" title="아래로"${i === KV.cats.length - 1 ? " disabled" : ""}>↓</button>
         <button type="button" class="ren">이름 바꾸기</button>
         <button type="button" class="del">삭제</button>
       </div>`).join("")
-    : `<div class="hint" style="margin-top:6px">회의 종류가 없습니다. 아래에서 추가하세요.</div>`;
+    : `<div class="hint" style="margin-top:6px">자료 종류가 없습니다. 아래에서 추가하세요.</div>`;
+}
+function moveCat(c, dir){
+  const i = KV.cats.indexOf(c); if(i < 0) return;
+  const j = i + dir; if(j < 0 || j >= KV.cats.length) return;
+  [KV.cats[i], KV.cats[j]] = [KV.cats[j], KV.cats[i]];
+  saveKV("cats");
+  renderCatList();
+  renderCatMap();
+  if(typeof renderAll === "function") renderAll();
+  if(typeof renderAgenda === "function") renderAgenda();
 }
 $("#catlist-add").onclick = () => addCat();
 $("#catlist").addEventListener("click", e => {
   const row = e.target.closest(".clrow"); if(!row) return;
   const c = row.dataset.cat;
-  if(e.target.classList.contains("ren")) renameCat(c);
+  if(e.target.classList.contains("up")) moveCat(c, -1);
+  else if(e.target.classList.contains("dn")) moveCat(c, 1);
+  else if(e.target.classList.contains("ren")) renameCat(c);
   else if(e.target.classList.contains("del")) deleteCat(c);
 });
 $("#modalclose").onclick   = () => $("#modalbg").classList.remove("on");
