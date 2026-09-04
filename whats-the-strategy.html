@@ -380,6 +380,99 @@ body.full #docfind-in{color:#f3f2f2;border-bottom-color:#605d5d;}
 body.full #docfind-in:focus{border-bottom-color:var(--accent);}
 body.full #docfind-count{color:#9b9797;}
 
+/* ---------- 그리기 도구 (annotation) — 뷰어 툴바 · concept 3a ---------- */
+#drawbar[hidden]{display:none !important;}
+#drawbar{flex:0 0 auto;display:flex;align-items:stretch;border-left:2px solid var(--line);}
+#drawbar .dwtool{flex:0 0 auto;width:40px;display:flex;align-items:center;justify-content:center;
+  padding:0;border:none;border-right:1px solid var(--hairline);border-radius:0;
+  background:none;color:var(--text);}
+#drawbar #dw-cursor,#drawbar #dw-eraser{border-right:2px solid var(--line);}  /* 커서 ‖ 그리기 ‖ 되돌리기 */
+#drawbar .dwtool:last-child{border-right:none;}
+#drawbar .dwtool svg{display:block;}
+#drawbar .dwtool:hover:not([disabled]){background:var(--panel2);}
+#drawbar .dwtool.on,#drawbar .dwtool.on:hover{background:var(--rule);color:var(--bg);}
+#drawbar #dw-undo[disabled]{opacity:.45;pointer-events:none;}
+body.hide-doctitle #drawbar .dwtool{width:36px;}
+body.tight-bar #drawbar{display:none !important;}
+body.full #viewbar #drawbar{border-left-color:#605d5d;}
+body.full #drawbar .dwtool{border-right-color:#605d5d;}
+body.full #drawbar #dw-cursor,body.full #drawbar #dw-eraser{border-right-color:#605d5d;}
+body.full #drawbar .dwtool.on,body.full #drawbar .dwtool.on:hover{background:var(--accent);color:#fff;}
+body.full #drawbar .dwtool:hover:not([disabled]):not(.on){background:#444141;}
+
+/* 도구 쪽지 — 자기 칸 바로 아래에 딱 붙어 내려옵니다 (틈·둥근 모서리 없음) */
+#dwpop[hidden]{display:none !important;}
+#dwpop{position:fixed;z-index:66;width:268px;background:var(--bg);
+  border:2px solid var(--rule);box-shadow:var(--shadow);}
+#dwpop .dwhead{height:30px;display:flex;align-items:center;gap:8px;padding:0 10px;
+  background:var(--rule);color:var(--bg);font-size:10px;font-weight:800;letter-spacing:.14em;}
+#dwpop .dwhead svg{display:block;flex:0 0 auto;}
+#dwpop .dwhead .cur{margin-left:auto;font-weight:600;letter-spacing:.06em;color:var(--muted3);}
+#dwpop .dwbody{padding:12px;}
+#dwpop .dwk{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+#dwpop .dwk.mt{margin-top:14px;}
+/* 굵기·진하기 슬라이더 */
+#dwpop .dwslot{margin-top:10px;padding:0 1px;}
+#dwpop input.dwrange{-webkit-appearance:none;appearance:none;width:100%;height:20px;
+  background:none;margin:0;cursor:pointer;display:block;}
+#dwpop input.dwrange::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:0;}
+#dwpop input.dwrange::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:12px;height:20px;margin-top:-8px;background:var(--rule);border:none;border-radius:0;}
+#dwpop input.dwrange:hover::-webkit-slider-thumb{background:var(--accent);}
+#dwpop input.dwrange::-moz-range-track{height:4px;background:var(--line);}
+#dwpop input.dwrange::-moz-range-thumb{width:12px;height:20px;background:var(--rule);border:none;border-radius:0;}
+#dwpop input.dwrange:hover::-moz-range-thumb{background:var(--accent);}
+#dwpop .dwval{display:flex;align-items:baseline;margin-top:4px;}
+#dwpop .dwval b{font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;}
+#dwpop .dwval span{margin-left:auto;font-size:9.5px;font-weight:500;letter-spacing:.08em;
+  color:var(--muted3);font-variant-numeric:tabular-nums;}
+/* 색깔 */
+#dwpop .dwcolors{display:flex;gap:8px;margin-top:8px;}
+#dwpop .dwcolor{width:44px;height:28px;padding:3px;border:2px solid transparent;
+  border-radius:0;background:none;}
+#dwpop .dwcolor:hover{border-color:var(--line);}
+#dwpop .dwcolor.on{border-color:var(--rule);}
+#dwpop .dwcolor i{display:block;width:100%;height:100%;}
+/* 미리보기 띠 */
+#dwpop .dwprev{height:38px;display:flex;align-items:center;padding:0 12px;
+  border-top:1px solid var(--hairline);}
+#dwpop .dwprev .hl{display:block;width:150px;}
+/* 지우개 — 방식 / 크기 / 모두 지우기 */
+#dwpop .dwseg{display:flex;margin-top:8px;border:1px solid var(--hairline);}
+#dwpop .dwseg button{flex:1 1 0;height:30px;border:none;background:none;color:var(--text);
+  font-size:10px;font-weight:800;letter-spacing:.1em;display:flex;align-items:center;
+  justify-content:center;padding:0 8px;border-radius:0;}
+#dwpop .dwseg button+button{border-left:1px solid var(--hairline);}
+#dwpop .dwseg button.on{background:var(--rule);color:var(--bg);}
+#dwpop .dwsizes{display:flex;margin-top:8px;border:1px solid var(--hairline);}
+#dwpop .dwsize{flex:1 1 0;height:40px;border:none;background:none;display:flex;
+  align-items:center;justify-content:center;border-radius:0;}
+#dwpop .dwsize+.dwsize{border-left:1px solid var(--hairline);}
+#dwpop .dwsize i{display:block;border-radius:50%;border:2px solid var(--rule);}
+#dwpop .dwsize.on{background:var(--rule);}
+#dwpop .dwsize.on i{border-color:var(--bg);}
+#dwpop .dwclear{width:100%;height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;
+  border:none;border-top:1px solid var(--hairline);background:none;color:var(--text);
+  font-size:10px;font-weight:800;letter-spacing:.12em;border-radius:0;}
+#dwpop .dwclear svg{display:block;flex:0 0 auto;}
+#dwpop .dwclear .n{margin-left:auto;font-weight:600;letter-spacing:.06em;color:var(--muted2);}
+#dwpop .dwclear:hover{background:var(--accent-soft);color:var(--accent-ink);}
+/* 전체화면(어두운 툴바) */
+body.full #dwpop{background:#2d2b2b;border-color:#201e1d;color:#f3f2f2;}
+body.full #dwpop .dwhead{background:#000;}
+body.full #dwpop .dwk{color:#9b9797;}
+body.full #dwpop input.dwrange::-webkit-slider-runnable-track{background:#605d5d;}
+body.full #dwpop input.dwrange::-webkit-slider-thumb{background:#f3f2f2;}
+body.full #dwpop input.dwrange::-moz-range-track{background:#605d5d;}
+body.full #dwpop input.dwrange::-moz-range-thumb{background:#f3f2f2;}
+body.full #dwpop .dwcolor.on,body.full #dwpop .dwcolor:hover{border-color:#f3f2f2;}
+body.full #dwpop .dwseg,body.full #dwpop .dwsizes,body.full #dwpop .dwprev,
+body.full #dwpop .dwclear{border-color:#605d5d;}
+body.full #dwpop .dwseg button+button,body.full #dwpop .dwsize+.dwsize{border-color:#605d5d;}
+body.full #dwpop .dwseg button.on,body.full #dwpop .dwsize.on{background:#f3f2f2;color:#201e1d;}
+body.full #dwpop .dwsize.on i{border-color:#201e1d;}
+body.full #dwpop .dwclear:hover{background:#4a2a20;color:#ff9783;}
+
 /* 찾은 쪽 목록 — 툴바 바로 아래로 내려오는 쪽지 */
 #dfpop{position:absolute;top:44px;right:0;z-index:60;width:min(360px,92vw);
   max-height:min(52vh,420px);display:flex;flex-direction:column;
@@ -439,8 +532,13 @@ body.thumbs-off #thumbs{display:none;}
 #stage{flex:1 1 auto;min-width:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
   background:var(--panel2);padding:12px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;}
 #canvaswrap{flex:0 0 auto;margin:auto;background:var(--card);box-shadow:var(--shadow);border-radius:0;
-  line-height:0;transform-origin:top center;}
+  line-height:0;transform-origin:top center;position:relative;}
 #pdfcanvas{display:block;}
+/* 자료 위에 그리는 판 — PDF 종이와 정확히 같은 자리·크기에 겹칩니다 */
+#drawlayer{position:absolute;left:0;top:0;touch-action:none;z-index:2;}
+#drawlayer.off{pointer-events:none;touch-action:auto;}
+body.draw-on #stage{cursor:crosshair;}
+body.draw-on .pagenav{display:none;}
 /* 무대에 마우스를 올렸을 때만 나타나는 앞뒤 장 넘김 단추 */
 .pagenav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;padding:0;
   display:flex;align-items:center;justify-content:center;border:none;border-radius:0;
@@ -982,6 +1080,38 @@ body.full .thumb.sum::after{background:#f3f2f2;}
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">One Page</span></button>
       <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span><button id="pagejump" title="p 번호로 이동" aria-label="p 번호로 이동" hidden></button></div>
+      <div id="drawbar" hidden>
+        <button class="dwtool on" id="dw-cursor" title="커서 (그리기 끄기)" aria-label="커서 · 그리기 끄기">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/>
+          </svg>
+        </button>
+        <button class="dwtool" id="dw-pen" data-tool="pen" title="펜" aria-label="펜" aria-haspopup="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15.7 10.3 21 5l-2-2-5.3 5.3"/><path d="M18 13 5.5 2 2 5.5 13 18l5-5Z"/><path d="m13 18-2.5 3.5L7 18"/>
+          </svg>
+        </button>
+        <button class="dwtool" id="dw-hi" data-tool="hi" title="형광펜" aria-label="형광펜" aria-haspopup="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>
+          </svg>
+        </button>
+        <button class="dwtool" id="dw-eraser" data-tool="eraser" title="지우개" aria-label="지우개" aria-haspopup="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/>
+          </svg>
+        </button>
+        <button class="dwtool" id="dw-undo" title="되돌리기 (Ctrl+Z)" aria-label="되돌리기" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/>
+          </svg>
+        </button>
+      </div>
       <div id="docfind" hidden>
         <span class="mag">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1011,10 +1141,12 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <div class="dfscroll" id="dfpop-body"></div>
     </div>
 
+    <div id="dwpop" hidden></div>
+
     <div id="stagewrap">
     <div id="thumbs" role="navigation" aria-label="쪽 미리보기"></div>
     <div id="stage">
-      <div id="canvaswrap" style="display:none"><canvas id="pdfcanvas"></canvas></div>
+      <div id="canvaswrap" style="display:none"><canvas id="pdfcanvas"></canvas><canvas id="drawlayer" class="off"></canvas></div>
       <div id="novideo">
         <div class="big">자료가 없습니다</div>
         <div>왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 PDF를 등록하세요.<br>여러 개를 한 번에 고를 수 있습니다.</div>
@@ -1411,7 +1543,7 @@ function toast(msg){
       kv   : 설정·회의종류·할 일·요약 등
    ========================================================= */
 /* 저장소 이름은 처음 것을 그대로 씁니다. 바꾸면 이미 저장된 자료를 못 찾습니다. */
-const DB_NAME = "strategy-library", DB_VER = 2;
+const DB_NAME = "strategy-library", DB_VER = 3;
 let DB = null;
 
 function openDB(){
@@ -1426,6 +1558,8 @@ function openDB(){
       /* 첨부 PDF — 목록(가벼운 정보)과 원본(무거운 파일)을 따로 둡니다 */
       if(!db.objectStoreNames.contains("attach"))     db.createObjectStore("attach",     { keyPath:"id" });
       if(!db.objectStoreNames.contains("attachfile")) db.createObjectStore("attachfile", { keyPath:"id" });
+      /* 자료 위에 그린 펜·형광펜 자국 — { id:자료 id, pages:{ 쪽번호: [획, …] } } */
+      if(!db.objectStoreNames.contains("draw"))        db.createObjectStore("draw",        { keyPath:"id" });
     };
     req.onsuccess = () => res(req.result);
     req.onerror   = () => rej(req.error);
@@ -1460,7 +1594,9 @@ const KV_DEFAULT = {
   ai:"off", aiKey:"", aiModel:"gemini-3.5-flash",
   agendas:{}, agOff:[],
   /* 파일 이름 → 회의 종류 자동 지정 규칙 : { "회의 종류": ["포함 단어", …] } */
-  catMap:{}
+  catMap:{},
+  /* 그리기 도구 — 마지막에 쓴 굵기·색깔 (기기별로 유지) */
+  drawcfg:{}
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -1469,6 +1605,7 @@ async function loadKV(){
   /* 기본값의 빈 객체를 그대로 쓰지 않도록 제 것으로 복제합니다 */
   KV.catMap  = Object.assign({}, KV.catMap);
   KV.scripts = Object.assign({}, KV.scripts);
+  KV.drawcfg = Object.assign({}, KV.drawcfg);
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
   if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
@@ -1673,6 +1810,8 @@ async function loadPdfFor(doc){
   clearThumbs();
   if(S.pdf){ try{ S.pdf.destroy(); }catch(e){} S.pdf = null; }
 
+  if((!doc || !doc.hasPdf) && typeof window.drawLoadDoc === "function") window.drawLoadDoc(null);
+
   if(!doc){
     if(DOCS.length)
       setNoView("자료를 고르세요",
@@ -1704,6 +1843,7 @@ async function loadPdfFor(doc){
     if(seq !== S.renderSeq){ try{ S.pdf.destroy(); }catch(e){} return; }
     showViewer(true);
     S.page = 1;
+    if(typeof window.drawLoadDoc === "function") await window.drawLoadDoc(doc.id);
     await fitTo(S.fitPref);
     buildThumbs();
   }catch(err){
@@ -1746,6 +1886,8 @@ async function renderPage(){
     /* 화면에 놓이는 크기는 소수점까지 그대로 — 반올림하면 살짝 흐려집니다 */
     cv.style.width  = vp.width.toFixed(2)  + "px";
     cv.style.height = vp.height.toFixed(2) + "px";
+    /* 그리는 판을 종이 크기에 곧바로 맞춥니다 — PDF 렌더가 끝나기 전에 */
+    if(typeof window.drawSync === "function") window.drawSync();
     const ctx = cv.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
@@ -1759,6 +1901,7 @@ async function renderPage(){
   }finally{
     if(seq === S.renderSeq) document.body.classList.remove("rendering");
     updateBars();
+    if(seq === S.renderSeq && typeof window.drawSync === "function") window.drawSync();
   }
 }
 
@@ -3207,6 +3350,7 @@ $("#thumbs").addEventListener("click", e => {
   let until = 0;                                        /* 한 번 굴릴 때 여러 장이 넘어가지 않게 막습니다 */
   stage.addEventListener("wheel", e => {
     if(!S.pdf) return;
+    if(document.body.classList.contains("draw-on")) return;   /* 그리는 중엔 휠로 장 넘기지 않음 */
     if(e.ctrlKey || e.metaKey) return;                   /* 확대/축소(Ctrl+휠)는 그대로 둡니다 */
     const dy = e.deltaY; if(!dy) return;
     const down = dy > 0;
@@ -3251,6 +3395,7 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
     const w = c.clientWidth;
     document.body.classList.toggle("hide-doctitle", w < 760);
     document.body.classList.toggle("tight-bar",     w < 560);
+    if(w < 560 && window.drawActive && window.drawActive()) window.drawExit();
   };
   if(window.ResizeObserver) new ResizeObserver(apply).observe(c);
   window.addEventListener("resize", apply);
@@ -3297,6 +3442,7 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
   stage.addEventListener("touchend", e => {
     if(!ok || !S.pdf) return;
     ok = false;
+    if(document.body.classList.contains("draw-on")) return;
     const t = e.changedTouches[0]; if(!t) return;
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const adx = Math.abs(dx), ady = Math.abs(dy);
@@ -3312,6 +3458,458 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
     if(to < 1 || to > S.pdf.numPages) return;
     goPage(to);
   }, { passive:true });
+})();
+
+/* =========================================================
+   10-b) 자료 위에 그리기 — 펜 · 형광펜 · 지우개
+   ------------------------------------------------------------
+   • 획은 쪽마다 따로, 자료 좌표(0~1)로 저장합니다 → 확대·축소·창 크기와
+     무관하게 늘 종이의 같은 자리에 얹힙니다.
+   • 저장은 IndexedDB "draw" 저장소에 { id:자료 id, pages:{쪽: [획…]} }.
+   ========================================================= */
+(function drawing(){
+  const bar   = $("#drawbar");
+  const layer = $("#drawlayer");
+  const octx  = layer.getContext("2d");
+  const pop   = $("#dwpop");
+  const pdfcv = $("#pdfcanvas");
+
+  /* 디자인 핸드오프(concept 3a) 값 그대로 ------------------------------------
+     굵기는 프리셋 칸이 아니라 슬라이더. 굵기 값은 '그릴 때의 화면 px' 로 잡아
+     저장 시엔 종이 폭 대비 비율로 바꿉니다(확대·축소와 무관하게 유지). */
+  const PEN = { min:0.25, max:3,  step:0.25, def:1  };
+  const HL  = { min:6,    max:20, step:1,    def:12 };
+  const ER_SIZES = [10, 16, 24];
+  const PEN_COLORS = [
+    { k:"잉크", c:"#201e1d" }, { k:"빨강", c:"#ec3013" },
+    { k:"파랑", c:"#1b4fd8" }, { k:"초록", c:"#12795a" }
+  ];
+  const HI_COLORS = [
+    { k:"노랑", c:"#f5e050" }, { k:"코랄", c:"#ffb3a3" },
+    { k:"민트", c:"#a9e0c9" }, { k:"하늘", c:"#b9d2f7" }
+  ];
+  const SVG = {
+    pen:'<path d="M15.7 10.3 21 5l-2-2-5.3 5.3"/><path d="M18 13 5.5 2 2 5.5 13 18l5-5Z"/><path d="m13 18-2.5 3.5L7 18"/>',
+    hi :'<path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>',
+    er :'<path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/>'
+  };
+  const icon = d => `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+
+  const DRAW = {
+    tool:null,                       /* 'pen' | 'hi' | 'eraser' | null */
+    pen:{ size:PEN.def, color:PEN_COLORS[0].c },
+    hi :{ size:HL.def,  color:HI_COLORS[0].c, alpha:0.4 },
+    eraser:{ mode:"stroke", size:16 },   /* 지우개는 늘 '획 전체' 로 열립니다 */
+    docId:null,
+    pages:{},                        /* 쪽 → [획…]  (지금 자료의 모든 쪽) */
+    past:[],                         /* 되돌리기 스냅샷 (지금 쪽) */
+    drawing:false, cur:null, ptrs:0
+  };
+  /* 마지막에 쓴 펜·형광펜 설정을 기기에 저장/복원 */
+  (function restoreCfg(){
+    const c = KV.drawcfg || {};
+    if(c.pen){ if(c.pen.size >= PEN.min && c.pen.size <= PEN.max) DRAW.pen.size = c.pen.size;
+               if(c.pen.color) DRAW.pen.color = c.pen.color; }
+    if(c.hi){ if(c.hi.size >= HL.min && c.hi.size <= HL.max) DRAW.hi.size = c.hi.size;
+              if(c.hi.color) DRAW.hi.color = c.hi.color;
+              if(c.hi.alpha > 0 && c.hi.alpha <= 1) DRAW.hi.alpha = c.hi.alpha; }
+  })();
+  function saveCfg(){
+    KV.drawcfg = {
+      pen:{ size:DRAW.pen.size, color:DRAW.pen.color },
+      hi :{ size:DRAW.hi.size,  color:DRAW.hi.color, alpha:DRAW.hi.alpha }
+    };
+    saveKV("drawcfg");
+  }
+  window.drawActive = () => !!DRAW.tool;
+
+  const pageKey = () => String(S.page || 1);
+  const curList = () => (DRAW.pages[pageKey()] || (DRAW.pages[pageKey()] = []));
+  const cssSize = () => ({
+    w: parseFloat(pdfcv.style.width)  || pdfcv.clientWidth  || 1,
+    h: parseFloat(pdfcv.style.height) || pdfcv.clientHeight || 1
+  });
+
+  /* ---- 판 크기·위치를 종이에 정확히 맞추고 다시 그립니다 ---- */
+  let lastPage = 1;
+  function drawSync(){
+    const on = !!S.pdf;
+    bar.hidden = !on;
+    if(!on){ if(DRAW.tool) setTool(null); return; }
+    if(String(lastPage) !== pageKey()){ lastPage = S.page; DRAW.past = []; DRAW.drawing = false; DRAW.cur = null; }
+    const { w, h } = cssSize();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    layer.style.width  = w + "px";
+    layer.style.height = h + "px";
+    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+    if(layer.width !== bw || layer.height !== bh){ layer.width = bw; layer.height = bh; }
+    repaint();
+  }
+  window.drawSync = drawSync;
+
+  function repaint(){
+    const { w, h } = cssSize();
+    octx.setTransform(layer.width / w, 0, 0, layer.height / h, 0, 0);
+    octx.clearRect(0, 0, w, h);
+    const list = DRAW.pages[pageKey()] || [];
+    for(const s of list) paintStroke(s, w, h);
+    if(DRAW.drawing && DRAW.cur) paintStroke(DRAW.cur, w, h);
+    const ub = $("#dw-undo");
+    if(ub) ub.disabled = !(DRAW.tool && DRAW.past.length);
+  }
+
+  function paintStroke(s, w, h){
+    const pts = s.p; if(!pts || !pts.length) return;
+    octx.save();
+    octx.lineJoin = "round";
+    octx.lineCap  = "round";
+    octx.strokeStyle = s.c;
+    octx.lineWidth = Math.max(0.4, (s.w || 0.003) * w);
+    if(s.t === "hi"){ octx.globalCompositeOperation = "multiply"; octx.globalAlpha = s.a != null ? s.a : 0.4; }
+    octx.beginPath();
+    octx.moveTo(pts[0][0] * w, pts[0][1] * h);
+    if(pts.length === 1){ octx.lineTo(pts[0][0] * w + 0.01, pts[0][1] * h); }
+    else for(let i = 1; i < pts.length; i++) octx.lineTo(pts[i][0] * w, pts[i][1] * h);
+    octx.stroke();
+    octx.restore();
+  }
+
+  /* ---- 좌표 변환 ---- */
+  function norm(e){
+    const r = layer.getBoundingClientRect();
+    return [ (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height ];
+  }
+
+  /* ---- 그리기 ---- */
+  function snapshot(){
+    DRAW.past.push(JSON.stringify(DRAW.pages[pageKey()] || []));
+    if(DRAW.past.length > 40) DRAW.past.shift();
+  }
+
+  layer.addEventListener("pointerdown", e => {
+    if(!DRAW.tool || !S.pdf) return;
+    DRAW.ptrs++;
+    if(DRAW.ptrs > 1){                       /* 두 번째 손가락 — 확대 동작에 양보 */
+      if(DRAW.drawing){ DRAW.drawing = false; DRAW.cur = null; DRAW.past.pop(); repaint(); }
+      return;
+    }
+    e.preventDefault();
+    try{ layer.setPointerCapture(e.pointerId); }catch(_){}
+    const { w } = cssSize();
+    if(DRAW.tool === "eraser"){
+      DRAW.erSnap = false;
+      DRAW.drawing = true;
+      eraseAt(norm(e));
+      return;
+    }
+    snapshot();
+    const g = DRAW.tool === "hi" ? DRAW.hi : DRAW.pen;
+    DRAW.cur = {
+      t: DRAW.tool === "hi" ? "hi" : "pen",
+      c: g.color,
+      w: g.size / w,                          /* 폭 대비 비율로 저장 */
+      p: [ norm(e) ]
+    };
+    if(DRAW.tool === "hi") DRAW.cur.a = DRAW.hi.alpha;
+    DRAW.drawing = true;
+    repaint();
+  });
+
+  layer.addEventListener("pointermove", e => {
+    if(!DRAW.drawing || DRAW.ptrs > 1) return;
+    e.preventDefault();
+    if(DRAW.tool === "eraser"){ eraseAt(norm(e)); return; }
+    const p = norm(e), pts = DRAW.cur.p, last = pts[pts.length - 1];
+    if(Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.0015) return;
+    pts.push(p);
+    repaint();
+  });
+
+  function endStroke(e){
+    if(e && e.pointerId != null){ try{ layer.releasePointerCapture(e.pointerId); }catch(_){} }
+    DRAW.ptrs = Math.max(0, DRAW.ptrs - 1);
+    if(!DRAW.drawing) return;
+    DRAW.drawing = false;
+    if(DRAW.tool !== "eraser" && DRAW.cur){
+      if(DRAW.cur.p.length) curList().push(DRAW.cur);
+      else DRAW.past.pop();
+    }
+    DRAW.cur = null;
+    repaint();
+    saveSoon();
+  }
+  layer.addEventListener("pointerup", endStroke);
+  layer.addEventListener("pointercancel", endStroke);
+  layer.addEventListener("pointerleave", e => { if(DRAW.drawing && DRAW.ptrs <= 1 && e.buttons === 0) endStroke(e); });
+
+  function eraseAt(n){
+    const { w, h } = cssSize();
+    const px = n[0] * w, py = n[1] * h;
+    const rad = DRAW.eraser.size / 2;
+    const list = DRAW.pages[pageKey()]; if(!list || !list.length) return;
+    const area = DRAW.eraser.mode === "area";
+    let hit = false;
+    for(let i = list.length - 1; i >= 0; i--){
+      const s = list[i], pts = s.p;
+      const half = (s.w || 0.003) * w / 2 + rad;
+      if(!area){
+        /* 획 전체 — 어느 한 곳이라도 닿으면 그 획을 통째로 지웁니다 */
+        let near = Math.hypot(pts[0][0] * w - px, pts[0][1] * h - py) <= half;
+        for(let j = 1; j < pts.length && !near; j++)
+          near = segDist(px, py, pts[j][0] * w, pts[j][1] * h,
+                                 pts[j-1][0] * w, pts[j-1][1] * h) <= half;
+        if(near){
+          if(!DRAW.erSnap){ snapshot(); DRAW.erSnap = true; }
+          list.splice(i, 1); hit = true;
+        }
+      }else{
+        /* 영역 — 커서 밑의 점만 지우고, 남은 조각들을 각각의 획으로 나눕니다 */
+        const runs = []; let run = [];
+        for(let j = 0; j < pts.length; j++){
+          if(Math.hypot(pts[j][0] * w - px, pts[j][1] * h - py) <= half){
+            if(run.length > 1) runs.push(run);
+            run = [];
+          }else run.push(pts[j]);
+        }
+        if(run.length > 1) runs.push(run);
+        if(runs.length !== 1 || runs[0].length !== pts.length){
+          if(!DRAW.erSnap){ snapshot(); DRAW.erSnap = true; }
+          list.splice(i, 1, ...runs.map(r => Object.assign({}, s, { p:r })));
+          hit = true;
+        }
+      }
+    }
+    if(hit){ repaint(); saveSoon(); }
+  }
+  function segDist(px, py, ax, ay, bx, by){
+    const dx = bx - ax, dy = by - ay, l2 = dx*dx + dy*dy;
+    let t = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
+  }
+
+  function undo(){
+    if(!DRAW.past.length) return;
+    DRAW.pages[pageKey()] = JSON.parse(DRAW.past.pop());
+    repaint(); saveSoon();
+  }
+  window.drawUndo = undo;
+
+  /* ---- 저장 ---- */
+  let saveT = null;
+  function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(flush, 600); }
+  function flush(){
+    clearTimeout(saveT);
+    if(!DRAW.docId) return;
+    const pages = {};
+    for(const k in DRAW.pages){ if((DRAW.pages[k] || []).length) pages[k] = DRAW.pages[k]; }
+    const id = DRAW.docId;
+    if(Object.keys(pages).length) dbPut("draw", { id, pages }).catch(() => {});
+    else dbDel("draw", id).catch(() => {});
+  }
+  async function loadDoc(id){
+    flush();
+    if(DRAW.tool) setTool(null);
+    DRAW.docId = id; DRAW.pages = {}; DRAW.past = [];
+    if(id){
+      try{ const rec = await dbGet("draw", id); if(rec && rec.pages) DRAW.pages = rec.pages; }
+      catch(_){}
+    }
+    if(!id) bar.hidden = true;
+    repaint();
+  }
+  window.drawLoadDoc = loadDoc;
+
+  /* ---- 도구 선택 & 쪽지(패널) ---- */
+  function setTool(t){
+    if(DRAW.tool === t) return;
+    DRAW.tool = t;
+    if(t === "eraser") DRAW.eraser.mode = "stroke";   /* 지우개는 늘 '획 전체' 로 */
+    for(const b of bar.querySelectorAll(".dwtool[data-tool]"))
+      b.classList.toggle("on", b.dataset.tool === t);
+    const cur = $("#dw-cursor"); if(cur) cur.classList.toggle("on", !t);   /* 커서 = 그리기 꺼짐 상태 */
+    layer.classList.toggle("off", !t);
+    document.body.classList.toggle("draw-on", !!t);
+    if(!t){ closePop(); DRAW.past = []; DRAW.drawing = false; DRAW.cur = null; }
+    repaint();
+  }
+  window.drawExit = () => setTool(null);
+
+  const nmeta   = tool => tool === "pen" ? PEN : HL;
+  const colorsOf = tool => tool === "pen" ? PEN_COLORS : HI_COLORS;
+  const nameOf  = (list, c) => (list.find(o => o.c === c) || { k:"" }).k;
+  const fmtN    = v => (Math.round(v * 100) / 100).toString();
+
+  function buildPop(tool){
+    const g = tool === "pen" ? DRAW.pen : tool === "hi" ? DRAW.hi : DRAW.eraser;
+    let head, body, foot = "";
+
+    if(tool === "pen" || tool === "hi"){
+      const m = nmeta(tool), cols = colorsOf(tool);
+      head = icon(tool === "pen" ? SVG.pen : SVG.hi) +
+        `<span>${tool === "pen" ? "펜" : "형광펜"}</span>` +
+        `<span class="cur" id="dw-cur">${nameOf(cols, g.color)}</span>`;
+      body =
+        `<p class="dwk">굵기</p>
+         <div class="dwslot"><input class="dwrange" id="dw-w" type="range"
+           min="${m.min}" max="${m.max}" step="${m.step}" value="${g.size}"></div>
+         <div class="dwval"><b id="dw-w-v">${fmtN(g.size)} PX</b>
+           <span>${fmtN(m.min)} – ${fmtN(m.max)} PX</span></div>
+         <p class="dwk mt">색깔</p>
+         <div class="dwcolors">` +
+         cols.map(o => `<button class="dwcolor${o.c === g.color ? " on" : ""}"
+           data-color="${o.c}" title="${o.k}"><i style="background:${o.c}"></i></button>`).join("") +
+         `</div>`;
+      if(tool === "hi"){
+        const pct = Math.round(DRAW.hi.alpha * 100);
+        body +=
+          `<p class="dwk mt">진하기</p>
+           <div class="dwslot"><input class="dwrange" id="dw-a" type="range"
+             min="15" max="70" step="1" value="${pct}"></div>
+           <div class="dwval"><b id="dw-a-v">${pct}%</b><span>15 – 70%</span></div>`;
+        foot = `<div class="dwprev"><span class="hl" id="dw-prev"
+          style="height:${g.size}px;background:${g.color};opacity:${DRAW.hi.alpha};mix-blend-mode:multiply"></span></div>`;
+      }else{
+        foot = `<div class="dwprev"><svg width="150" height="18" viewBox="0 0 150 18" fill="none">
+          <path id="dw-prev" d="M2 13c14-14 28 10 42-2s28 8 42-4 28 6 62 2"
+            stroke="${g.color}" stroke-width="${g.size}" stroke-linecap="round"/></svg></div>`;
+      }
+    }else{
+      head = icon(SVG.er) + `<span>지우개</span>` +
+        `<span class="cur" id="dw-cur">${g.mode === "area" ? "영역" : "획 전체"}</span>`;
+      const cnt = (DRAW.pages[pageKey()] || []).length;
+      body =
+        `<p class="dwk">방식</p>
+         <div class="dwseg">
+           <button data-mode="stroke" class="${g.mode !== "area" ? "on" : ""}">획 전체</button>
+           <button data-mode="area" class="${g.mode === "area" ? "on" : ""}">영역</button>
+         </div>
+         <p class="dwk mt">크기</p>
+         <div class="dwsizes">` +
+         ER_SIZES.map(sz => `<button class="dwsize${sz === g.size ? " on" : ""}" data-size="${sz}">
+           <i style="width:${sz}px;height:${sz}px"></i></button>`).join("") +
+         `</div>`;
+      foot = `<button class="dwclear" id="dw-clear">
+        ${'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>'}
+        <span>이 쪽 그림 모두 지우기</span><span class="n">${cnt}</span></button>`;
+    }
+    pop.innerHTML = `<div class="dwhead">${head}</div><div class="dwbody">${body}</div>${foot}`;
+
+    /* --- 굵기 슬라이더 --- */
+    const wIn = $("#dw-w");
+    if(wIn) wIn.addEventListener("input", () => {
+      g.size = parseFloat(wIn.value);
+      $("#dw-w-v").textContent = fmtN(g.size) + " PX";
+      const pv = $("#dw-prev");
+      if(pv && tool === "pen") pv.setAttribute("stroke-width", g.size);
+      if(pv && tool === "hi") pv.style.height = g.size + "px";
+    });
+    if(wIn) wIn.addEventListener("change", saveCfg);
+
+    /* --- 색깔 --- */
+    pop.querySelectorAll(".dwcolor").forEach(b => b.onclick = () => {
+      g.color = b.dataset.color;
+      pop.querySelectorAll(".dwcolor").forEach(x => x.classList.toggle("on", x === b));
+      $("#dw-cur").textContent = nameOf(colorsOf(tool), g.color);
+      const pv = $("#dw-prev");
+      if(pv && tool === "pen") pv.setAttribute("stroke", g.color);
+      if(pv && tool === "hi") pv.style.background = g.color;
+      saveCfg();
+    });
+
+    /* --- 형광펜 진하기 --- */
+    const aIn = $("#dw-a");
+    if(aIn){
+      aIn.addEventListener("input", () => {
+        DRAW.hi.alpha = (+aIn.value) / 100;
+        $("#dw-a-v").textContent = aIn.value + "%";
+        const pv = $("#dw-prev"); if(pv) pv.style.opacity = DRAW.hi.alpha;
+      });
+      aIn.addEventListener("change", saveCfg);
+    }
+
+    /* --- 지우개 방식·크기 --- */
+    pop.querySelectorAll(".dwseg button").forEach(b => b.onclick = () => {
+      DRAW.eraser.mode = b.dataset.mode;
+      pop.querySelectorAll(".dwseg button").forEach(x => x.classList.toggle("on", x === b));
+      $("#dw-cur").textContent = DRAW.eraser.mode === "area" ? "영역" : "획 전체";
+    });
+    pop.querySelectorAll(".dwsize").forEach(b => b.onclick = () => {
+      DRAW.eraser.size = parseFloat(b.dataset.size);
+      pop.querySelectorAll(".dwsize").forEach(x => x.classList.toggle("on", x === b));
+    });
+
+    /* --- 모두 지우기 (확인 필요) --- */
+    const cl = $("#dw-clear");
+    if(cl) cl.onclick = () => {
+      const list = DRAW.pages[pageKey()] || [];
+      if(!list.length){ closePop(); return; }
+      if(!confirm(`이 쪽에 그린 ${list.length}개를 모두 지울까요?`)) return;
+      snapshot();
+      DRAW.pages[pageKey()] = [];
+      repaint(); saveSoon(); closePop();
+    };
+  }
+
+  let popBtn = null;
+  function placePop(){
+    const btn = popBtn; if(!btn || pop.hidden) return;
+    const r = btn.getBoundingClientRect();
+    const pw = pop.offsetWidth || 268;
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+    pop.style.left = Math.round(left) + "px";
+    pop.style.top  = Math.round(r.bottom) + "px";   /* 칸 아래에 딱 붙임 — 틈 없음 */
+  }
+  function openPop(tool, btn){
+    popBtn = btn;
+    buildPop(tool);
+    pop.hidden = false;
+    placePop();
+  }
+  function closePop(){ pop.hidden = true; popBtn = null; }
+  function popOpen(){ return !pop.hidden; }
+
+  bar.querySelectorAll(".dwtool[data-tool]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = btn.dataset.tool;
+      if(DRAW.tool === t){
+        if(popOpen()) setTool(null);          /* 켜진 도구 + 열린 패널 → 도구 끄기 */
+        else openPop(t, btn);
+      }else{
+        setTool(t);
+        openPop(t, btn);
+      }
+    });
+  });
+  $("#dw-cursor").addEventListener("click", () => setTool(null));
+  $("#dw-undo").addEventListener("click", undo);
+
+  document.addEventListener("pointerdown", e => {
+    if(pop.hidden) return;
+    if(pop.contains(e.target) || e.target.closest("#drawbar")) return;
+    closePop();
+  }, true);
+  window.addEventListener("resize", placePop);          /* 창 크기가 바뀌면 패널을 다시 붙입니다 */
+  $("#stage").addEventListener("scroll", () => { if(!pop.hidden) closePop(); }, { passive:true });
+
+  document.addEventListener("keydown", e => {
+    if(!DRAW.tool) return;
+    if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName || "")) return;
+    if((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "z" || e.key === "Z")){ undo(); e.preventDefault(); }
+  });
+  window.addEventListener("beforeunload", flush);
+  document.addEventListener("visibilitychange", () => { if(document.hidden) flush(); });
+
+  /* 종이(캔버스) 크기가 바뀌면 — 확대·축소·창 크기·사이드바 — 그리는 판도 곧바로 맞춥니다.
+     PDF 렌더가 끝나기를 기다리지 않으므로 어긋나는 순간이 없습니다. */
+  if(window.ResizeObserver){
+    let rt = null;
+    new ResizeObserver(() => {
+      if(!S.pdf) return;
+      clearTimeout(rt);
+      rt = setTimeout(drawSync, 16);
+    }).observe(pdfcv);
+  }
 })();
 
 /* =========================================================
@@ -3486,6 +4084,7 @@ $("#rbody").addEventListener("click", async e => {
 async function removeDoc(id){
   await dbDel("docs", id);
   await dbDel("files", id).catch(()=>{});
+  await dbDel("draw", id).catch(()=>{});
   for(const a of ATTACH.filter(x => x.docId === id)){
     await dbDel("attach", a.id).catch(()=>{});
     await dbDel("attachfile", a.id).catch(()=>{});
@@ -5014,6 +5613,7 @@ $("#btn-wipe").onclick = async () => {
   if(!confirm("이 기기의 자료·회의록·할 일을 전부 지웁니다.\n되돌릴 수 없습니다. 계속할까요?")) return;
   if(!confirm("정말 지울까요? 마지막 확인입니다.")) return;
   await dbClear("docs"); await dbClear("files"); await dbClear("notes"); await dbClear("kv");
+  await dbClear("draw").catch(() => {});
   KV = Object.assign({}, KV_DEFAULT, { scripts:{} });
   DOCS = []; NOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
@@ -5052,6 +5652,8 @@ window.addEventListener("beforeunload", e => {
    ========================================================= */
 document.addEventListener("keydown", e => {
   if(e.key === "Escape"){
+    if(!$("#dwpop").hidden){ $("#dwpop").hidden = true; return; }
+    if(window.drawActive && window.drawActive()){ window.drawExit && window.drawExit(); return; }
     if($("#atvbg").classList.contains("on")) closeAtView();
     else if($("#atbg").classList.contains("on")) closeAttach();
     else if($("#ageditbg").classList.contains("on")) closeAgEdit();
