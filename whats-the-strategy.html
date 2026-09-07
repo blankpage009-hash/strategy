@@ -912,14 +912,14 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .subbox{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:0;background:var(--panel);}
 .subbox .lbl2{font-size:12px;font-weight:600;margin-top:8px;}
 .subbox .lbl2:first-child{margin-top:0;}
-#aitest{font-size:11.5px;line-height:1.6;margin-top:7px;}
-#aitest.ok{color:var(--ok);} #aitest.bad{color:var(--bad);}
-#modellist{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
-#modellist button{border:2px solid var(--line);background:none;border-radius:0;
+#aitest,#an-test-out{font-size:11.5px;line-height:1.6;margin-top:7px;}
+#aitest.ok,#an-test-out.ok{color:var(--ok);} #aitest.bad,#an-test-out.bad{color:var(--bad);}
+#modellist,#an-modellist{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+#modellist button,#an-modellist button{border:2px solid var(--line);background:none;border-radius:0;
   font-size:11.5px;padding:3px 9px;line-height:1.5;}
-#modellist button:hover{border-color:var(--accent);color:var(--accent-ink);}
-#modellist button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
-#modellist .note{font-size:11.5px;color:var(--muted);line-height:1.6;flex:1 0 100%;}
+#modellist button:hover,#an-modellist button:hover{border-color:var(--accent);color:var(--accent-ink);}
+#modellist button.on,#an-modellist button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+#modellist .note,#an-modellist .note{font-size:11.5px;color:var(--muted);line-height:1.6;flex:1 0 100%;}
 
 /* ---------- 올리기 화면 ---------- */
 #drop{border:2px solid var(--line);border-radius:0;padding:22px;text-align:center;color:var(--muted);
@@ -1379,6 +1379,33 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         </div>
       </div>
 
+      <!-- AI NOTE (제미나이) — 회의록을 한 장으로 정리해 주는 새 기능의 설정입니다. 위 옛 자동요약과 분리돼 있습니다. -->
+      <div class="mrow">
+        <div class="lbl">AI NOTE (제미나이)</div>
+        <div class="hint">회의록을 AI가 한 장으로 정리해 줍니다. 이 기능만 인터넷을 씁니다.
+          키가 없으면 나머지 기능은 전부 그대로 동작합니다.</div>
+
+        <div class="subbox">
+          <div class="lbl2">제미나이 API 키</div>
+          <input type="password" id="an-key" placeholder="발급받은 키를 붙여넣으세요" autocomplete="off" spellcheck="false">
+          <div class="hint">키는 <b>이 기기의 브라우저 안에만</b> 저장됩니다. 백업 파일에도 들어가지 않으므로
+            폴더를 그대로 복사해 줘도 키는 따라가지 않습니다. 다른 사람이 쓰려면 각자 키를 발급받아 넣어야 합니다.
+            발급: <b>aistudio.google.com</b> → Get API key</div>
+
+          <div class="lbl2">우선 모델</div>
+          <input type="text" id="an-model" placeholder="gemini-3.8-flash" autocomplete="off" spellcheck="false">
+          <div class="hint">잘 모르면 그대로 두세요. 이 모델이 바쁘면 자동으로 아래 단계 모델로 내려가서 다시 시도합니다.</div>
+          <div id="an-modellist"></div>
+
+          <div class="btnrow">
+            <button id="an-test">연결 확인</button>
+            <button id="an-models">쓸 수 있는 모델 보기</button>
+            <button id="an-clear">키 지우기</button>
+          </div>
+          <div id="an-test-out"></div>
+        </div>
+      </div>
+
       <div class="mrow">
         <div class="lbl">자료 종류</div>
         <div class="hint">필터 막대에 보이는 자료 종류입니다. 여기서 더하거나 이름을 바꾸거나 지우고, <b>↑ ↓ 로 순서를 바꿀 수 있습니다.</b>
@@ -1591,7 +1618,7 @@ const KV_DEFAULT = {
   scripts:{},
   /* 마지막으로 보던 자료 — 다음에 열 때 그대로 이어서 봅니다 */
   sel:null,
-  ai:"off", aiKey:"", aiModel:"gemini-3.5-flash",
+  ai:"off", aiKey:"", aiModel:"gemini-3.8-flash",
   agendas:{}, agOff:[],
   /* 파일 이름 → 회의 종류 자동 지정 규칙 : { "회의 종류": ["포함 단어", …] } */
   catMap:{},
@@ -4495,8 +4522,8 @@ async function listModels(){
   return Array.from(new Set(names)).sort((a,b) => ver(b) - ver(a) || a.length - b.length || a.localeCompare(b));
 }
 
-function renderModelList(names){
-  const box = $("#modellist");
+function renderModelList(names, box){
+  box = box || $("#modellist");
   if(!names){ box.innerHTML = ""; return; }
   if(!names.length){
     box.innerHTML = `<div class="note">쓸 수 있는 모델을 찾지 못했습니다. 키를 다시 확인해 주세요.</div>`;
@@ -5201,7 +5228,7 @@ function stripDoc(d){
 /* =========================================================
    14) 설정 · 백업
    ========================================================= */
-$("#btn-settings").onclick = () => { updateUsage(); renderCatList(); renderCatMap(); $("#modalbg").classList.add("on"); };
+$("#btn-settings").onclick = () => { updateUsage(); renderCatList(); renderCatMap(); syncAiNoteRow(); $("#modalbg").classList.add("on"); };
 
 /* ---------- 회의 종류 더하기 · 이름 바꾸기 · 삭제 ---------- */
 function renderCatList(){
@@ -5340,18 +5367,70 @@ $("#btn-testai").onclick = async () => {
   }finally{ btn.disabled = false; }
 };
 
-async function showModels(quiet){
-  const btn = $("#btn-models"), box = $("#modellist");
+async function showModels(quiet, btn, box, outBox){
+  btn = btn || $("#btn-models"); box = box || $("#modellist"); outBox = outBox || $("#aitest");
   btn.disabled = true;
   box.innerHTML = `<div class="note">모델 목록을 불러오는 중…</div>`;
   try{
-    renderModelList(await listModels());
+    renderModelList(await listModels(), box);
   }catch(err){
     box.innerHTML = `<div class="note" style="color:var(--bad)">✕ ${esc(err.message || err)}</div>`;
-    if(!quiet){ $("#aitest").className = ""; $("#aitest").textContent = ""; }
+    if(!quiet){ outBox.className = ""; outBox.textContent = ""; }
   }finally{ btn.disabled = false; }
 }
 $("#btn-models").onclick = () => showModels(false);
+
+/* ---------- AI NOTE (제미나이) — 회의록 한 장 정리용. 위 옛 자동요약과 분리된 독립 설정입니다.
+   KV.aiKey · KV.aiModel 을 그대로 쓰되, AI_SUMMARY_ENABLED 와는 무관하게 판정합니다. ---------- */
+function aiNoteReady(){ return String(KV.aiKey || "").trim().length >= 10; }
+
+function syncAiNoteRow(){
+  const k = $("#an-key"); if(!k) return;
+  k.value = KV.aiKey || "";
+  $("#an-model").value = KV.aiModel || KV_DEFAULT.aiModel;
+  renderModelList(null, $("#an-modellist"));
+  const o = $("#an-test-out"); o.className = ""; o.textContent = "";
+}
+
+$("#an-key").addEventListener("change", e => {
+  KV.aiKey = e.target.value.trim(); saveKV("aiKey");
+  const o = $("#an-test-out"); o.className = ""; o.textContent = "";
+});
+$("#an-model").addEventListener("change", e => {
+  KV.aiModel = e.target.value.trim() || KV_DEFAULT.aiModel;
+  $("#an-model").value = KV.aiModel; saveKV("aiModel");
+  renderModelList(null, $("#an-modellist"));
+});
+$("#an-clear").onclick = () => {
+  KV.aiKey = ""; saveKV("aiKey");
+  syncAiNoteRow();
+  toast("API 키를 지웠습니다");
+};
+$("#an-test").onclick = async () => {
+  const box = $("#an-test-out"), btn = $("#an-test");
+  KV.aiKey   = $("#an-key").value.trim();   saveKV("aiKey");
+  KV.aiModel = $("#an-model").value.trim() || KV_DEFAULT.aiModel; saveKV("aiModel");
+  $("#an-model").value = KV.aiModel;
+  box.className = ""; box.textContent = "확인 중…"; btn.disabled = true;
+  try{
+    await callAI("한국어로 '연결 확인 완료' 라고만 답하세요.");
+    box.className = "ok";
+    box.textContent = `✓ 연결되었습니다 (${KV.aiModel}).`;
+  }catch(err){
+    const msg = err.message || String(err);
+    box.className = "bad"; box.innerHTML = "✕ " + esc(msg).replace(/&lt;(.+?)&gt;/g, "<b>$1</b>");
+    if(/모델/.test(msg)) showModels(true, $("#an-models"), $("#an-modellist"), box);
+  }finally{ btn.disabled = false; }
+};
+$("#an-models").onclick = () => showModels(false, $("#an-models"), $("#an-modellist"), $("#an-test-out"));
+$("#an-modellist").addEventListener("click", e => {
+  const b = e.target.closest("[data-m]"); if(!b) return;
+  KV.aiModel = b.dataset.m; saveKV("aiModel");
+  $("#an-model").value = KV.aiModel;
+  $$("#an-modellist button").forEach(x => x.classList.toggle("on", x.dataset.m === KV.aiModel));
+  const o = $("#an-test-out"); o.className = ""; o.textContent = "";
+  toast(`모델을 ${KV.aiModel} 로 바꿨습니다`);
+});
 
 /* ---------- 저장 보호 · 갱신 ---------- */
 async function updatePersist(){
@@ -5618,7 +5697,7 @@ $("#btn-wipe").onclick = async () => {
   DOCS = []; NOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
-  $("#set-store").value = KV.storeMode; syncAiRow();
+  $("#set-store").value = KV.storeMode; syncAiRow(); syncAiNoteRow();
   renderAll(); await loadPdfFor(null); updateUsage(); updatePersist();
   toast("전부 지웠습니다");
 };
@@ -5732,7 +5811,7 @@ function registerSW(){
   await loadAll();
 
   /* 예전 기본 모델은 새로 발급한 키로는 쓸 수 없게 막혔습니다. 조용히 바꿔 줍니다. */
-  if(!KV.aiModel || /^gemini-2\.0|^gemini-2\.5-flash$/.test(KV.aiModel)){
+  if(!KV.aiModel || /^gemini-2\.0|^gemini-2\.5-flash$|^gemini-3\.5-flash$/.test(KV.aiModel)){
     KV.aiModel = KV_DEFAULT.aiModel; saveKV("aiModel");
   }
 
@@ -5741,7 +5820,7 @@ function registerSW(){
   S.open    = new Set(KV.folders || defaultFolders());
   S.rtab    = rtabOf(KV.rtab);
   $("#set-store").value = KV.storeMode || "full";
-  syncAiRow();
+  syncAiRow(); syncAiNoteRow();
 
   toggleThumbs((KV.thumbs === null || KV.thumbs === undefined) ? !isNarrow() : KV.thumbs);
   document.body.classList.toggle("left-closed",  (KV.left  === null || KV.left  === undefined) ? isNarrow() : !KV.left);
