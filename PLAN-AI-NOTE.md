@@ -67,7 +67,8 @@
 | 2 | ✅ 완료 | `d9c63b0` | `callAI` 에 `opts.model` 추가(KV 안 건드림). `callAINote(prompt, opts)` — 우선 모델 → 404·429·5xx·타임아웃이면 `listModels()` 로 flash 계열 최신순 폴백(`aiNoteLadder()`), 400·401·403 은 즉시 중단. 최대 4회. `{text, model}` 반환 + `aiNoteLastModel` 기록. |
 | 3 | ✅ 완료 | `c4484bd` | `11-3) AI NOTE` 구획 신설. `AN_LIM` · `anClip` · `AN_SHAPE`(틀) · `aiNotePrompt(doc, noteText, agenda)` · `aiNoteParse(text)`. 입력원 = NOTE 탭 회의록 원문(+Agenda 참고), PDF 안 읽음. 출력 = `{ver,cut,doc:{title,meta:{date,place,attendees,author}}, summary:[{text,bold}], qa:[{team,items:[{kind:"Q"|"A"|"지시",text}]}], actions:[{no,text,owner,due,urgent}], keywords:[]}`. 파서는 잘린 답 복구·틀 위반 방어·지시 뒤로 정렬 처리. **아직 아무도 안 부름.** |
 | 4 | ✅ 완료 | `23c5903` | NOTE 탭 회의록 입력창 **위**에 `.annote` 트리거 블록(`aiNoteBlock(d)`, `paneNote` 안). 상태: 없음 / 생성 중(`생성 중…`, disabled) / 완료(`AI NOTE 보기`, `data-annote="open"`) / 실패(빨간 줄 + `다시 시도`). `#rbody` 클릭 위임에 `data-annote` 분기(`gen`→`makeAiNote`, `open`→**아직 no-op**). `makeAiNote(docId)` — 회의록 원문+Agenda → `callAINote({json:true})`(400이면 json 없이 재시도) → `aiNoteParse` → `S.anNote = {id,note,at,model}` (**메모리만, 새로고침하면 사라짐**). 상태필드 `S.anBusy/anErr/anErrId/anNote` 신설. `selectDoc`·자료삭제 시 정리. CSS `.annote*` (약 733행). |
-| 5 | ⏳ 다음 | — | 아래 **4. 5단계 상세** 참고 |
+| 5 | ✅ 완료 | `6760ebe` | `#ainotebg` 모달 신설(`.antitle/.antag/.anfn/.anmt` 머리칸 · `.anrail` 왼쪽 레일 · `.anstage` 무대 위 `.ansheet` 흰 시트). `renderAiNote()` 가 `S.anNote.note` 를 통째로 다시 그림 — 01 Executive Summary(bold 구절에 형광 밑줄) · 02 주요 Q&A(Q/A/지시 태그 3종) · 03 지시사항(4열 표, `urgent` 는 `--accent-ink` 800). 빈 섹션은 "해당 항목 없음". 레일 = Contents(누르면 그 섹션으로 스크롤) · Keywords 칩 · Follow-up 건수. `openAiNote(docId)`(포커스 X로) · `closeAiNote()`(포커스 `.annote .gen` 로). Esc 사슬 맨 앞 · 배경 클릭 · `data-annote="open"` 위임 연결. COPY·EXPORT·REGENERATE·TASKS로 보내기는 **`disabled` 자리만**. 좁은 화면(≤900px)은 레일 접힘·Q&A 세로 쌓기, ≤640px 은 머리칸 버튼 접힘·섹션 선 아랫줄·지시사항 표 너비 해제. |
+| 6 | ⏳ 다음 | — | 아래 **5. 6단계 상세** 참고 |
 
 새 창 확인 방법: `python -m http.server 8777` (`.claude/launch.json` 에 `static` 로 등록돼 있음) → `http://localhost:8777/whats-the-strategy.html`. **주의:** localhost 로는 IndexedDB 자료가 안 보입니다 — JS 로직·설정 UI·콘솔 오류만 확인 가능. 자료까지 봐야 하면 `file://` 로 여세요. 4단계 검증 때는 콘솔에서 가짜 DOC·`KV.sums[id].b` 를 넣고 `callAINote` 를 스텁해 흐름만 확인했음.
 
@@ -209,7 +210,7 @@ NOTE 탭(회의록 원문 입력창)에 **`AI NOTE 생성` 트리거 블록**을
 
 ---
 
-## 4. 다음 할 일 — 5단계 상세
+## 4. 5단계 상세 (✅ 완료 — `6760ebe`. 아래는 그때 쓴 지시서, 기록용으로 남김)
 
 ### 목표
 `S.anNote.note` (4단계가 채워 둔 파싱 결과)를 **회의록 모달**로 그린다. 디자인 원본
@@ -262,3 +263,88 @@ NOTE 탭(회의록 원문 입력창)에 **`AI NOTE 생성` 트리거 블록**을
 4. `summary` 의 bold 구절에 형광 밑줄.
 5. 빈 섹션은 "해당 항목 없음".
 6. 좁은 화면(모바일 폭)에서 가로 스크롤 없음. 콘솔 오류 없음. 커밋.
+
+---
+
+## 5. 다음 할 일 — 6단계 상세
+
+### 목표
+지금은 만든 AI NOTE 가 **메모리(`S.anNote`)에만** 있어서 새로고침하면 사라집니다.
+IndexedDB 에 새 스토어 `ainote` 를 만들어 **자료별로 한 장씩 저장**하고, 앱을 다시 켜도 그대로 보이게 합니다.
+**백업 파일(JSON·ZIP)에도 함께 담고, 불러오기로 되살아나게** 합니다.
+
+### 5단계가 6단계에 넘겨 주는 것
+
+| 것 | 값 |
+|---|---|
+| 메모리 슬롯 | `S.anNote = { id:docId, note, at:<iso>, model:<string> }` — 한 자료 것만 들고 있습니다 |
+| 만드는 자리 | `makeAiNote(docId)` 안 `S.anNote = { … }` 한 줄 (약 5216행) |
+| 읽는 자리 | `aiNoteBlock(d)`(약 2385행, 상태 줄·버튼 라벨) · `renderAiNote()`(모달) · `openAiNote(docId)` |
+| 지우는 자리 | 자료 삭제 시 `removeDoc(id)` 근처(약 4325행)에서 `S.anNote` 를 비우는 줄이 이미 있음 |
+
+### 이미 확인된 좌표 (다시 조사 말 것)
+
+| 항목 | 위치 · 내용 |
+|---|---|
+| DB 열기 | `DB_NAME="strategy-library", DB_VER = 3` (1740행). `openDB()` 의 `onupgradeneeded` 안에서 `if(!db.objectStoreNames.contains(...)) createObjectStore(...)` 로 스토어를 하나씩 만듭니다 — **같은 결로 한 줄 추가**하고 `DB_VER` 만 4로 올리면 됩니다. 이미 v3 인 기기도 업그레이드가 한 번 돌아 새 스토어만 생깁니다. |
+| 저장 도우미 | `dbGet(store,key) · dbAll(store) · dbPut(store,값) · dbDel(store,key) · dbClear(store)` (1771~1775행). 전부 Promise. |
+| 첫 로딩 | `loadAll()` (6366행) 이 `Promise.all([dbAll("docs"), dbAll("notes"), dbAll("attach")])` 로 한꺼번에 읽어 전역에 담습니다. **여기에 `ainote` 를 끼워 넣는 게 결에 맞습니다.** |
+| 자료 삭제 | `removeDoc(id)` (약 4319행) — `dbDel("docs"…)·dbDel("files"…)·dbDel("draw"…)` 를 나란히 부릅니다. 여기에 `dbDel("ainote", id)` 추가. |
+| 전부 지우기 | `$("#btn-wipe").onclick` (6286행) 의 `dbClear` 줄들. |
+| 백업 만들기 | `exportBackup(withPdf)` (6158행). `meta = { app, ver, exportedAt, kv:{…}, docs, notes }`. PDF 포함 백업은 `meta.attach` 를 뒤에서 덧붙입니다. |
+| 백업 불러오기 | 6271행 근처 `if(data.kv){ … }` 블록과 그 위 `for(const n of (data.notes || [])) await dbPut("notes", n);`. 끝에서 `await loadAll(); renderAll();` 을 부릅니다. |
+
+### 만들 것
+
+1. **스토어 신설** — `DB_VER` 를 `3` → **`4`**. `openDB()` 안에 한 줄:
+   ```js
+   /* AI NOTE — 자료 하나에 회의록 한 장 { id:자료 id, note, at, model } */
+   if(!db.objectStoreNames.contains("ainote")) db.createObjectStore("ainote", { keyPath:"id" });
+   ```
+
+2. **메모리 전역** — `S.anNote`(슬롯 하나)로는 목록·다른 자료 상태를 알 수 없으므로,
+   `ATTACH` 처럼 **전역 하나**를 새로 둡니다: `let AINOTES = {};   // { 자료 id: {id, note, at, model} }`
+   - `loadAll()` 에서 `dbAll("ainote")` 결과를 `AINOTES` 에 담습니다.
+   - `S.anNote` 는 **없애고**, 읽는 자리 세 곳을 `AINOTES[d.id]` 로 바꿉니다
+     (`aiNoteBlock` · `openAiNote` · `renderAiNote`). `renderAiNote()` 는 지금 인자가 없으니
+     `renderAiNote(docId)` 로 바꾸고 `openAiNote` 가 넘겨 주는 게 깔끔합니다.
+   - `S.anBusy · S.anErr · S.anErrId` 는 **그대로** 둡니다 (진행/오류는 저장할 것이 아닙니다).
+
+3. **저장** — `makeAiNote()` 안에서 `S.anNote = {…}` 대신:
+   ```js
+   const rec = { id:docId, note, at:new Date().toISOString(), model:r.model };
+   AINOTES[docId] = rec;
+   await dbPut("ainote", rec);
+   ```
+   저장이 실패해도 화면에는 보이게 — `dbPut` 은 `.catch(() => {})` 로 감싸고, 실패하면
+   `toast("저장하지 못했습니다 — 새로고침하면 사라집니다")` 한 줄이면 충분합니다.
+
+4. **지우기** — `removeDoc(id)` 에 `await dbDel("ainote", id).catch(()=>{});` + `delete AINOTES[id];`.
+   `#btn-wipe` 에 `await dbClear("ainote").catch(()=>{});` + `AINOTES = {};`.
+
+5. **백업에 담기** — `exportBackup` 의 `meta` 에 `ainote: Object.values(AINOTES)` 추가.
+   JSON 백업(`ver:2`)에도 그대로 들어갑니다. **`aiKey` 는 여전히 넣지 않습니다.**
+   불러오기 쪽(6258행 `notes` 되살리는 줄 옆)에 한 줄:
+   ```js
+   for(const a of (data.ainote || [])) if(a && a.id) await dbPut("ainote", a).catch(() => {});
+   ```
+   옛 백업에는 `ainote` 가 없으므로 `|| []` 로 조용히 넘어갑니다.
+
+6. **덮어쓰기 규칙** — 같은 자료를 다시 생성하면 새 것으로 **덮어씁니다**(경고 없음).
+   손으로 고친 노트를 지키는 경고는 7단계(Edit)에서 `editedByUser` 를 만든 뒤에 붙입니다.
+
+### 하지 말 것
+- 인라인 편집·행 추가삭제 (7단계) · COPY/EXPORT/REGENERATE/TASKS 동작 (8단계)
+- `KV` 에 노트를 넣기 — 노트는 길어질 수 있어 `kv` 가 아니라 **전용 스토어**에 둡니다
+- 옛 스토어(`docs·files·notes·kv·attach·attachfile·draw`) 구조 변경
+- `aiNotePrompt`·`aiNoteParse`·`callAINote`·`renderAiNote` 의 **그리는 내용** 손대기 (읽는 자리만 바꿉니다)
+- `whats-the-strategy.backup.html`, `test-ai.html`
+
+### 마치고 확인
+1. `file://` 로 열어 노트를 만든 뒤 **새로고침** → `AI NOTE 보기` 가 그대로 있고 모달이 열린다.
+2. 다른 자료로 갔다 돌아와도 상태 줄의 생성 시각·모델이 유지된다.
+3. 노트가 없는 자료는 여전히 `AI NOTE 생성`.
+4. 자료를 지우면 그 노트도 사라진다 (다른 자료 노트는 남는다).
+5. 백업 내려받기 → `전부 지우기` → 백업 불러오기 → 노트가 되살아난다. 옛 백업 파일도 오류 없이 열린다.
+6. 개발자도구 Application → IndexedDB `strategy-library` 버전이 **4**, `ainote` 스토어가 보인다.
+7. 콘솔 오류 없음. 커밋 (한국어 한 줄).
