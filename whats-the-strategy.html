@@ -4392,11 +4392,11 @@ const clip = (s, n) => {
    opts.json   — 'JSON 으로만 답하라' 고 함께 부탁합니다
    opts.images — [{mime, data}] 쪽 그림. 글자가 없는 PDF는 이 길로 읽습니다. */
 async function callAI(prompt, opts){
+  const o     = opts || {};
   const key   = String(KV.aiKey || "").trim();
-  const model = String(KV.aiModel || "").trim() || KV_DEFAULT.aiModel;
+  const model = String(o.model || KV.aiModel || "").trim() || KV_DEFAULT.aiModel;  /* o.model 로 한 번만 다른 모델을 쓸 수 있습니다 (폴백용) */
   if(!key) throw new Error("API 키가 없습니다. 설정에서 키를 넣어 주세요.");
 
-  const o   = opts || {};
   const cfg = { temperature: 0, maxOutputTokens: AI_OUT_MAX };  /* 매번 같은 모양 · 답 길이 제한 */
   if(o.json) cfg.responseMimeType = "application/json";
 
@@ -4457,6 +4457,64 @@ async function callAI(prompt, opts){
     throw new Error("요약을 받지 못했습니다" + (why ? ` (${why})` : "") + ". 다시 시도해 보세요.");
   }
   return text;
+}
+
+/* ---- AI NOTE 모델 폴백 사다리 ------------------------------------------
+   우선 모델(KV.aiModel · 기본 gemini-3.8-flash)로 먼저 부릅니다.
+   그 모델이 없거나 · 무료 한도 초과 · 서버 불안정 · 시간 초과면,
+   내 키로 지금 쓸 수 있는 flash 계열을 최신순으로 한 단계씩 내려가며 다시 시도합니다.
+   (flash → flash-lite 순. pro 계열은 무겁고 한도가 빡빡해 넣지 않습니다.)
+   키·요청 자체가 잘못된 오류(400·401·403)면 폴백하지 않고 바로 알려 줍니다.
+   성공하면 { text, model } 을 돌려줍니다 — 어느 모델이 답했는지 회의록에 적기 위함입니다. */
+const AI_NOTE_MAX_TRIES = 4;     /* 아무리 내려가도 네 번까지만 시도합니다 */
+let aiNoteLastModel = "";        /* 마지막으로 답을 준 모델 이름 (회의록 상단 표시용) */
+
+/* 이 오류면 다음(아래) 모델로 내려가서 다시 시도해 볼 만합니다 */
+function isRetryModelErr(err){
+  if(err && err.timeout) return true;                 /* 시간 초과 */
+  const s = err && err.status;
+  return s === 404 || s === 429 || (s >= 500 && s <= 503);
+}
+
+/* listModels() 결과(이미 최신순)를 flash 우선 · flash-lite 나중 순서로 추립니다 */
+function aiNoteLadder(all, tried){
+  const done = new Set(tried);
+  const flash = [], lite = [];
+  for(const n of (all || [])){
+    if(done.has(n) || /pro/i.test(n)) continue;
+    if(/flash-lite|flash-8b/i.test(n)) lite.push(n);
+    else if(/flash/i.test(n))          flash.push(n);
+  }
+  return flash.concat(lite);
+}
+
+async function callAINote(prompt, opts){
+  const o     = opts || {};
+  const first = String(KV.aiModel || "").trim() || KV_DEFAULT.aiModel;
+  const tried = [];
+  let ladder  = [first];
+  let lastErr = null;
+
+  for(let i = 0; i < AI_NOTE_MAX_TRIES && ladder.length; i++){
+    const model = ladder.shift();
+    if(tried.includes(model)){ i--; continue; }
+    tried.push(model);
+    try{
+      const text = await callAI(prompt, Object.assign({}, o, { model }));
+      aiNoteLastModel = model;
+      return { text, model };
+    }catch(err){
+      lastErr = err;
+      if(!isRetryModelErr(err)) throw err;            /* 키·요청 문제 — 바로 알려 줌 */
+      if(!ladder.length){
+        /* 미리 준비한 다음 후보가 없으면, 이제서야 쓸 수 있는 모델 목록을 물어봅니다 */
+        try{ ladder = aiNoteLadder(await listModels(), tried); }
+        catch(e){ throw lastErr; }
+        if(!ladder.length) throw lastErr;
+      }
+    }
+  }
+  throw lastErr || new Error("AI 회의록을 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.");
 }
 
 /* 제미나이가 돌려준 오류를 쉬운 말로 */
