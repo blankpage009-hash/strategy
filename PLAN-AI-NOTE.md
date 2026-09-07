@@ -66,9 +66,10 @@
 | 1 | ✅ 완료 | `bfacbcc` | 설정 모달에 `AI NOTE (제미나이)` 새 `.mrow` (`#an-key #an-model #an-modellist #an-test #an-models #an-clear #an-test-out`). 핸들러·`syncAiNoteRow()`·`aiNoteReady()` 추가. `KV_DEFAULT.aiModel` = `gemini-3.8-flash`. 옛 `#set-ai` 블록은 그대로 숨김 유지. `renderModelList(names, box)` · `showModels(quiet, btn, box, outBox)` 로 일반화(기본값 = 옛 요소라 옛 호출부 안 깨짐). |
 | 2 | ✅ 완료 | `d9c63b0` | `callAI` 에 `opts.model` 추가(KV 안 건드림). `callAINote(prompt, opts)` — 우선 모델 → 404·429·5xx·타임아웃이면 `listModels()` 로 flash 계열 최신순 폴백(`aiNoteLadder()`), 400·401·403 은 즉시 중단. 최대 4회. `{text, model}` 반환 + `aiNoteLastModel` 기록. |
 | 3 | ✅ 완료 | `c4484bd` | `11-3) AI NOTE` 구획 신설. `AN_LIM` · `anClip` · `AN_SHAPE`(틀) · `aiNotePrompt(doc, noteText, agenda)` · `aiNoteParse(text)`. 입력원 = NOTE 탭 회의록 원문(+Agenda 참고), PDF 안 읽음. 출력 = `{ver,cut,doc:{title,meta:{date,place,attendees,author}}, summary:[{text,bold}], qa:[{team,items:[{kind:"Q"|"A"|"지시",text}]}], actions:[{no,text,owner,due,urgent}], keywords:[]}`. 파서는 잘린 답 복구·틀 위반 방어·지시 뒤로 정렬 처리. **아직 아무도 안 부름.** |
-| 4 | ⏳ 다음 | — | 아래 **3. 4단계 상세** 참고 |
+| 4 | ✅ 완료 | `23c5903` | NOTE 탭 회의록 입력창 **위**에 `.annote` 트리거 블록(`aiNoteBlock(d)`, `paneNote` 안). 상태: 없음 / 생성 중(`생성 중…`, disabled) / 완료(`AI NOTE 보기`, `data-annote="open"`) / 실패(빨간 줄 + `다시 시도`). `#rbody` 클릭 위임에 `data-annote` 분기(`gen`→`makeAiNote`, `open`→**아직 no-op**). `makeAiNote(docId)` — 회의록 원문+Agenda → `callAINote({json:true})`(400이면 json 없이 재시도) → `aiNoteParse` → `S.anNote = {id,note,at,model}` (**메모리만, 새로고침하면 사라짐**). 상태필드 `S.anBusy/anErr/anErrId/anNote` 신설. `selectDoc`·자료삭제 시 정리. CSS `.annote*` (약 733행). |
+| 5 | ⏳ 다음 | — | 아래 **4. 5단계 상세** 참고 |
 
-새 창 확인 방법: `python -m http.server 8777` (`.claude/launch.json` 에 `static` 로 등록돼 있음) → `http://localhost:8777/whats-the-strategy.html`. **주의:** localhost 로는 IndexedDB 자료가 안 보입니다 — JS 로직·설정 UI·콘솔 오류만 확인 가능. 자료까지 봐야 하면 `file://` 로 여세요.
+새 창 확인 방법: `python -m http.server 8777` (`.claude/launch.json` 에 `static` 로 등록돼 있음) → `http://localhost:8777/whats-the-strategy.html`. **주의:** localhost 로는 IndexedDB 자료가 안 보입니다 — JS 로직·설정 UI·콘솔 오류만 확인 가능. 자료까지 봐야 하면 `file://` 로 여세요. 4단계 검증 때는 콘솔에서 가짜 DOC·`KV.sums[id].b` 를 넣고 `callAINote` 를 스텁해 흐름만 확인했음.
 
 ---
 
@@ -119,7 +120,7 @@
 
 ---
 
-## 3. 다음 할 일 — 4단계 상세
+## 3. 4단계 상세 (✅ 완료 — `23c5903`. 아래는 그때 쓴 지시서, 기록용으로 남김)
 
 ### 목표
 NOTE 탭(회의록 원문 입력창)에 **`AI NOTE 생성` 트리거 블록**을 얹고, 누르면
@@ -205,3 +206,59 @@ NOTE 탭(회의록 원문 입력창)에 **`AI NOTE 생성` 트리거 블록**을
 4. 키 지우면 버튼 `disabled` + 안내 문구.
 5. 회의록 비우고 생성 → "먼저 회의록을 적어 주세요".
 6. 콘솔 오류 없음. 커밋 (한국어 한 줄).
+
+---
+
+## 4. 다음 할 일 — 5단계 상세
+
+### 목표
+`S.anNote.note` (4단계가 채워 둔 파싱 결과)를 **회의록 모달**로 그린다. 디자인 원본
+`4a-ai-note-static.html` + `README.md` 342~441행("Addendum — AI Note")을 이 앱 토큰으로 이식.
+**5단계는 "보기 전용" 까지. Edit(7) · COPY/EXPORT/REGENERATE/TASKS(8) 버튼은 자리만 두거나 생략.**
+
+### 4단계가 5단계에 넘겨 주는 것
+
+| 것 | 값 |
+|---|---|
+| 데이터 | `S.anNote = { id:docId, note, at:<iso>, model:<string> }` (해당 자료를 볼 때만 유효, `id` 비교) |
+| `note` 모양 | `{ ver:1, cut:<bool>, doc:{ title, meta:{date,place,attendees,author} }, summary:[{text,bold}], qa:[{team, items:[{kind:"Q"|"A"|"지시", text}]}], actions:[{no,text,owner,due,urgent}], keywords:[string] }` |
+| 여는 자리 | `.annote` 의 `AI NOTE 보기` 버튼 = `<button data-annote="open">`. `#rbody` 클릭 위임(약 4135행)에 `if(an.dataset.annote === "open") openAiNote(S.sel);` 한 줄 추가(지금은 주석만 있음). |
+| `cut` | true 면 답이 잘려 뒷부분이 빠졌다는 뜻 → 모달 상단에 옅은 경고 한 줄 |
+
+### 앱의 모달 관례 (그대로 따를 것)
+
+- 새 `<div class="modalbg" id="ainotebg">` 를 `#atvbg` 블록(약 1312행) 곁에 추가. `.modalbg.on { display:flex }` 가 이미 있음 (약 852행).
+- 열기: `$("#ainotebg").classList.add("on")`. 닫기: `remove("on")`.
+- **Esc**: 약 6040행 `keydown` 핸들러의 `if(e.key === "Escape")` 사슬에 `#atvbg` 위쪽으로 `if($("#ainotebg").classList.contains("on")) closeAiNote(); else …` 추가.
+- 배경 클릭 닫기: `$("#ainotebg").addEventListener("click", e => { if(e.target.id === "ainotebg") closeAiNote(); })` (다른 모달과 동일 패턴, 약 4099·5573행 참고).
+- 모달 내부는 `renderRight` 처럼 **매번 통째로 innerHTML** 로 그리고, 버튼은 모두 **위임** 또는 `openAiNote` 안에서 재바인딩. `onclick` 직접 바인딩 금지.
+- 디자인 원본은 1200×792 고정이지만 이 앱은 좁은 화면도 쓰므로 `.modal.wide` (이미 있음) + `max-width` 로. 라운드 절대 금지.
+
+### 만들 것
+
+1. **마크업** `#ainotebg` — header(제목칸 + [COPY][EXPORT][REGENERATE] 는 **비활성 자리만**, 닫기 X) / 본문 `#ainotebody`.
+2. **`renderAiNote()`** — `S.anNote.note` 를 읽어 `#ainotebody.innerHTML` 을 채운다. 세 묶음:
+   - **01 Executive Summary** — `summary[]`. 각 문장, `bold` 구절은 `<b>` + 형광 밑줄 `box-shadow: inset 0 -8px 0 var(--accent-soft)` (README 386행). `bold` 가 `text` 안에 있으면 그 부분만 감싸고, 없으면(4단계 파서가 이미 걸러 빈 문자열) 그냥 문장만.
+   - **02 주요 Q&A 및 논의사항** — `qa[]` 팀별 한 블록. 각 `item.kind` 로 태그: `Q`(빨강 채움) · `A`(테두리만) · `지시`(검정 채움, README 395~401행 표).
+   - **03 지시사항** — `actions[]` 4열 표: NO · 지시/실행 항목 · 담당자 · 마감일. `urgent` 행은 마감일을 `--accent-ink` 800.
+   - 세 묶음은 비어도 섹션 헤더는 남기고 "해당 항목 없음" 한 줄 (README 420행).
+   - 좌측 레일(Contents·Keywords·Follow-up)은 **선택** — 넣으면 README 361~370행. 좁으면 생략 가능. Keywords 는 `note.keywords`.
+   - 상단 메타: `note.doc.title` (없으면 자료 제목 `d.title`), `note.doc.meta` 4칸, 오른쪽에 `생성 <at> · <model>`. `note.cut` 면 "⚠ 답이 길어 뒷부분이 빠졌을 수 있습니다 — 다시 만들기를 권합니다".
+3. **`openAiNote(docId)`** — `S.anNote && S.anNote.id === docId` 아니면 무시. `renderAiNote()` → `add("on")`. 포커스를 X 버튼에.
+4. **`closeAiNote()`** — `remove("on")`. 포커스를 `.annote .gen` 로 되돌림(있으면).
+5. **CSS** — `#ainotebg` 전용 규칙. 기존 토큰만. 흰 시트 `background:#fff; max-width:820px; padding:40px 44px 48px` + 얇은 그림자. 인쇄용 `@media print` 는 8단계에서.
+
+### 하지 말 것
+- 저장/백업 (6단계) — 5단계도 새로고침하면 노트가 사라지는 게 정상
+- 인라인 편집·행 추가삭제 (7단계)
+- COPY/EXPORT/REGENERATE/TASKS 동작 (8단계) — **버튼은 비활성 자리만**
+- `4a-ai-note-static.html` 등 디자인 핸드오프 파일 수정 (읽기만)
+- 4단계까지의 함수(`makeAiNote`·`aiNoteParse`·`aiNoteBlock`) 로직 변경 — 렌더러만 새로
+
+### 마치고 확인 (localhost, 키 필요 — 또는 콘솔에서 `S.anNote` 를 손으로 채워 렌더만 확인)
+1. 회의록 생성 후 `AI NOTE 보기` → 모달이 열리고 세 묶음이 보인다.
+2. Esc · 배경 클릭 · X 로 닫힌다. 닫으면 포커스가 생성 버튼으로.
+3. `qa` 태그 3종 색이 구분된다. `지시` 항목이 팀 블록 맨 뒤.
+4. `summary` 의 bold 구절에 형광 밑줄.
+5. 빈 섹션은 "해당 항목 없음".
+6. 좁은 화면(모바일 폭)에서 가로 스크롤 없음. 콘솔 오류 없음. 커밋.
