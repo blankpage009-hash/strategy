@@ -1737,7 +1737,7 @@ function toast(msg){
       kv   : 설정·회의종류·할 일·요약 등
    ========================================================= */
 /* 저장소 이름은 처음 것을 그대로 씁니다. 바꾸면 이미 저장된 자료를 못 찾습니다. */
-const DB_NAME = "strategy-library", DB_VER = 3;
+const DB_NAME = "strategy-library", DB_VER = 4;
 let DB = null;
 
 function openDB(){
@@ -1754,6 +1754,8 @@ function openDB(){
       if(!db.objectStoreNames.contains("attachfile")) db.createObjectStore("attachfile", { keyPath:"id" });
       /* 자료 위에 그린 펜·형광펜 자국 — { id:자료 id, pages:{ 쪽번호: [획, …] } } */
       if(!db.objectStoreNames.contains("draw"))        db.createObjectStore("draw",        { keyPath:"id" });
+      /* AI NOTE — 자료 하나에 회의록 한 장 { id:자료 id, note, at, model } */
+      if(!db.objectStoreNames.contains("ainote"))      db.createObjectStore("ainote",      { keyPath:"id" });
     };
     req.onsuccess = () => res(req.result);
     req.onerror   = () => rej(req.error);
@@ -1874,9 +1876,12 @@ const S = {
   fitMode:"width",                          /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"width",                          /* 기본은 화면 너비 — 장표가 늘 칸을 꽉 채우게 */
   aiBusy:null, aiErr:"", aiErrId:null, aiStep:"",   /* AI 요약 진행/오류 상태 */
-  anBusy:null, anErr:"", anErrId:null,              /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
-  anNote:null   /* 방금 만든 AI NOTE — { id, note, at, model }. 저장은 6단계, 지금은 메모리에만 */
+  anBusy:null, anErr:"", anErrId:null               /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
 };
+
+/* 만들어 둔 AI NOTE — 자료 id 마다 한 장 { id, note, at, model }.
+   IndexedDB 'ainote' 스토어에 저장하고, loadAll() 이 여기에 담습니다. */
+let AINOTES = {};
 
 /* =========================================================
    4) 왼쪽 — 회의 종류 · 폴더 목록
@@ -2533,7 +2538,7 @@ function aiNoteBlock(d){
   const ready = aiNoteReady();
   const busy  = S.anBusy === d.id;
   const err   = (S.anErrId === d.id && S.anErr) ? S.anErr : "";
-  const has   = (S.anNote && S.anNote.id === d.id) ? S.anNote : null;
+  const has   = AINOTES[d.id] || null;
 
   let stat = "생성된 노트 없음";
   if(has){
@@ -4320,6 +4325,8 @@ async function removeDoc(id){
   await dbDel("docs", id);
   await dbDel("files", id).catch(()=>{});
   await dbDel("draw", id).catch(()=>{});
+  await dbDel("ainote", id).catch(()=>{});
+  delete AINOTES[id];
   for(const a of ATTACH.filter(x => x.docId === id)){
     await dbDel("attach", a.id).catch(()=>{});
     await dbDel("attachfile", a.id).catch(()=>{});
@@ -4330,7 +4337,6 @@ async function removeDoc(id){
   if(S.sel === id){
     S.sel = null; KV.sel = null; saveKV("sel");
     S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = S.editS = false;
-    if(S.anNote && S.anNote.id === id) S.anNote = null;
     S.anErr = ""; S.anErrId = null;
     await loadPdfFor(null);
   }
@@ -5343,7 +5349,8 @@ async function makeSummary(docId, opts){
 /* ---- AI NOTE 만들기 — 회의록 원문을 한 장으로 정리 ----------------------
    makeSummary 와 구조는 같지만 완전히 따로입니다 (상태·입력원·출력이 다름).
    입력은 NOTE 탭 회의록 원문(KV.sums[id].b) + (있으면) 그 주 회의 Agenda 뿐.
-   결과는 지금은 메모리(S.anNote)에만 둡니다 — 저장·백업은 6단계입니다. */
+   결과는 AINOTES[자료 id] 에 담고 IndexedDB 'ainote' 스토어에 저장합니다.
+   같은 자료를 다시 만들면 경고 없이 새 것으로 덮어씁니다. */
 async function makeAiNote(docId){
   const d = DOCS.find(x => x.id === docId);
   if(!d || !aiNoteReady() || S.anBusy) return;
@@ -5364,8 +5371,14 @@ async function makeAiNote(docId){
     const note = aiNoteParse(r.text);
     if(!note) throw new Error("AI가 회의록 틀을 지키지 못했습니다. 다시 시도해 주세요.");
 
-    S.anNote = { id:docId, note, at:new Date().toISOString(), model:r.model };
-    if(S.sel === docId) toast(`AI NOTE 를 만들었습니다 (${r.model})`);
+    const rec = { id:docId, note, at:new Date().toISOString(), model:r.model };
+    AINOTES[docId] = rec;
+    let saved = true;
+    await dbPut("ainote", rec).catch(() => { saved = false; });
+    if(S.sel === docId){
+      toast(saved ? `AI NOTE 를 만들었습니다 (${r.model})`
+                  : "만들었지만 저장하지 못했습니다 — 새로고침하면 사라집니다");
+    }
   }catch(err){
     S.anErr = err.message || String(err);
     S.anErrId = docId;
@@ -5379,7 +5392,7 @@ async function makeAiNote(docId){
 /* ---- AI NOTE 모달 — 만든 회의록을 흰 시트 한 장으로 보여 줍니다 ---------
    보기 전용입니다. 고치기(7단계) · COPY/EXPORT/REGENERATE/TASKS(8단계) 는
    아직 자리만 잡아 두고 눌리지 않게 막아 두었습니다.
-   그리는 재료는 S.anNote.note 하나뿐이고, 열 때마다 통째로 새로 그립니다. */
+   그리는 재료는 AINOTES[docId].note 하나뿐이고, 열 때마다 통째로 새로 그립니다. */
 
 /* 시각을 '2026.08.24 14:20' 모양으로 */
 function anWhen(iso){
@@ -5407,8 +5420,8 @@ function anSecHead(no, title, cnt){
 
 const AN_TAGCLS = { "Q":"q", "A":"a", "지시":"d" };
 
-function renderAiNote(){
-  const cur = S.anNote;
+function renderAiNote(docId){
+  const cur = AINOTES[docId];
   if(!cur) return;
   const n = cur.note, d = DOCS.find(x => x.id === cur.id);
   const title = n.doc.title || (d ? d.title : "") || "회의록";
@@ -5490,8 +5503,8 @@ function renderAiNote(){
 }
 
 function openAiNote(docId){
-  if(!S.anNote || S.anNote.id !== docId) return;
-  renderAiNote();
+  if(!AINOTES[docId]) return;
+  renderAiNote(docId);
   $("#ainotebg").classList.add("on");
   $("#ainotebody").scrollTop = 0;
   $("#anrail").scrollTop = 0;
@@ -6161,7 +6174,8 @@ async function exportBackup(withPdf){
     kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts,
          storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap },
     docs: DOCS.map(stripDoc),
-    notes: Object.values(NOTES)
+    notes: Object.values(NOTES),
+    ainote: Object.values(AINOTES)
   };
   const stamp = new Date().toISOString().slice(0,10);
   if(!withPdf){
@@ -6256,6 +6270,7 @@ $("#importfile").addEventListener("change", async e => {
       await dbPut("docs", rec);
     }
     for(const n of (data.notes || [])) await dbPut("notes", n);
+    for(const a of (data.ainote || [])) if(a && a.id) await dbPut("ainote", a).catch(() => {});
     for(const a of (data.attach || [])){
       if(!a || !a.id) continue;
       const bytes = attachMap[a.id];
@@ -6289,8 +6304,9 @@ $("#btn-wipe").onclick = async () => {
   if(!confirm("정말 지울까요? 마지막 확인입니다.")) return;
   await dbClear("docs"); await dbClear("files"); await dbClear("notes"); await dbClear("kv");
   await dbClear("draw").catch(() => {});
+  await dbClear("ainote").catch(() => {});
   KV = Object.assign({}, KV_DEFAULT, { scripts:{} });
-  DOCS = []; NOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
+  DOCS = []; NOTES = {}; AINOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
   $("#set-store").value = KV.storeMode; syncAiRow(); syncAiNoteRow();
@@ -6364,9 +6380,12 @@ window.addEventListener("resize", () => {
    16) 시작
    ========================================================= */
 async function loadAll(){
-  const [docs, notes, atts] = await Promise.all([dbAll("docs"), dbAll("notes"), dbAll("attach")]);
+  const [docs, notes, atts, ainotes] = await Promise.all([
+    dbAll("docs"), dbAll("notes"), dbAll("attach"), dbAll("ainote").catch(() => [])
+  ]);
   DOCS = docs.map(indexDoc).sort((a,b) => (b.date+b.addedAt).localeCompare(a.date+a.addedAt));
   NOTES = {}; notes.forEach(n => { NOTES[n.key] = n; });
+  AINOTES = {}; (ainotes || []).forEach(a => { if(a && a.id) AINOTES[a.id] = a; });
   ATTACH = (atts || []).sort((a,b) => String(a.addedAt).localeCompare(String(b.addedAt)));
   /* 탭 구분이 없던 예전 첨부는 NOTE 탭 것으로 옮겨 둡니다 */
   for(const a of ATTACH){

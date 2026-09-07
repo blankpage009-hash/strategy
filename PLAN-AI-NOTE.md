@@ -68,9 +68,12 @@
 | 3 | ✅ 완료 | `c4484bd` | `11-3) AI NOTE` 구획 신설. `AN_LIM` · `anClip` · `AN_SHAPE`(틀) · `aiNotePrompt(doc, noteText, agenda)` · `aiNoteParse(text)`. 입력원 = NOTE 탭 회의록 원문(+Agenda 참고), PDF 안 읽음. 출력 = `{ver,cut,doc:{title,meta:{date,place,attendees,author}}, summary:[{text,bold}], qa:[{team,items:[{kind:"Q"|"A"|"지시",text}]}], actions:[{no,text,owner,due,urgent}], keywords:[]}`. 파서는 잘린 답 복구·틀 위반 방어·지시 뒤로 정렬 처리. **아직 아무도 안 부름.** |
 | 4 | ✅ 완료 | `23c5903` | NOTE 탭 회의록 입력창 **위**에 `.annote` 트리거 블록(`aiNoteBlock(d)`, `paneNote` 안). 상태: 없음 / 생성 중(`생성 중…`, disabled) / 완료(`AI NOTE 보기`, `data-annote="open"`) / 실패(빨간 줄 + `다시 시도`). `#rbody` 클릭 위임에 `data-annote` 분기(`gen`→`makeAiNote`, `open`→**아직 no-op**). `makeAiNote(docId)` — 회의록 원문+Agenda → `callAINote({json:true})`(400이면 json 없이 재시도) → `aiNoteParse` → `S.anNote = {id,note,at,model}` (**메모리만, 새로고침하면 사라짐**). 상태필드 `S.anBusy/anErr/anErrId/anNote` 신설. `selectDoc`·자료삭제 시 정리. CSS `.annote*` (약 733행). |
 | 5 | ✅ 완료 | `6760ebe` | `#ainotebg` 모달 신설(`.antitle/.antag/.anfn/.anmt` 머리칸 · `.anrail` 왼쪽 레일 · `.anstage` 무대 위 `.ansheet` 흰 시트). `renderAiNote()` 가 `S.anNote.note` 를 통째로 다시 그림 — 01 Executive Summary(bold 구절에 형광 밑줄) · 02 주요 Q&A(Q/A/지시 태그 3종) · 03 지시사항(4열 표, `urgent` 는 `--accent-ink` 800). 빈 섹션은 "해당 항목 없음". 레일 = Contents(누르면 그 섹션으로 스크롤) · Keywords 칩 · Follow-up 건수. `openAiNote(docId)`(포커스 X로) · `closeAiNote()`(포커스 `.annote .gen` 로). Esc 사슬 맨 앞 · 배경 클릭 · `data-annote="open"` 위임 연결. COPY·EXPORT·REGENERATE·TASKS로 보내기는 **`disabled` 자리만**. 좁은 화면(≤900px)은 레일 접힘·Q&A 세로 쌓기, ≤640px 은 머리칸 버튼 접힘·섹션 선 아랫줄·지시사항 표 너비 해제. |
-| 6 | ⏳ 다음 | — | 아래 **5. 6단계 상세** 참고 |
+| 6 | ✅ 완료 | (이번) | `DB_VER` 3→**4**, `openDB()` 에 `ainote` 스토어(`keyPath:"id"`) 한 줄. 메모리 슬롯 `S.anNote` **폐지** → 전역 `let AINOTES = {}`(자료 id → `{id,note,at,model}`). 읽는 자리 전부 `AINOTES[d.id]` 로: `aiNoteBlock` · `openAiNote` · `renderAiNote(docId)`(인자 받게 바뀜). `makeAiNote` 는 `AINOTES[docId]=rec` + `dbPut("ainote",rec).catch()` — 저장 실패해도 화면엔 뜨고 토스트로 알림. `loadAll()` 이 `dbAll("ainote")` 를 `AINOTES` 에 담음. `removeDoc`·`#btn-wipe` 정리. `exportBackup` `meta.ainote = Object.values(AINOTES)`(JSON·PDF 백업 공통, `aiKey` 는 여전히 제외), 불러오기에서 `data.ainote` 되살림(옛 백업은 `|| []` 로 통과). 같은 자료 재생성은 경고 없이 덮어씀. |
+| 7 | ⏳ 다음 | — | 아래 **5. 7단계 상세** 참고 |
 
 새 창 확인 방법: `python -m http.server 8777` (`.claude/launch.json` 에 `static` 로 등록돼 있음) → `http://localhost:8777/whats-the-strategy.html`. **주의:** localhost 로는 IndexedDB 자료가 안 보입니다 — JS 로직·설정 UI·콘솔 오류만 확인 가능. 자료까지 봐야 하면 `file://` 로 여세요. 4단계 검증 때는 콘솔에서 가짜 DOC·`KV.sums[id].b` 를 넣고 `callAINote` 를 스텁해 흐름만 확인했음.
+
+**6단계 주의:** 이 미리보기(localhost) 브라우저에서는 IndexedDB `open` 이 응답 없이 멈추는 환경 문제가 있어 `DB` 가 `null` 로 남습니다(빈 화면은 정상 렌더). 스토어 생성·저장·백업 왕복은 **`file://` 로 직접 열어** 확인해야 합니다. 코드상으로는 페이지 파싱·전역(`AINOTES`)·함수 정의·콘솔 오류 없음까지만 이번에 확인했습니다.
 
 ---
 
@@ -266,7 +269,7 @@ NOTE 탭(회의록 원문 입력창)에 **`AI NOTE 생성` 트리거 블록**을
 
 ---
 
-## 5. 다음 할 일 — 6단계 상세
+## 5. 6단계 상세 (✅ 완료. 아래는 그때 쓴 지시서, 기록용으로 남김)
 
 ### 목표
 지금은 만든 AI NOTE 가 **메모리(`S.anNote`)에만** 있어서 새로고침하면 사라집니다.
@@ -348,3 +351,84 @@ IndexedDB 에 새 스토어 `ainote` 를 만들어 **자료별로 한 장씩 저
 5. 백업 내려받기 → `전부 지우기` → 백업 불러오기 → 노트가 되살아난다. 옛 백업 파일도 오류 없이 열린다.
 6. 개발자도구 Application → IndexedDB `strategy-library` 버전이 **4**, `ainote` 스토어가 보인다.
 7. 콘솔 오류 없음. 커밋 (한국어 한 줄).
+
+---
+
+## 6. 다음 할 일 — 7단계 상세
+
+### 목표
+AI NOTE 모달을 **고칠 수 있게** 만든다. AI 가 만든 초안을 사람이 손보고, 그 결과가 저장돼야
+실무에서 쓸 수 있다. 헤더의 **EDIT** 를 누르면 세 섹션이 인라인 편집 상태가 되고,
+**저장** 하면 `AINOTES[docId].note` 를 통째로 갈아 끼운 뒤 `dbPut("ainote", …)` 한다.
+
+### 6단계가 7단계에 넘겨 주는 것
+
+| 것 | 값 |
+|---|---|
+| 데이터 | `AINOTES[docId] = { id, note, at, model }` (전역, `loadAll()` 이 채움) |
+| `note` 모양 | `{ ver, cut, doc:{title,meta:{date,place,attendees,author}}, summary:[{text,bold}], qa:[{team,items:[{kind:"Q"\|"A"\|"지시",text}]}], actions:[{no,text,owner,due,urgent}], keywords:[string] }` |
+| 저장 도우미 | `dbPut("ainote", rec)` — Promise, `keyPath:"id"` 라 같은 id 면 덮어씀 |
+| 렌더러 | `renderAiNote(docId)` (약 5423행) — `#ainotebody.innerHTML` 통째로. `#anrail` 도 여기서 그림 |
+| 모달 열기 | `openAiNote(docId)` (약 5505행) → `renderAiNote(docId)` + `.on` |
+| 비활성 버튼 자리 | 헤더 `#an-copy #an-export #an-regen` (약 1461행), 레일 `.antasks` (약 5454행) — 전부 `disabled`. **7단계는 이 중 아무것도 켜지 않는다** (COPY/EXPORT/REGENERATE/TASKS 는 8단계) |
+| 태그 | `.ansum .row .tx b` · `.anqa .tag/.tx (q\|a\|d)` · `.antb` 4열 표 (CSS 약 1007~1039행). 라운드 금지 |
+
+### 이미 확인된 좌표 (다시 조사 말 것)
+
+| 항목 | 위치 · 내용 |
+|---|---|
+| 모달 마크업 | 약 1452~1471행 `#ainotebg`. 헤더 `.antitle`(태그·`#an-fn`·`#an-mt`) + `#an-copy/#an-export/#an-regen` + `#anx`. 본문 `.content` = `#anrail` + `#ainotebody`(`.anstage`). |
+| 렌더러 조립부 | `renderAiNote()` 안 `secSum`/`secQa`/`secAct` 문자열 (약 5450~5481행), `$("#ainotebody").innerHTML = ...ansheet...` (약 5486행). |
+| 위임 핸들러 | `$("#ainotebg").addEventListener("click", …)` (약 5514행) — 배경 닫기 + `[data-anjump]`. **여기에 `data-anedit` 분기를 붙이는 게 결에 맞음.** `onclick` 직접 바인딩 금지(모달은 매번 새로 그림). |
+| 다른 인라인 편집 예시 | 자료 관리 모달(`managebg`, 약 1474행) 이 "고치는 즉시 저장" 패턴. `contenteditable` 은 이 파일에서 안 씀 — `<textarea>`/`<input>` + change 저장이 결에 맞음. |
+| 회의록 편집 잠금 패턴 | NOTE 탭 `S.editB` — 잠금 토글 후에만 textarea 활성. 같은 결로 `S.anEdit`(=docId 또는 bool) 상태 하나. |
+| Esc 사슬 | 약 6053행 `keydown`. 편집 중 Esc 는 **편집 취소**(모달은 유지), 편집 아닐 때 Esc 는 모달 닫기 — 사슬 맨 앞에서 `S.anEdit` 먼저 본다. |
+
+### 만들 것
+
+1. **상태** — `S.anEdit`(편집 중인 docId, 아니면 `null`)와 `S.anDraft`(편집용 깊은 복사본, `JSON.parse(JSON.stringify(note))`). 저장하면 `AINOTES[id].note = S.anDraft`, 취소하면 버림.
+
+2. **EDIT 진입** — 헤더에 `#an-edit` 버튼 신설(지금 비활성 3형제 **왼쪽**). 누르면 `S.anEdit = docId`, `S.anDraft = 복사본`, `renderAiNote(docId)` 재호출. 편집 중엔 `#an-copy/#an-export/#an-regen` 은 계속 `disabled`, `#an-edit` 자리에 **[저장] [취소]** 두 개.
+
+3. **`renderAiNote` 분기** — `const ed = S.anEdit === docId`. `ed` 면 각 섹션을 편집 폼으로:
+   - **01 요약** — 줄마다 `<textarea>` 하나(`data-an="sum" data-i="N"`). `bold` 는 7단계에선 **건드리지 않음**(텍스트만 편집, `bold` 문자열은 그대로 유지하되 편집 후 문장에서 사라졌으면 렌더러가 알아서 통짜 출력 — 이미 그렇게 동작). 줄 끝 `−` 삭제 버튼, 블록 끝 `+ 줄 추가`.
+   - **02 Q&A** — 팀 블록마다 팀명 `<input>`, item 마다 `kind` `<select>`(Q/A/지시) + 텍스트 `<textarea>` + `−`. 블록 끝 `+ 항목`, 섹션 끝 `+ 팀`.
+   - **03 지시사항** — 표의 각 셀을 `<input>`/`<textarea>` 로. `urgent` 는 체크박스. 행 끝 `−`, 표 끝 `+ 행`. `no` 는 자동 번호(저장 시 1..n 재부여).
+   - 레일(`#anrail`)은 편집 중 **차례만 남기고 Keywords/Follow-up 숨김**(또는 Keywords 도 칩 편집 — 선택). 간단히 하려면 편집 중 레일 통째로 "편집 중" 한 줄.
+
+4. **입력 → 드래프트 반영** — `#ainotebody` 에 `input`/`change` 위임 하나. `e.target.dataset.an` 으로 어디를 고쳤는지 보고 `S.anDraft` 의 해당 자리를 갱신. **재렌더 안 함**(포커스 유지) — 행 추가/삭제일 때만 `renderAiNote` 재호출.
+
+5. **행 추가/삭제** — `[data-anadd]`/`[data-andel]` 클릭 위임. `S.anDraft` 배열을 손보고 `renderAiNote(docId)` 재호출(편집 상태 유지). 빈 섹션도 허용(저장하면 "해당 항목 없음" 으로 보임).
+
+6. **저장** — `#an-save`:
+   ```js
+   const d = S.anDraft;
+   d.actions.forEach((r,i) => r.no = i + 1);   // 번호 재부여
+   AINOTES[docId].note = d;
+   AINOTES[docId].editedByUser = true;          // 8단계 REGENERATE 경고용 표식
+   await dbPut("ainote", AINOTES[docId]).catch(() => toast("저장하지 못했습니다"));
+   S.anEdit = null; S.anDraft = null;
+   renderAiNote(docId);
+   toast("고친 내용을 저장했습니다");
+   ```
+   - `at`/`model` 은 그대로 둔다(생성 시각이지 수정 시각이 아님). 필요하면 `editedAt` 을 따로 추가.
+
+7. **취소** — `#an-cancel` 또는 편집 중 Esc: `S.anEdit = S.anDraft = null; renderAiNote(docId);` (배경 클릭은 편집 중엔 **무시** — 실수로 닫히면 편집분 날아감).
+
+8. **상태 줄** — `aiNoteBlock` 의 "생성 …" 뒤에 `editedByUser` 면 " · 수정함" 한 마디(선택).
+
+### 하지 말 것
+- COPY / EXPORT / REGENERATE / TASKS 동작 (8단계) — 버튼은 계속 비활성
+- `bold` 형광 밑줄 구절을 직접 지정하는 UI (범위 밖 — 텍스트만)
+- `aiNotePrompt`·`aiNoteParse`·`callAINote` 수정
+- `renderAiNote` 의 **보기 모드** 출력 바꾸기 (편집 분기만 새로)
+- 저장 스토어·`DB_VER` 변경 (6단계에서 끝남)
+- `whats-the-strategy.backup.html`, `test-ai.html`
+
+### 마치고 확인 (`file://`, 노트 하나 필요)
+1. 노트 열고 EDIT → 세 섹션이 폼이 된다. 요약 한 줄 고치고 저장 → 새로고침해도 고친 내용.
+2. Q&A 에 팀·항목 추가/삭제, `kind` 바꾸기 → 저장 후 태그 색이 맞다.
+3. 지시사항 행 추가/삭제, `urgent` 체크 → 저장 후 마감일이 빨갛다. `no` 가 1부터 다시 매겨진다.
+4. 편집 중 배경 클릭은 안 닫힌다. Esc 는 편집 취소(모달 유지), 다시 Esc 로 닫힘.
+5. 취소하면 고친 게 사라지고 원래대로.
+6. 콘솔 오류 없음. 좁은 화면에서 폼이 넘치지 않는다. 커밋 (한국어 한 줄).
