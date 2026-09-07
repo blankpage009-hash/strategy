@@ -4911,6 +4911,160 @@ function aiParse(text){
   return { a, b, tasks };
 }
 
+/* =========================================================
+   11-3) AI NOTE — 회의록을 한 장으로 정리 (제미나이)
+      · 입력원은 NOTE 탭에 직접 적은 회의록 원문(KV.sums[id].b) 하나입니다.
+        그 주에 회의 Agenda 가 있으면 참고용으로 함께 보냅니다.
+        PDF 자료는 읽지 않습니다 — 오직 사람이 적은 회의록 글만 봅니다.
+      · 출력은 세 묶음입니다: Executive Summary · 주요 Q&A 및 논의사항 · 지시사항.
+      · callAINote() 로 부르므로 모델이 바쁘면 자동으로 아래 단계 모델로 내려갑니다.
+   ========================================================= */
+const AN_LIM = {
+  summary:   3,      /* Executive Summary 문장 수 */
+  sumLen:  140,      /* 한 문장 글자 수 */
+  teams:    30,      /* Q&A 팀(줄) 수 */
+  items:    20,      /* 한 팀의 Q/A/지시 항목 수 */
+  itemLen: 220,      /* 한 항목 글자 수 */
+  actions:  40,      /* 지시사항 행 수 */
+  actLen:  220,
+  keywords:  8,
+  noteText: 20000    /* 회의록 원문이 너무 길면 앞부분만 보냅니다 (줄바꿈은 그대로 둡니다) */
+};
+
+/* 긴 글을 자릅니다. clip 과 달리 줄바꿈을 살립니다 — 회의록은 줄 모양이 뜻을 담기 때문입니다. */
+const anClip = (s, n) => {
+  s = String(s || "").replace(/\r\n/g, "\n").trim();
+  return s.length > n ? s.slice(0, n) + "\n…(이하 생략)" : s;
+};
+
+/* 제미나이가 이 모양 그대로 JSON 하나만 돌려주도록 부탁합니다.
+   필드 이름을 바꾸면 aiNoteParse() 와 회의록 모달(5단계)도 함께 고쳐야 합니다. */
+const AN_SHAPE = `{
+  "doc": {
+    "title": "회의 제목 (예: '26년 8월 4주차 주간회의)",
+    "date":  "일시 (회의록에 적힌 그대로. 없으면 빈 문자열)",
+    "place": "장소 (없으면 빈 문자열)",
+    "attendees": "참석자 (없으면 빈 문자열)",
+    "author": "작성 (없으면 빈 문자열)"
+  },
+  "summary": [
+    { "text": "회의에서 정해진 지시·결정 한 문장", "bold": "text 안에서 가장 핵심이 되는 구절 (그대로 옮길 것)" }
+  ],
+  "qa": [
+    { "team": "팀·부서 이름",
+      "items": [ { "kind": "Q | A | 지시", "text": "발언·지시 내용 (회의록 표현 그대로)" } ] }
+  ],
+  "actions": [
+    { "text": "지시 / 실행 항목", "owner": "담당자", "due": "마감일", "urgent": false }
+  ],
+  "keywords": ["회의에서 되풀이된 핵심어"]
+}`;
+
+function aiNotePrompt(doc, noteText, agenda){
+  const body = anClip(noteText, AN_LIM.noteText);
+  const ag   = agenda ? anClip(agenda, 4000) : "";
+  return `당신은 회사 전략담당자의 비서입니다.
+아래 '회의록 원문' 을 읽고, 정해진 틀에 맞추어 한국어로 한 장짜리 회의록으로 정리하세요.
+결과는 JSON 하나만 출력합니다. JSON 밖에는 인사말·설명·코드펜스를 쓰지 않습니다.
+
+--- 정리 틀 (필드 이름·순서를 그대로 지킬 것) ---
+${AN_SHAPE}
+
+--- 무엇을 뽑는가 ---
+1) summary (Executive Summary) — 이 회의에서 정해진 지시·결정만 최대 ${AN_LIM.summary}문장.
+   현황 설명이 아니라 '무엇을 하기로 했다' 는 문장으로 적는다.
+   bold 에는 그 문장에서 가장 핵심이 되는 구절을 text 에 있는 말 그대로 적는다.
+2) qa (주요 Q&A 및 논의사항) — 회의록에 나온 순서와 팀 순서를 그대로 지킨다.
+   한 팀(부서)에서 나온 발언을 모두 items 에 담는다 (팀당 한 줄이 아니다).
+   각 항목을 Q(질문) · A(답변·설명) · 지시(윗선의 지시) 중 하나로 분류한다.
+   한 팀 안에서 '지시' 항목은 항상 맨 뒤로 보낸다.
+   회의록의 표현을 바꾸지 말고 그대로 옮긴다. 없는 말을 지어내지 않는다.
+3) actions (지시사항) — 실제로 실행해야 하는 지시를 한 줄에 하나씩. 여러 팀에 같은 지시가 있으면 하나로 합친다.
+   owner 는 회의록에서 지시받은 팀·사람을 그대로 옮긴다.
+   due 는 회의록에 적힌 마감을 그대로 옮기되, 마감이 분명치 않으면 "차주 주간회의" 로 둔다.
+   그날 안(예: "2시까지", "오늘 중")에 해야 하는 것은 urgent 를 true 로 한다.
+4) keywords — 회의에서 되풀이해 나온 핵심어 최대 ${AN_LIM.keywords}개.
+
+--- 규칙 ---
+- 세 묶음(summary·qa·actions)은 내용이 없어도 필드를 남긴다. 없으면 [] 로 둔다.
+- 회의록에 없는 숫자·이름·날짜를 만들어 넣지 않는다. 확실하지 않으면 빼거나 빈 문자열로 둔다.
+- 한 문장은 ${AN_LIM.sumLen}자, qa 항목·지시는 ${AN_LIM.itemLen}자 이내로 짧게.
+
+--- 회의 정보 ---
+${doc.cat} · ${fmtYMW(doc)} · 제목: ${doc.title}
+${ag ? `\n--- 회의 Agenda (참고) ---\n${ag}\n` : ""}
+--- 회의록 원문 ---
+${body || "(회의록이 비어 있습니다)"}`;
+}
+
+/* 답(JSON)을 모달이 그릴 수 있는 모양으로 정리합니다.
+   AI가 틀을 어겨도 화면이 깨지지 않도록 여기서 모두 거릅니다. 알맹이가 없으면 null 을 돌려줍니다. */
+function aiNoteParse(text){
+  let s = String(text || "").replace(/^\s*```(?:json)?/i, "").replace(/```\s*$/, "").trim();
+  const i = s.indexOf("{"); if(i < 0) return null;
+  const j = s.lastIndexOf("}");
+  const body = j > i ? s.slice(i, j + 1) : s.slice(i);
+
+  let o, cut = false;
+  try{ o = JSON.parse(body); }
+  catch(e){
+    const fixed = jsonSalvage(body);           /* 길어서 잘린 답이면 살릴 수 있는 데까지 */
+    if(!fixed) return null;
+    try{ o = JSON.parse(fixed); cut = true; }catch(e2){ return null; }
+  }
+  if(!o || typeof o !== "object") return null;
+
+  const arr    = v => Array.isArray(v) ? v : [];
+  const clipTo = (v, n) => { const t = exS(v); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
+  const kindOf = v => {
+    const t = exS(v).toUpperCase();
+    if(t === "Q" || /질문/.test(t)) return "Q";
+    if(t === "D" || /지시|INSTRUCT/.test(t)) return "지시";
+    return "A";
+  };
+  const D = o.doc || {};
+
+  const summary = arr(o.summary).map(r => {
+    const t = clipTo(r && r.text, AN_LIM.sumLen);
+    let b = exS(r && r.bold);
+    if(b && t.indexOf(b) < 0) b = "";          /* text 에 없는 bold 는 버립니다 */
+    return { text: t, bold: b };
+  }).filter(r => r.text).slice(0, AN_LIM.summary);
+
+  const qa = arr(o.qa).map(g => {
+    const items = arr(g && g.items).map(it => ({
+      kind: kindOf(it && it.kind), text: clipTo(it && it.text, AN_LIM.itemLen)
+    })).filter(it => it.text).slice(0, AN_LIM.items);
+    /* 한 팀 안에서 '지시' 는 맨 뒤로 (원래 순서는 그대로 유지) */
+    const keep = items.filter(x => x.kind !== "지시");
+    const ins  = items.filter(x => x.kind === "지시");
+    return { team: exS(g && g.team) || "기타", items: keep.concat(ins) };
+  }).filter(g => g.items.length).slice(0, AN_LIM.teams);
+
+  const actions = arr(o.actions).map(r => ({
+    text:  clipTo(r && r.text, AN_LIM.actLen),
+    owner: exS(r && r.owner),
+    due:   exS(r && r.due) || "차주 주간회의",
+    urgent:!!(r && r.urgent)
+  })).filter(r => r.text).slice(0, AN_LIM.actions);
+  actions.forEach((r, k) => r.no = k + 1);
+
+  const keywords = arr(o.keywords).map(exS).filter(Boolean).slice(0, AN_LIM.keywords);
+
+  if(!(summary.length || qa.length || actions.length)) return null;
+
+  return {
+    ver: 1,
+    cut,                                        /* 답이 잘려 뒷부분이 빠졌는지 */
+    doc: {
+      title: exS(D.title),
+      meta: { date: exS(D.date), place: exS(D.place),
+              attendees: exS(D.attendees), author: exS(D.author) }
+    },
+    summary, qa, actions, keywords
+  };
+}
+
 async function makeSummary(docId, opts){
   const d = DOCS.find(x => x.id === docId);
   if(!d || !aiReady() || S.aiBusy) return;
