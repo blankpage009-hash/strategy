@@ -1038,6 +1038,39 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .antb .du{width:104px;font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap;}
 .antb .du.hot{font-weight:800;color:var(--accent-ink);}
 
+/* ---------- 고치기(EDIT) 모드 — 세 섹션이 폼으로 바뀝니다 ----------
+   보기 화면의 결을 그대로 두고, 글만 상자로 바꿔 놓은 모습입니다. 라운드는 여기서도 안 씁니다. */
+.anact.prim{background:var(--accent);color:#fff;}
+.anact.prim:hover:not([disabled]){background:var(--accent-ink);color:#fff;}
+.anedt{margin-top:14px;}
+.anedt .anrow{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-top:1px solid var(--hairline);}
+.anedt .anrow:first-child{border-top:none;}
+.anedt .mk{flex:0 0 auto;padding-top:8px;font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--accent-ink);}
+.anedt .angrp{padding:12px 0;border-top:1px solid var(--hairline);}
+.anedt .angrp:first-child{border-top:none;}
+.anedt .angrp > .head{display:flex;align-items:center;gap:8px;}
+.anedt .angrp > .head .anin{font-weight:800;}
+.anin{flex:1 1 auto;min-width:0;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:0;
+  background:#fff;font-size:13px;line-height:1.55;resize:vertical;}
+.anin:focus{border-color:var(--accent);outline:none;}
+.ansel{flex:0 0 auto;height:31px;padding:0 4px;border:1px solid var(--line);border-radius:0;background:#fff;
+  font-size:12px;font-weight:700;}
+.andel{flex:0 0 auto;height:31px;padding:0 9px;border:1px solid var(--line);border-radius:0;background:none;
+  font-size:12px;font-weight:800;color:var(--muted2);white-space:nowrap;}
+.andel:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);}
+.anadd{margin-top:10px;height:31px;padding:0 12px;border:1px dashed var(--line);border-radius:0;background:none;
+  font-size:11.5px;font-weight:700;color:var(--muted);}
+.anadd:hover{border-style:solid;border-color:var(--accent);color:var(--accent-ink);}
+.anedt .angrp .anadd{margin-top:8px;margin-left:0;}
+.antb.edt td{padding:10px 8px 10px 0;vertical-align:top;}
+.antb.edt .ow,.antb.edt .du{width:150px;}
+.antb.edt .dl{width:42px;padding-right:0;}
+.anck{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:600;
+  color:var(--muted);white-space:nowrap;}
+.anck input{width:13px;height:13px;accent-color:var(--accent);}
+.anrail .editing{margin-top:10px;padding:9px 10px;background:var(--accent-soft);
+  font-size:11.5px;line-height:1.6;color:var(--accent-ink);}
+
 @media (max-width:900px){
   #ainotebg .anrail{display:none;}
   .anstage{padding:12px;}
@@ -1051,8 +1084,10 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .anact{padding:0 9px;}
 }
 @media (max-width:640px){
-  /* 아직 눌리지 않는 자리(COPY·EXPORT·REGENERATE)는 좁은 화면에서 접어 둡니다 */
-  .anact{display:none;}
+  /* 아직 눌리지 않는 자리(COPY·EXPORT·REGENERATE)는 좁은 화면에서 접어 둡니다.
+     EDIT·저장·취소는 실제로 쓰는 버튼이라 좁은 화면에서도 남겨 둡니다. */
+  #an-copy,#an-export,#an-regen{display:none;}
+  .anact{padding:0 8px;font-size:10px;}
   /* 섹션 머리는 제목이 길면 줄이 바뀌므로, 2px 선을 아랫줄로 내립니다 */
   .ansec{flex-wrap:wrap;gap:6px 10px;margin-top:34px;}
   .ansec h2{flex:1 1 auto;min-width:0;font-size:17px;}
@@ -1065,6 +1100,15 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .antb .no{width:22px;}
   .antb .ow{width:auto;}
   .antb .du{width:auto;white-space:normal;}
+  /* 고칠 때는 칸마다 글상자가 들어가 네 칸이 도저히 안 들어가므로,
+     한 행을 위아래로 쌓아 놓습니다 (표 모양만 잠깐 풀어 둡니다) */
+  .antb.edt thead{display:none;}
+  .antb.edt,.antb.edt tbody,.antb.edt tr,.antb.edt td{display:block;width:auto;}
+  .antb.edt tr{padding:12px 0;border-bottom:1px solid var(--hairline);}
+  .antb.edt td{padding:4px 0 0;border:none;}
+  .antb.edt .no,.antb.edt .ow,.antb.edt .du,.antb.edt .dl{width:auto;}
+  .antb.edt .no{padding-top:0;}
+  .antb.edt .dl{text-align:right;}
 }
 
 /* ---------- 올리기 화면 ---------- */
@@ -1449,7 +1493,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   </div>
 </div>
 
-<!-- AI NOTE — 회의록 한 장 (COPY·EXPORT·REGENERATE·TASKS 는 8단계에서 켭니다) -->
+<!-- AI NOTE — 회의록 한 장 (EDIT 로 고칠 수 있습니다. COPY·EXPORT·REGENERATE·TASKS 는 8단계) -->
 <div class="modalbg" id="ainotebg">
   <div class="modal wide" role="dialog" aria-label="AI NOTE 회의록">
     <header>
@@ -1458,6 +1502,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         <span class="anfn" id="an-fn"></span>
         <span class="anmt" id="an-mt"></span>
       </span>
+      <button class="anact" id="an-edit" title="회의록을 손으로 고칩니다">EDIT</button>
+      <button class="anact prim" id="an-save" hidden title="고친 내용을 저장합니다">저장</button>
+      <button class="anact" id="an-cancel" hidden title="고친 내용을 버립니다">취소</button>
       <button class="anact" id="an-copy" disabled title="다음 단계에서 켭니다">COPY</button>
       <button class="anact" id="an-export" disabled title="다음 단계에서 켭니다">EXPORT</button>
       <button class="anact" id="an-regen" disabled title="다음 단계에서 켭니다">REGENERATE</button>
@@ -1876,7 +1923,10 @@ const S = {
   fitMode:"width",                          /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"width",                          /* 기본은 화면 너비 — 장표가 늘 칸을 꽉 채우게 */
   aiBusy:null, aiErr:"", aiErrId:null, aiStep:"",   /* AI 요약 진행/오류 상태 */
-  anBusy:null, anErr:"", anErrId:null               /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
+  anBusy:null, anErr:"", anErrId:null,              /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
+  /* AI NOTE 고치기 — anEdit 은 지금 고치고 있는 자료 id, anDraft 는 그 노트의 사본입니다.
+     저장하면 사본을 원본 자리에 끼워 넣고, 취소하면 사본을 그냥 버립니다. */
+  anOpen:null, anEdit:null, anDraft:null
 };
 
 /* 만들어 둔 AI NOTE — 자료 id 마다 한 장 { id, note, at, model }.
@@ -2544,7 +2594,8 @@ function aiNoteBlock(d){
   if(has){
     const t = new Date(has.at), p2 = n => String(n).padStart(2, "0");
     stat = `생성 ${p2(t.getMonth() + 1)}.${p2(t.getDate())} ${p2(t.getHours())}:${p2(t.getMinutes())}` +
-           (has.model ? ` · ${esc(has.model)}` : "");
+           (has.model ? ` · ${esc(has.model)}` : "") +
+           (has.editedByUser ? " · 수정함" : "");
   }
 
   const label = busy ? "생성 중…" : (has ? "AI NOTE 보기" : "AI NOTE 생성");
@@ -5390,8 +5441,8 @@ async function makeAiNote(docId){
 }
 
 /* ---- AI NOTE 모달 — 만든 회의록을 흰 시트 한 장으로 보여 줍니다 ---------
-   보기 전용입니다. 고치기(7단계) · COPY/EXPORT/REGENERATE/TASKS(8단계) 는
-   아직 자리만 잡아 두고 눌리지 않게 막아 두었습니다.
+   머리칸의 EDIT 를 누르면 세 섹션이 폼으로 바뀌고, 저장하면 IndexedDB 까지 갑니다.
+   COPY/EXPORT/REGENERATE/TASKS(8단계) 는 아직 자리만 잡아 두고 눌리지 않게 막아 두었습니다.
    그리는 재료는 AINOTES[docId].note 하나뿐이고, 열 때마다 통째로 새로 그립니다. */
 
 /* 시각을 '2026.08.24 14:20' 모양으로 */
@@ -5420,21 +5471,33 @@ function anSecHead(no, title, cnt){
 
 const AN_TAGCLS = { "Q":"q", "A":"a", "지시":"d" };
 
+/* 고치기 모드에서 고를 수 있는 말머리 세 가지 */
+const AN_KINDS = ["Q", "A", "지시"];
+
 function renderAiNote(docId){
   const cur = AINOTES[docId];
   if(!cur) return;
-  const n = cur.note, d = DOCS.find(x => x.id === cur.id);
+  /* 고치는 중이면 원본 대신 사본(S.anDraft)을 그립니다 — 저장하기 전까지 원본은 그대로입니다 */
+  const ed = (S.anEdit === docId) && !!S.anDraft;
+  const n = ed ? S.anDraft : cur.note;
+  const d = DOCS.find(x => x.id === cur.id);
   const title = n.doc.title || (d ? d.title : "") || "회의록";
   const M = n.doc.meta || {};
 
   /* 머리칸 — 자료 이름과 만든 시각·모델 */
   $("#an-fn").textContent = title;
-  $("#an-mt").textContent = "생성 " + anWhen(cur.at) + (cur.model ? " · " + cur.model : "");
+  $("#an-mt").textContent = ed ? "고치는 중"
+    : "생성 " + anWhen(cur.at) + (cur.model ? " · " + cur.model : "");
+
+  /* 고치는 중엔 EDIT 자리에 [저장][취소] 가 섭니다 */
+  $("#an-edit").hidden   = ed;
+  $("#an-save").hidden   = !ed;
+  $("#an-cancel").hidden = !ed;
 
   const qaItems = n.qa.reduce((s, g) => s + g.items.length, 0);
   const owners  = new Set(n.actions.map(r => r.owner).filter(Boolean));
 
-  /* ---- 왼쪽 레일 : 차례 · 키워드 · 후속 ---- */
+  /* ---- 왼쪽 레일 : 차례 · 키워드 · 후속 (고치는 중엔 차례만 남깁니다) ---- */
   $("#anrail").innerHTML = `
     <div class="blk">
       <div class="kick">Contents</div>
@@ -5444,48 +5507,94 @@ function renderAiNote(docId){
         <span class="lb">주요 Q&amp;A 및 논의사항</span><span class="ct">${n.qa.length}팀 · ${qaItems} 항목</span></button>
       <button class="anjump" data-anjump="3"><span class="no">03</span>
         <span class="lb">지시사항</span><span class="ct">${n.actions.length} 건</span></button>
+      ${ ed ? `<div class="editing">고치는 중입니다. 머리칸의 <b>저장</b> 을 눌러야 남습니다.</div>` : "" }
     </div>
-    ${ n.keywords.length ? `<div class="blk thin"><div class="kick">Keywords</div>
+    ${ (!ed && n.keywords.length) ? `<div class="blk thin"><div class="kick">Keywords</div>
       <div class="ankws">${n.keywords.map(k => `<span>${esc(k)}</span>`).join("")}</div></div>` : "" }
-    <div class="blk">
+    ${ ed ? "" : `<div class="blk">
       <div class="kick">Follow-up</div>
       <div class="anfu"><span class="big">${n.actions.length}</span>
         <span class="sub">지시사항${owners.size ? ` · 담당 ${owners.size}팀` : ""}</span></div>
       <button class="antasks" disabled title="다음 단계에서 켭니다">TASKS로 보내기</button>
-    </div>`;
+    </div>` }`;
 
   /* ---- 01 Executive Summary ---- */
   const secSum = anSecHead("01", "Executive Summary", n.summary.length ? n.summary.length + " 항목" : "") +
-    (n.summary.length
-      ? `<div class="ansum">${n.summary.map((r, i) =>
-          `<div class="row"><span class="mk">S${i + 1}</span>
-             <span class="tx">${anBold(r.text, r.bold)}</span></div>`).join("")}</div>`
-      : `<div class="anempty">해당 항목 없음</div>`);
+    (ed
+      ? `<div class="anedt">${n.summary.map((r, i) =>
+          `<div class="anrow"><span class="mk">S${i + 1}</span>
+             <textarea class="anin" rows="2" data-an="sum" data-i="${i}"
+               placeholder="요약 한 줄">${esc(r.text)}</textarea>
+             <button class="andel" data-andel="sum" data-i="${i}" title="이 줄 지우기">−</button></div>`).join("")}
+          <button class="anadd" data-anadd="sum">+ 줄 추가</button></div>`
+      : n.summary.length
+        ? `<div class="ansum">${n.summary.map((r, i) =>
+            `<div class="row"><span class="mk">S${i + 1}</span>
+               <span class="tx">${anBold(r.text, r.bold)}</span></div>`).join("")}</div>`
+        : `<div class="anempty">해당 항목 없음</div>`);
 
   /* ---- 02 주요 Q&A 및 논의사항 ---- */
   const secQa = anSecHead("02", "주요 Q&A 및 논의사항",
       n.qa.length ? `${n.qa.length}팀 · ${qaItems} 항목` : "") +
-    (n.qa.length
-      ? `<div class="anqa">${n.qa.map(g => {
-          const cls = it => AN_TAGCLS[it.kind] || "a";
-          return `<div class="grp"><div class="team">${esc(g.team)}</div>
-            <div class="items">${g.items.map(it =>
-              `<div class="it"><span class="tag ${cls(it)}">${esc(it.kind)}</span>
-                 <span class="tx ${cls(it)}">${esc(it.text)}</span></div>`).join("")}</div></div>`;
-        }).join("")}</div>`
-      : `<div class="anempty">해당 항목 없음</div>`);
+    (ed
+      ? `<div class="anedt">${n.qa.map((g, gi) =>
+          `<div class="angrp">
+             <div class="head">
+               <input class="anin" data-an="qteam" data-g="${gi}" placeholder="팀 이름"
+                 value="${esc(g.team || "")}">
+               <button class="andel" data-andel="qteam" data-g="${gi}" title="이 팀을 통째로 지웁니다">− 팀</button>
+             </div>
+             ${g.items.map((it, ii) =>
+               `<div class="anrow">
+                  <select class="ansel" data-an="qkind" data-g="${gi}" data-i="${ii}">
+                    ${AN_KINDS.map(k =>
+                      `<option value="${k}"${it.kind === k ? " selected" : ""}>${k}</option>`).join("")}
+                  </select>
+                  <textarea class="anin" rows="2" data-an="qtext" data-g="${gi}" data-i="${ii}"
+                    placeholder="내용">${esc(it.text)}</textarea>
+                  <button class="andel" data-andel="qitem" data-g="${gi}" data-i="${ii}"
+                    title="이 항목 지우기">−</button></div>`).join("")}
+             <button class="anadd" data-anadd="qitem" data-g="${gi}">+ 항목</button>
+           </div>`).join("")}
+          <button class="anadd" data-anadd="qteam">+ 팀</button></div>`
+      : n.qa.length
+        ? `<div class="anqa">${n.qa.map(g => {
+            const cls = it => AN_TAGCLS[it.kind] || "a";
+            return `<div class="grp"><div class="team">${esc(g.team)}</div>
+              <div class="items">${g.items.map(it =>
+                `<div class="it"><span class="tag ${cls(it)}">${esc(it.kind)}</span>
+                   <span class="tx ${cls(it)}">${esc(it.text)}</span></div>`).join("")}</div></div>`;
+          }).join("")}</div>`
+        : `<div class="anempty">해당 항목 없음</div>`);
 
   /* ---- 03 지시사항 ---- */
   const secAct = anSecHead("03", "지시사항", n.actions.length ? n.actions.length + " 건" : "") +
-    (n.actions.length
-      ? `<table class="antb"><thead><tr>
-           <th class="no">No</th><th>지시 / 실행 항목</th><th class="ow">담당자</th><th class="du">마감일</th>
-         </tr></thead><tbody>${n.actions.map(r =>
-           `<tr><td class="no">${r.no}</td><td class="tx">${esc(r.text)}</td>
-                <td class="ow">${esc(r.owner || "—")}</td>
-                <td class="du${r.urgent ? " hot" : ""}">${esc(r.due || "—")}</td></tr>`).join("")}
-         </tbody></table>`
-      : `<div class="anempty">해당 항목 없음</div>`);
+    (ed
+      ? `<table class="antb edt"><thead><tr>
+           <th class="no">No</th><th>지시 / 실행 항목</th><th class="ow">담당자</th>
+           <th class="du">마감일</th><th class="dl"></th>
+         </tr></thead><tbody>${n.actions.map((r, i) =>
+           `<tr><td class="no">${i + 1}</td>
+                <td class="tx"><textarea class="anin" rows="2" data-an="atext" data-i="${i}"
+                  placeholder="무엇을 합니까">${esc(r.text)}</textarea></td>
+                <td class="ow"><input class="anin" data-an="aowner" data-i="${i}"
+                  placeholder="담당" value="${esc(r.owner || "")}"></td>
+                <td class="du"><input class="anin" data-an="adue" data-i="${i}"
+                  placeholder="마감" value="${esc(r.due || "")}">
+                  <label class="anck"><input type="checkbox" data-an="aurgent" data-i="${i}"
+                    ${r.urgent ? "checked" : ""}>긴급</label></td>
+                <td class="dl"><button class="andel" data-andel="act" data-i="${i}"
+                  title="이 행 지우기">−</button></td></tr>`).join("")}
+         </tbody></table><button class="anadd" data-anadd="act">+ 행 추가</button>`
+      : n.actions.length
+        ? `<table class="antb"><thead><tr>
+             <th class="no">No</th><th>지시 / 실행 항목</th><th class="ow">담당자</th><th class="du">마감일</th>
+           </tr></thead><tbody>${n.actions.map(r =>
+             `<tr><td class="no">${r.no}</td><td class="tx">${esc(r.text)}</td>
+                  <td class="ow">${esc(r.owner || "—")}</td>
+                  <td class="du${r.urgent ? " hot" : ""}">${esc(r.due || "—")}</td></tr>`).join("")}
+           </tbody></table>`
+        : `<div class="anempty">해당 항목 없음</div>`);
 
   const cell = (k, v) => `<div class="c"><div class="k">${k}</div><div class="v">${esc(v || "—")}</div></div>`;
 
@@ -5502,8 +5611,91 @@ function renderAiNote(docId){
   </div>`;
 }
 
+/* 줄을 넣거나 빼면 화면을 다시 그려야 하는데, 보던 자리는 지켜 줍니다 */
+function anRedraw(docId){
+  const st = $("#ainotebody").scrollTop;
+  renderAiNote(docId);
+  $("#ainotebody").scrollTop = st;
+}
+
+/* ---- 고치기 : 시작 · 취소 · 저장 --------------------------------------
+   고치는 동안에는 사본(S.anDraft)만 바뀝니다. 저장을 눌러야 원본에 들어가고
+   IndexedDB 에도 남습니다. 취소하면 사본을 그냥 버립니다. */
+
+function anStartEdit(){
+  const id = S.anOpen;
+  if(!id || !AINOTES[id]) return;
+  S.anEdit  = id;
+  S.anDraft = JSON.parse(JSON.stringify(AINOTES[id].note));   /* 원본과 끊어 놓은 사본 */
+  anRedraw(id);
+}
+
+function anCancelEdit(){
+  const id = S.anEdit;
+  if(!id) return;
+  S.anEdit = null; S.anDraft = null;
+  anRedraw(id);
+  toast("고치던 내용을 버렸습니다");
+}
+
+async function anSaveEdit(){
+  const id = S.anEdit, dr = S.anDraft;
+  if(!id || !dr || !AINOTES[id]) return;
+  dr.actions.forEach((r, i) => { r.no = i + 1; });      /* 번호는 위에서부터 1,2,3… 다시 매깁니다 */
+  AINOTES[id].note = dr;
+  AINOTES[id].editedByUser = true;                     /* 사람이 손댄 노트라는 표식입니다 */
+  S.anEdit = null; S.anDraft = null;
+  let ok = true;
+  try { await dbPut("ainote", AINOTES[id]); } catch(_){ ok = false; }
+  anRedraw(id);
+  renderRight();                                       /* NOTE 탭의 '· 수정함' 을 갱신합니다 */
+  toast(ok ? "고친 내용을 저장했습니다" : "저장하지 못했습니다");
+}
+
+/* 글상자를 고칠 때마다 사본에 바로 옮겨 담습니다.
+   여기서는 화면을 다시 그리지 않습니다 — 그려 버리면 커서가 튀기 때문입니다. */
+$("#ainotebody").addEventListener("input", e => {
+  const el = e.target, dr = S.anDraft;
+  const k = (el && el.dataset) ? el.dataset.an : "";
+  if(!k || !dr) return;
+  const i = +el.dataset.i, g = +el.dataset.g;
+  const qg = dr.qa[g] || null, qi = qg ? qg.items[i] : null, ac = dr.actions[i];
+  if     (k === "sum"     && dr.summary[i]) dr.summary[i].text = el.value;
+  else if(k === "qteam"   && qg)  qg.team    = el.value;
+  else if(k === "qkind"   && qi)  qi.kind    = el.value;
+  else if(k === "qtext"   && qi)  qi.text    = el.value;
+  else if(k === "atext"   && ac)  ac.text    = el.value;
+  else if(k === "aowner"  && ac)  ac.owner   = el.value;
+  else if(k === "adue"    && ac)  ac.due     = el.value;
+  else if(k === "aurgent" && ac)  ac.urgent  = el.checked;
+});
+
+/* ---- 줄 · 팀 · 행 넣고 빼기 (여기서는 다시 그립니다) ---- */
+function anAddRow(what, g){
+  const dr = S.anDraft; if(!dr) return;
+  if     (what === "sum")   dr.summary.push({ text:"", bold:"" });
+  else if(what === "qteam") dr.qa.push({ team:"", items:[{ kind:"Q", text:"" }] });
+  else if(what === "qitem" && dr.qa[g]) dr.qa[g].items.push({ kind:"A", text:"" });
+  else if(what === "act")   dr.actions.push({ no:dr.actions.length + 1, text:"", owner:"", due:"", urgent:false });
+  anRedraw(S.anEdit);
+}
+function anDelRow(what, g, i){
+  const dr = S.anDraft; if(!dr) return;
+  if     (what === "sum")   dr.summary.splice(i, 1);
+  else if(what === "qteam") dr.qa.splice(g, 1);
+  else if(what === "qitem" && dr.qa[g]) dr.qa[g].items.splice(i, 1);
+  else if(what === "act")   dr.actions.splice(i, 1);
+  anRedraw(S.anEdit);
+}
+
+$("#an-edit").onclick   = anStartEdit;
+$("#an-cancel").onclick = anCancelEdit;
+$("#an-save").onclick   = anSaveEdit;
+
 function openAiNote(docId){
   if(!AINOTES[docId]) return;
+  S.anOpen = docId;
+  S.anEdit = null; S.anDraft = null;      /* 열 때는 늘 보기 상태로 시작합니다 */
   renderAiNote(docId);
   $("#ainotebg").classList.add("on");
   $("#ainotebody").scrollTop = 0;
@@ -5512,6 +5704,7 @@ function openAiNote(docId){
 }
 function closeAiNote(){
   $("#ainotebg").classList.remove("on");
+  S.anOpen = null; S.anEdit = null; S.anDraft = null;
   const back = $(".annote .gen");          /* 포커스를 열었던 자리로 되돌립니다 */
   if(back && !back.disabled) back.focus();
 }
@@ -5519,12 +5712,18 @@ function closeAiNote(){
 /* 닫기 · 배경 클릭 · 레일의 차례 누르기 (모달 안은 매번 새로 그리므로 전부 위임입니다) */
 $("#anx").onclick = closeAiNote;
 $("#ainotebg").addEventListener("click", e => {
-  if(e.target.id === "ainotebg"){ closeAiNote(); return; }
+  /* 고치는 중에 바깥을 잘못 눌러 창이 닫히면 고친 게 날아가므로, 그때는 못 본 척합니다 */
+  if(e.target.id === "ainotebg"){ if(!S.anEdit) closeAiNote(); return; }
   const j = e.target.closest("[data-anjump]");
   if(j){
     const stage = $("#ainotebody"), t = $("#an-s0" + j.dataset.anjump);
     if(t) stage.scrollTop += t.getBoundingClientRect().top - stage.getBoundingClientRect().top - 12;
+    return;
   }
+  const ad = e.target.closest("[data-anadd]");
+  if(ad){ anAddRow(ad.dataset.anadd, +ad.dataset.g); return; }
+  const dl = e.target.closest("[data-andel]");
+  if(dl){ anDelRow(dl.dataset.andel, +dl.dataset.g, +dl.dataset.i); return; }
 });
 
 /* =========================================================
@@ -6345,7 +6544,7 @@ document.addEventListener("keydown", e => {
   if(e.key === "Escape"){
     if(!$("#dwpop").hidden){ $("#dwpop").hidden = true; return; }
     if(window.drawActive && window.drawActive()){ window.drawExit && window.drawExit(); return; }
-    if($("#ainotebg").classList.contains("on")) closeAiNote();
+    if($("#ainotebg").classList.contains("on")){ if(S.anEdit) anCancelEdit(); else closeAiNote(); }
     else if($("#atvbg").classList.contains("on")) closeAtView();
     else if($("#atbg").classList.contains("on")) closeAttach();
     else if($("#ageditbg").classList.contains("on")) closeAgEdit();
