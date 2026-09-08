@@ -949,8 +949,13 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .anfn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:800;}
 .anmt{flex:0 0 auto;padding-left:10px;border-left:1px solid var(--hairline);
   font-size:11px;font-weight:400;color:var(--muted);white-space:nowrap;}
+/* 머리칸 오른쪽 버튼 묶음 — 자리가 모자라면 이 안에서 옆으로 넘겨 봅니다 (닫기 X 는 늘 보입니다) */
+.anacts{flex:0 1 auto;min-width:0;align-self:stretch;display:flex;align-items:stretch;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+.anacts::-webkit-scrollbar{display:none;}
 .anact{flex:0 0 auto;align-self:stretch;padding:0 14px;border:none;border-left:1px solid var(--hairline);
-  border-radius:0;background:none;font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--muted);}
+  border-radius:0;background:none;font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--muted);
+  white-space:nowrap;}
 .anact:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-ink);}
 .anact[disabled]{opacity:.4;cursor:default;}
 #ainotebg .modal > header .anx{flex:0 0 52px;align-self:stretch;margin-left:0;border:none;border-radius:0;
@@ -977,9 +982,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-bottom:1px solid var(--hairline);}
 .anfu .big{font-size:28px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1;}
 .anfu .sub{font-size:11.5px;color:var(--muted);}
-.antasks{width:100%;height:34px;margin-top:12px;padding:0 12px;border:2px solid var(--rule);border-radius:0;
-  background:none;text-align:left;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--rule);}
-.antasks[disabled]{opacity:.4;cursor:default;}
+.anfunote{margin-top:10px;font-size:11px;line-height:1.6;color:var(--muted);}
+.anfunote b{font-weight:800;color:var(--rule);}
 
 /* 오른쪽 무대와 흰 시트 */
 .anstage{flex:1 1 auto;min-width:0;background:var(--panel2);overflow-y:auto;padding:24px;}
@@ -1084,10 +1088,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .anact{padding:0 9px;}
 }
 @media (max-width:640px){
-  /* 아직 눌리지 않는 자리(COPY·EXPORT·REGENERATE)는 좁은 화면에서 접어 둡니다.
-     EDIT·저장·취소는 실제로 쓰는 버튼이라 좁은 화면에서도 남겨 둡니다. */
-  #an-copy,#an-export,#an-regen{display:none;}
-  .anact{padding:0 8px;font-size:10px;}
+  /* 좁은 화면에서는 버튼 이름을 바짝 줄이고, 그래도 다 안 들어가면
+     묶음(.anacts) 안에서 옆으로 밀어 볼 수 있게 둡니다 (닫기 X 는 늘 보입니다). */
+  .anact{padding:0 8px;font-size:10px;letter-spacing:.04em;}
   /* 섹션 머리는 제목이 길면 줄이 바뀌므로, 2px 선을 아랫줄로 내립니다 */
   .ansec{flex-wrap:wrap;gap:6px 10px;margin-top:34px;}
   .ansec h2{flex:1 1 auto;min-width:0;font-size:17px;}
@@ -1109,6 +1112,27 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .antb.edt .no,.antb.edt .ow,.antb.edt .du,.antb.edt .dl{width:auto;}
   .antb.edt .no{padding-top:0;}
   .antb.edt .dl{text-align:right;}
+}
+
+/* ---------- 인쇄(EXPORT) — AI NOTE 흰 시트 한 장만 종이에 냅니다 ----------
+   EXPORT 를 누르면 <body> 에 잠깐 .anprinting 이 붙습니다. 그동안에는 앱의 나머지를
+   모두 숨기고, 모달의 흰 시트만 그림자·레일·머리칸 없이 펼쳐서 인쇄합니다. */
+@media print{
+  body.anprinting > *{display:none !important;}
+  body.anprinting #ainotebg{display:block !important;position:static !important;
+    inset:auto !important;padding:0 !important;background:none !important;z-index:auto !important;}
+  body.anprinting #ainotebg .modal{display:block !important;width:auto !important;max-width:none !important;
+    height:auto !important;max-height:none !important;border:none !important;box-shadow:none !important;
+    overflow:visible !important;background:#fff !important;}
+  body.anprinting #ainotebg .modal > header{display:none !important;}
+  body.anprinting #ainotebg .modal .content{display:block !important;overflow:visible !important;}
+  body.anprinting #anrail{display:none !important;}
+  body.anprinting .anstage{display:block !important;overflow:visible !important;padding:0 !important;
+    background:#fff !important;}
+  body.anprinting .ansheet{max-width:none !important;margin:0 !important;padding:0 !important;
+    box-shadow:none !important;}
+  body.anprinting .ansec{margin-top:30px;}
+  @page{margin:16mm;}
 }
 
 /* ---------- 올리기 화면 ---------- */
@@ -1502,12 +1526,15 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         <span class="anfn" id="an-fn"></span>
         <span class="anmt" id="an-mt"></span>
       </span>
-      <button class="anact" id="an-edit" title="회의록을 손으로 고칩니다">EDIT</button>
-      <button class="anact prim" id="an-save" hidden title="고친 내용을 저장합니다">저장</button>
-      <button class="anact" id="an-cancel" hidden title="고친 내용을 버립니다">취소</button>
-      <button class="anact" id="an-copy" disabled title="다음 단계에서 켭니다">COPY</button>
-      <button class="anact" id="an-export" disabled title="다음 단계에서 켭니다">EXPORT</button>
-      <button class="anact" id="an-regen" disabled title="다음 단계에서 켭니다">REGENERATE</button>
+      <span class="anacts">
+        <button class="anact" id="an-edit" title="회의록을 손으로 고칩니다">EDIT</button>
+        <button class="anact prim" id="an-save" hidden title="고친 내용을 저장합니다">저장</button>
+        <button class="anact" id="an-cancel" hidden title="고친 내용을 버립니다">취소</button>
+        <button class="anact" id="an-copy" title="회의록을 글자만 있는 형태로 복사합니다">COPY</button>
+        <button class="anact" id="an-export" title="흰 시트 한 장을 인쇄(PDF 저장)합니다">EXPORT</button>
+        <button class="anact" id="an-regen" title="회의록 원문으로 다시 만듭니다">REGENERATE</button>
+        <button class="anact" id="an-tasks" title="지시사항을 이 자료의 할 일로 보냅니다">TASKS</button>
+      </span>
       <button class="x anx" id="anx" aria-label="닫기">&#10005;</button>
     </header>
     <div class="content">
@@ -5494,6 +5521,11 @@ function renderAiNote(docId){
   $("#an-save").hidden   = !ed;
   $("#an-cancel").hidden = !ed;
 
+  /* COPY · EXPORT · REGENERATE · TASKS 는 보기 중에만 켜집니다 (고치는 중·다시 만드는 중엔 잠급니다) */
+  const lock = ed || (S.anBusy === docId);
+  $("#an-copy").disabled = $("#an-export").disabled =
+    $("#an-regen").disabled = $("#an-tasks").disabled = lock;
+
   const qaItems = n.qa.reduce((s, g) => s + g.items.length, 0);
   const owners  = new Set(n.actions.map(r => r.owner).filter(Boolean));
 
@@ -5515,7 +5547,7 @@ function renderAiNote(docId){
       <div class="kick">Follow-up</div>
       <div class="anfu"><span class="big">${n.actions.length}</span>
         <span class="sub">지시사항${owners.size ? ` · 담당 ${owners.size}팀` : ""}</span></div>
-      <button class="antasks" disabled title="다음 단계에서 켭니다">TASKS로 보내기</button>
+      <div class="anfunote">머리칸의 <b>TASKS</b> 로 이 자료의 할 일에 보낼 수 있습니다.</div>
     </div>` }`;
 
   /* ---- 01 Executive Summary ---- */
@@ -5624,7 +5656,7 @@ function anRedraw(docId){
 
 function anStartEdit(){
   const id = S.anOpen;
-  if(!id || !AINOTES[id]) return;
+  if(!id || !AINOTES[id] || S.anBusy) return;   /* 다시 만드는 중에는 고치기로 들어가지 않습니다 */
   S.anEdit  = id;
   S.anDraft = JSON.parse(JSON.stringify(AINOTES[id].note));   /* 원본과 끊어 놓은 사본 */
   anRedraw(id);
@@ -5688,10 +5720,6 @@ function anDelRow(what, g, i){
   anRedraw(S.anEdit);
 }
 
-$("#an-edit").onclick   = anStartEdit;
-$("#an-cancel").onclick = anCancelEdit;
-$("#an-save").onclick   = anSaveEdit;
-
 function openAiNote(docId){
   if(!AINOTES[docId]) return;
   S.anOpen = docId;
@@ -5709,7 +5737,134 @@ function closeAiNote(){
   if(back && !back.disabled) back.focus();
 }
 
-/* 닫기 · 배경 클릭 · 레일의 차례 누르기 (모달 안은 매번 새로 그리므로 전부 위임입니다) */
+/* ---- 8단계 : COPY · EXPORT(인쇄) · REGENERATE · TASKS로 보내기 --------
+   전부 '지금 열려 있는 노트'(S.anOpen) 하나만 다룹니다. 고치는 중(S.anEdit)이거나
+   다시 만드는 중(S.anBusy)이면 아무것도 하지 않습니다. */
+
+/* 노트를 '글자만 있는 회의록' 한 덩어리로 풀어 냅니다 (COPY 가 씁니다) */
+function anPlainText(rec){
+  const n = rec.note, M = (n.doc && n.doc.meta) || {};
+  const d = DOCS.find(x => x.id === rec.id);
+  const title = (n.doc && n.doc.title) || (d ? d.title : "") || "회의록";
+  const L = [title];
+
+  const head = [];
+  if(M.date)      head.push("일시 " + M.date);
+  if(M.place)     head.push("장소 " + M.place);
+  if(M.attendees) head.push("참석 " + M.attendees);
+  if(M.author)    head.push("작성 " + M.author);
+  if(head.length) L.push(head.join(" / "));
+
+  L.push("", "01 EXECUTIVE SUMMARY");
+  if(n.summary.length) n.summary.forEach((r, i) => L.push(`S${i + 1}. ${r.text}`));
+  else L.push("해당 항목 없음");
+
+  L.push("", "02 주요 Q&A 및 논의사항");
+  if(n.qa.length) n.qa.forEach(g => {
+    L.push(`[${g.team || "―"}]`);
+    g.items.forEach(it => L.push(`${it.kind}: ${it.text}`));
+  });
+  else L.push("해당 항목 없음");
+
+  L.push("", "03 지시사항");
+  if(n.actions.length) n.actions.forEach((r, i) => {
+    const tail = [r.owner, r.due].filter(Boolean).join(" / ");
+    L.push(`${i + 1}. ${r.text}${tail ? " — " + tail : ""}${r.urgent ? " (긴급)" : ""}`);
+  });
+  else L.push("해당 항목 없음");
+
+  if(n.keywords && n.keywords.length) L.push("", "Keywords: " + n.keywords.join(", "));
+  L.push("", `― 생성 ${anWhen(rec.at)}${rec.model ? " · " + rec.model : ""}${rec.editedByUser ? " · 수정함" : ""}`);
+  return L.join("\n");
+}
+
+async function anCopy(){
+  const id = S.anOpen, rec = id && AINOTES[id];
+  if(!rec || S.anEdit || S.anBusy) return;
+  const text = anPlainText(rec);
+  let ok = false;
+  try{ await navigator.clipboard.writeText(text); ok = true; }
+  catch(_){
+    /* file:// 에서는 clipboard API 가 막힐 수 있어 옛 방식으로 물러섭니다 */
+    try{
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      ok = document.execCommand("copy");
+      ta.remove();
+    }catch(__){ ok = false; }
+  }
+  toast(ok ? "회의록을 복사했습니다 — 아무 데나 붙여 넣으세요" : "복사하지 못했습니다");
+}
+
+function anExport(){
+  if(!S.anOpen || S.anEdit || S.anBusy) return;
+  const off = () => {
+    document.body.classList.remove("anprinting");
+    window.removeEventListener("afterprint", off);
+  };
+  document.body.classList.add("anprinting");
+  window.addEventListener("afterprint", off);
+  setTimeout(() => { try{ window.print(); }catch(_){} setTimeout(off, 800); }, 40);
+}
+
+async function anRegen(){
+  const id = S.anOpen;
+  if(!id || !AINOTES[id] || S.anEdit || S.anBusy) return;
+  if(AINOTES[id].editedByUser &&
+     !confirm("손으로 고친 내용이 사라집니다. 회의록 원문으로 다시 만들까요?")) return;
+
+  const mt = $("#an-mt").textContent;
+  $("#an-mt").textContent = "다시 만드는 중…";
+  $("#an-edit").disabled = $("#an-copy").disabled = $("#an-export").disabled =
+    $("#an-regen").disabled = $("#an-tasks").disabled = true;
+
+  const before = AINOTES[id];
+  await makeAiNote(id);                       /* 성공하면 AINOTES[id] 가 새 노트로 바뀝니다 (editedByUser 없음) */
+  $("#an-edit").disabled = false;
+  if(S.anOpen === id){
+    if(AINOTES[id] === before) $("#an-mt").textContent = mt;   /* 실패 — 원래대로 되돌립니다 */
+    renderAiNote(id);
+  }
+}
+
+/* note.actions 를 이 자료의 할 일(KV.tasks)에 덧붙입니다 — 지우지 않고, 같은 문장은 건너뜁니다 */
+function anToTasks(){
+  const id = S.anOpen, rec = id && AINOTES[id];
+  if(!rec || S.anEdit || S.anBusy) return;
+  const acts = (rec.note && rec.note.actions) || [];
+  if(!acts.length){ toast("보낼 지시사항이 없습니다"); return; }
+
+  const arr = KV.tasks[id] || [];
+  const have = new Set(arr.map(t => t.t));
+  let added = 0;
+  acts.forEach(r => {
+    const base = String(r.text || "").trim();
+    if(!base) return;
+    const tail = [r.owner, r.due].filter(Boolean).join(" / ");
+    const t = tail ? `${base} — ${tail}` : base;
+    if(have.has(t) || have.has(base)) return;
+    arr.push({ t, s:0 });
+    have.add(t); have.add(base); added++;
+  });
+  if(!added){ toast("이미 보낸 지시사항입니다"); return; }
+  KV.tasks[id] = arr;
+  saveKV("tasks");
+  if(S.sel === id) renderRight();
+  toast(`${added}건을 할 일로 보냈습니다`);
+}
+
+$("#an-edit").onclick   = anStartEdit;
+$("#an-cancel").onclick = anCancelEdit;
+$("#an-save").onclick   = anSaveEdit;
+$("#an-copy").onclick   = anCopy;
+$("#an-export").onclick = anExport;
+$("#an-regen").onclick  = anRegen;
+$("#an-tasks").onclick  = anToTasks;
+
+/* 닫기 · 배경 클릭 · 레일의 차례 누르기 · 줄/행 넣고 빼기
+   (모달 안은 매번 새로 그리므로 전부 위임입니다) */
 $("#anx").onclick = closeAiNote;
 $("#ainotebg").addEventListener("click", e => {
   /* 고치는 중에 바깥을 잘못 눌러 창이 닫히면 고친 게 날아가므로, 그때는 못 본 척합니다 */
