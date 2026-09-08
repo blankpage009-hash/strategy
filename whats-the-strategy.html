@@ -5778,24 +5778,32 @@ function anPlainText(rec){
   return L.join("\n");
 }
 
-async function anCopy(){
+function anCopy(){
   const id = S.anOpen, rec = id && AINOTES[id];
   if(!rec || S.anEdit || S.anBusy) return;
   const text = anPlainText(rec);
+  const good = () => toast("회의록을 복사했습니다 — 아무 데나 붙여 넣으세요");
+  const bad  = () => toast("복사하지 못했습니다 — 시트를 직접 긁어 복사해 주세요");
+
+  /* 옛 방식을 먼저 씁니다 — file:// 에서도 되고, 버튼을 누른 그 순간(클릭)에 바로 실행돼야
+     브라우저가 허락합니다. await 를 거치면 그 허락이 풀립니다. */
   let ok = false;
-  try{ await navigator.clipboard.writeText(text); ok = true; }
-  catch(_){
-    /* file:// 에서는 clipboard API 가 막힐 수 있어 옛 방식으로 물러섭니다 */
-    try{
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
-      document.body.appendChild(ta); ta.focus(); ta.select();
-      ok = document.execCommand("copy");
-      ta.remove();
-    }catch(__){ ok = false; }
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    ok = document.execCommand("copy");
+    ta.remove();
+  }catch(_){ ok = false; }
+  if(ok){ good(); return; }
+
+  /* 안 되면 최신 clipboard API 로 한 번 더 (https 환경) */
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(good, bad);
+    return;
   }
-  toast(ok ? "회의록을 복사했습니다 — 아무 데나 붙여 넣으세요" : "복사하지 못했습니다");
+  bad();
 }
 
 function anExport(){
