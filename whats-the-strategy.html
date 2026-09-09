@@ -874,6 +874,13 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-bottom:2px solid var(--rule);font-weight:800;font-size:14px;}
 .modal > header .x{margin-left:auto;border:none;background:none;font-size:14px;color:var(--muted);padding:0 2px;}
 .modal > header .x:hover{color:var(--accent-ink);}
+/* 첨부 노트 보기 창은 AI NOTE 창의 본문(흰 시트) 영역만큼 넓힙니다 */
+#atvbg .modal{max-width:900px;height:88vh;max-height:88vh;}
+#atvbg .modal > header .atvdel{margin-left:auto;border:1px solid var(--line);border-radius:0;background:none;
+  padding:5px 12px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);cursor:pointer;}
+#atvbg .modal > header .atvdel:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);}
+#atvbg .modal > header .atvdel + .x{margin-left:10px;}
 .modal .content{flex:1 1 auto;overflow-y:auto;padding:14px 16px 18px;-webkit-overflow-scrolling:touch;}
 .modal > footer{flex:0 0 auto;display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;
   border-top:1px solid var(--line);background:var(--panel);flex-wrap:wrap;}
@@ -998,6 +1005,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .anfu .sub{font-size:11.5px;color:var(--muted);}
 .anfunote{margin-top:10px;font-size:11px;line-height:1.6;color:var(--muted);}
 .anfunote b{font-weight:800;color:var(--rule);}
+.ansendtasks{margin-top:10px;display:inline-flex;align-items:center;height:27px;padding:0 12px;
+  border:none;border-radius:0;cursor:pointer;
+  background:var(--accent);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.12em;}
+.ansendtasks:hover:not([disabled]){background:var(--accent-ink);}
+.ansendtasks[disabled]{opacity:.4;cursor:default;}
 
 /* 오른쪽 무대와 흰 시트 */
 .anstage{flex:1 1 auto;min-width:0;background:var(--panel2);overflow-y:auto;padding:24px;}
@@ -1005,6 +1017,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   box-shadow:0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);}
 .ansheet .cut{margin-bottom:16px;padding:8px 10px;background:var(--accent-soft);
   font-size:12px;line-height:1.6;color:var(--accent-ink);}
+.anprintmeta{display:none;}   /* 인쇄(EXPORT)할 때만 오른쪽 위에 날짜를 찍습니다 */
 .ansheet .dkick{font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-ink);}
 .ansheet h1{margin:6px 0 0;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.08;}
 .ansheet .drule{height:2px;background:var(--rule);margin-top:16px;}
@@ -1060,6 +1073,10 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .antb .ow{width:168px;font-size:12.5px;font-weight:500;color:var(--muted);}
 .antb .du{width:104px;font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap;}
 .antb .du.hot{font-weight:800;color:var(--accent-ink);}
+/* 03 지시사항 — 할 일로 보낼 항목을 고르는 선택 토글 (인쇄에서는 빠집니다) */
+.antb th.pk{width:52px;text-align:right;letter-spacing:.06em;}
+.antb td.pk{width:52px;text-align:right;}
+.antb td.pk input{width:16px;height:16px;margin:2px 0 0;accent-color:var(--accent);cursor:pointer;}
 
 /* ---------- 고치기(EDIT) 모드 — 세 섹션이 폼으로 바뀝니다 ----------
    보기 화면의 결을 그대로 두고, 글만 상자로 바꿔 놓은 모습입니다. 라운드는 여기서도 안 씁니다. */
@@ -1122,6 +1139,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .antb .no{width:22px;}
   .antb .ow{width:auto;}
   .antb .du{width:auto;white-space:normal;}
+  .antb th.pk,.antb td.pk{width:26px;}
+  .antb th.pk{font-size:0;}
   /* 고칠 때는 칸마다 글상자가 들어가 네 칸이 도저히 안 들어가므로,
      한 행을 위아래로 쌓아 놓습니다 (표 모양만 잠깐 풀어 둡니다) */
   .antb.edt thead{display:none;}
@@ -1148,10 +1167,21 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   body.anprinting #anrail{display:none !important;}
   body.anprinting .anstage{display:block !important;overflow:visible !important;padding:0 !important;
     background:#fff !important;}
-  body.anprinting .ansheet{max-width:none !important;margin:0 !important;padding:0 !important;
-    box-shadow:none !important;}
+  body.anprinting .ansheet{max-width:none !important;margin:0 !important;
+    padding:16mm 16mm 18mm !important;box-shadow:none !important;
+    -webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
   body.anprinting .ansec{margin-top:30px;}
-  @page{margin:16mm;}
+  /* 선택 토글은 종이에 내지 않습니다 */
+  body.anprinting .antb .pk{display:none !important;}
+  /* 브라우저가 얹는 머리말/꼬리말(사이트 이름·URL·날짜·시각)을 없애고,
+     날짜는 우리가 오른쪽 위에 직접 찍습니다 (시각 없이) */
+  body.anprinting .anprintmeta{display:block !important;margin-bottom:10px;
+    text-align:right;font-size:10.5px;font-weight:600;color:var(--muted2);
+    font-variant-numeric:tabular-nums;}
+  /* 화면과 똑같이 태그(지시·Q) 바탕색을 종이에도 냅니다 */
+  body.anprinting .anqa .tag,
+  body.anprinting .ansum .tx b{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+  @page{margin:0;}
 }
 
 /* ---------- 올리기 화면 ---------- */
@@ -1536,6 +1566,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 <div class="modalbg" id="atvbg">
   <div class="modal wide" role="dialog" aria-label="AI Note">
     <header>AI Note <span id="atvwho" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+      <button class="atvdel" id="atvdel" title="이 탭에 붙인 첨부 노트를 지웁니다">Delete</button>
       <button class="x" id="atvx">&#10005;</button></header>
     <div class="content" style="padding:0;overflow:hidden">
       <div id="atvpages"></div>
@@ -1554,12 +1585,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       </span>
       <span class="anacts">
         <button class="anact" id="an-edit" title="회의록을 손으로 고칩니다">EDIT</button>
-        <button class="anact prim" id="an-save" hidden title="고친 내용을 저장합니다">저장</button>
-        <button class="anact" id="an-cancel" hidden title="고친 내용을 버립니다">취소</button>
+        <button class="anact prim" id="an-save" hidden title="고친 내용을 저장합니다">Save</button>
+        <button class="anact" id="an-cancel" hidden title="고친 내용을 버립니다">Cancel</button>
         <button class="anact" id="an-copy" title="회의록을 글자만 있는 형태로 복사합니다">COPY</button>
         <button class="anact" id="an-export" title="흰 시트 한 장을 인쇄(PDF 저장)합니다">EXPORT</button>
         <button class="anact" id="an-regen" title="회의록 원문으로 다시 만듭니다">REGENERATE</button>
-        <button class="anact" id="an-tasks" title="지시사항을 이 자료의 할 일로 보냅니다">TASKS</button>
       </span>
       <button class="x anx" id="anx" aria-label="닫기">&#10005;</button>
     </header>
@@ -4599,6 +4629,15 @@ function openAtView(docId, tab){
   $("#atvbg").classList.add("on");
   atvShow();
 }
+$("#atvdel").onclick = async () => {
+  if(!atvDoc) return;
+  const ids = atOf(atvDoc, atvTab).map(a => a.id);
+  if(!ids.length){ closeAtView(); return; }
+  const label = AT_TABS[atvTab] || "";
+  if(!confirm(`${label} 탭에 붙인 첨부 노트 ${ids.length}개를 지웁니다. 되돌릴 수 없습니다.`)) return;
+  await atDelete(ids);   /* 남은 게 없으면 atDelete 안에서 이 창을 닫습니다 */
+};
+
 function closeAtView(){
   atvSeq++;
   if(atvPdf){ try{ atvPdf.destroy(); }catch(e){} atvPdf = null; }
@@ -5600,6 +5639,12 @@ function anWhen(iso){
   return `${t.getFullYear()}.${p(t.getMonth() + 1)}.${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}`;
 }
 
+/* 인쇄(EXPORT) 오른쪽 위에 찍는 날짜 — 시각 없이 날짜만 */
+function anPrintDate(){
+  const t = new Date();
+  return `${t.getFullYear()}. ${t.getMonth() + 1}. ${t.getDate()}.`;
+}
+
 /* 문장 안에서 bold 구절만 <b> 로 감쌉니다 (형광 밑줄은 CSS 가 그립니다).
    구절이 없거나 문장에서 못 찾으면 문장을 그대로 씁니다. */
 function anBold(text, bold){
@@ -5644,8 +5689,7 @@ function renderAiNote(docId){
 
   /* COPY · EXPORT · REGENERATE · TASKS 는 보기 중에만 켜집니다 (고치는 중·다시 만드는 중엔 잠급니다) */
   const lock = ed || (S.anBusy === docId);
-  $("#an-copy").disabled = $("#an-export").disabled =
-    $("#an-regen").disabled = $("#an-tasks").disabled = lock;
+  $("#an-copy").disabled = $("#an-export").disabled = $("#an-regen").disabled = lock;
 
   const qaItems = n.qa.reduce((s, g) => s + g.items.length, 0);
   const owners  = new Set(n.actions.map(r => r.owner).filter(Boolean));
@@ -5660,7 +5704,7 @@ function renderAiNote(docId){
         <span class="lb">주요 Q&amp;A 및 논의사항</span><span class="ct">${n.qa.length}팀 · ${qaItems} 항목</span></button>
       <button class="anjump" data-anjump="3"><span class="no">03</span>
         <span class="lb">지시사항</span><span class="ct">${n.actions.length} 건</span></button>
-      ${ ed ? `<div class="editing">고치는 중입니다. 머리칸의 <b>저장</b> 을 눌러야 남습니다.</div>` : "" }
+      ${ ed ? `<div class="editing">고치는 중입니다. 머리칸의 <b>Save</b> 를 눌러야 남습니다.</div>` : "" }
     </div>
     ${ (!ed && n.keywords.length) ? `<div class="blk thin"><div class="kick">Keywords</div>
       <div class="ankws">${n.keywords.map(k => `<span>${esc(k)}</span>`).join("")}</div></div>` : "" }
@@ -5668,7 +5712,8 @@ function renderAiNote(docId){
       <div class="kick">Follow-up</div>
       <div class="anfu"><span class="big">${n.actions.length}</span>
         <span class="sub">지시사항${owners.size ? ` · 담당 ${owners.size}팀` : ""}</span></div>
-      <div class="anfunote">머리칸의 <b>TASKS</b> 로 이 자료의 할 일에 보낼 수 있습니다.</div>
+      <div class="anfunote">03 지시사항에서 <b>고른 항목</b>만 이 자료의 할 일로 보냅니다.</div>
+      <button class="ansendtasks" id="an-sendtasks"${lock ? " disabled" : ""}>SEND TASKS</button>
     </div>` }`;
 
   /* ---- 01 Executive Summary ---- */
@@ -5742,10 +5787,13 @@ function renderAiNote(docId){
       : n.actions.length
         ? `<table class="antb"><thead><tr>
              <th class="no">No</th><th>지시 / 실행 항목</th><th class="ow">담당자</th><th class="du">마감일</th>
-           </tr></thead><tbody>${n.actions.map(r =>
+             <th class="pk" title="할 일로 보낼 항목을 고릅니다">보내기</th>
+           </tr></thead><tbody>${n.actions.map((r, i) =>
              `<tr><td class="no">${r.no}</td><td class="tx">${esc(r.text)}</td>
                   <td class="ow">${esc(r.owner || "—")}</td>
-                  <td class="du${r.urgent ? " hot" : ""}">${esc(r.due || "—")}</td></tr>`).join("")}
+                  <td class="du${r.urgent ? " hot" : ""}">${esc(r.due || "—")}</td>
+                  <td class="pk"><input type="checkbox" class="anpick" data-i="${i}" checked
+                    aria-label="${esc(r.text)} — 할 일로 보내기"></td></tr>`).join("")}
            </tbody></table>`
         : `<div class="anempty">해당 항목 없음</div>`);
 
@@ -5755,6 +5803,7 @@ function renderAiNote(docId){
 
   /* ---- 흰 시트 ---- */
   $("#ainotebody").innerHTML = `<div class="ansheet">
+    <div class="anprintmeta" aria-hidden="true">${anPrintDate()}</div>
     ${ n.cut ? `<div class="cut">⚠ 답이 길어 뒷부분이 빠졌을 수 있습니다 — 다시 만들기를 권합니다.</div>` : "" }
     <div class="dkick">Meeting Minutes</div>
     <h1>${esc(title)}</h1>
@@ -5939,6 +5988,8 @@ function anExport(){
     document.body.classList.remove("anprinting");
     window.removeEventListener("afterprint", off);
   };
+  const pm = $("#ainotebody .anprintmeta");   /* 날짜를 인쇄 직전 값으로 새로 찍습니다 */
+  if(pm) pm.textContent = anPrintDate();
   document.body.classList.add("anprinting");
   window.addEventListener("afterprint", off);
   setTimeout(() => { try{ window.print(); }catch(_){} setTimeout(off, 800); }, 40);
@@ -5953,7 +6004,8 @@ async function anRegen(){
   const mt = $("#an-mt").textContent;
   $("#an-mt").textContent = "다시 만드는 중…";
   $("#an-edit").disabled = $("#an-copy").disabled = $("#an-export").disabled =
-    $("#an-regen").disabled = $("#an-tasks").disabled = true;
+    $("#an-regen").disabled = true;
+  { const st = $("#an-sendtasks"); if(st) st.disabled = true; }
 
   const before = AINOTES[id];
   await makeAiNote(id);                       /* 성공하면 AINOTES[id] 가 새 노트로 바뀝니다 (editedByUser 없음) */
@@ -5971,10 +6023,17 @@ function anToTasks(){
   const acts = (rec.note && rec.note.actions) || [];
   if(!acts.length){ toast("보낼 지시사항이 없습니다"); return; }
 
+  /* 03 지시사항 표의 선택 토글에서 체크된 행만 보냅니다 (표가 없으면 전부) */
+  const boxes = $$("#ainotebody .anpick");
+  const acts2 = boxes.length
+    ? acts.filter((_, i) => boxes.some(b => +b.dataset.i === i && b.checked))
+    : acts;
+  if(!acts2.length){ toast("고른 지시사항이 없습니다 — 보낼 항목을 선택하세요"); return; }
+
   const arr = KV.tasks[id] || [];
   const have = new Set(arr.map(t => t.t));
   let added = 0;
-  acts.forEach(r => {
+  acts2.forEach(r => {
     const base = String(r.text || "").trim();
     if(!base) return;
     const tail = [r.owner, r.due].filter(Boolean).join(" / ");
@@ -5996,7 +6055,6 @@ $("#an-save").onclick   = anSaveEdit;
 $("#an-copy").onclick   = anCopy;
 $("#an-export").onclick = anExport;
 $("#an-regen").onclick  = anRegen;
-$("#an-tasks").onclick  = anToTasks;
 
 /* 닫기 · 배경 클릭 · 레일의 차례 누르기 · 줄/행 넣고 빼기
    (모달 안은 매번 새로 그리므로 전부 위임입니다) */
@@ -6004,6 +6062,7 @@ $("#anx").onclick = closeAiNote;
 $("#ainotebg").addEventListener("click", e => {
   /* 고치는 중에 바깥을 잘못 눌러 창이 닫히면 고친 게 날아가므로, 그때는 못 본 척합니다 */
   if(e.target.id === "ainotebg"){ if(!S.anEdit) closeAiNote(); return; }
+  if(e.target.closest("#an-sendtasks")){ anToTasks(); return; }
   const j = e.target.closest("[data-anjump]");
   if(j){
     const stage = $("#ainotebody"), t = $("#an-s0" + j.dataset.anjump);
