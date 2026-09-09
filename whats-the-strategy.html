@@ -104,6 +104,8 @@ button[disabled]{opacity:.45;cursor:default;}
   background:none;color:var(--muted2);display:none;line-height:1;font-size:13px;}
 #clearsearch:hover{color:var(--accent-ink);}
 #searchwrap.has-text #clearsearch{display:block;}
+/* 검색칸 오른쪽 끝을 오른쪽 패널(NOTE) 왼쪽 선에 맞춥니다 — topright 버튼 2칸(112px) 제외 */
+body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 110px);}
 .primarybtn{height:32px;padding:0 12px;white-space:nowrap;background:var(--accent);color:#fff;
   border:none;border-radius:0;font-weight:800;font-size:11.5px;letter-spacing:.04em;}
 .primarybtn:hover:not([disabled]){background:#dd2b0f;}
@@ -382,7 +384,14 @@ body.full #docfind-count{color:#9b9797;}
 
 /* ---------- 그리기 도구 (annotation) — 뷰어 툴바 · concept 3a ---------- */
 #drawbar[hidden]{display:none !important;}
-#drawbar{flex:0 0 auto;display:flex;align-items:stretch;border-left:2px solid var(--line);}
+#drawbar{flex:0 0 auto;display:flex;align-items:stretch;}
+/* 그리기 도구 펴기 / 접기 단추 — 평소엔 접혀 있습니다 */
+#viewbar #drawtoggle{border-left:2px solid var(--line);border-right:none;}
+#viewbar #drawtoggle[hidden]{display:none !important;}
+#viewbar #drawtoggle.on,#viewbar #drawtoggle.on:hover{background:var(--rule);color:var(--bg);}
+body.draw-collapsed #drawbar{display:none !important;}
+body.full #viewbar #drawtoggle{border-left-color:#605d5d;}
+body.full #viewbar #drawtoggle.on,body.full #viewbar #drawtoggle.on:hover{background:var(--accent);color:#fff;}
 #drawbar .dwtool{flex:0 0 auto;width:40px;display:flex;align-items:center;justify-content:center;
   padding:0;border:none;border-right:1px solid var(--hairline);border-radius:0;
   background:none;color:var(--text);}
@@ -393,7 +402,7 @@ body.full #docfind-count{color:#9b9797;}
 #drawbar .dwtool.on,#drawbar .dwtool.on:hover{background:var(--rule);color:var(--bg);}
 #drawbar #dw-undo[disabled]{opacity:.45;pointer-events:none;}
 body.hide-doctitle #drawbar .dwtool{width:36px;}
-body.tight-bar #drawbar{display:none !important;}
+body.tight-bar #drawbar,body.tight-bar #viewbar #drawtoggle{display:none !important;}
 body.full #viewbar #drawbar{border-left-color:#605d5d;}
 body.full #drawbar .dwtool{border-right-color:#605d5d;}
 body.full #drawbar #dw-cursor,body.full #drawbar #dw-eraser{border-right-color:#605d5d;}
@@ -732,14 +741,19 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 
 /* ---------- AI NOTE 트리거 (회의록 입력창 위) ---------- */
 .annote{padding:12px 14px;background:var(--panel2);border-bottom:2px solid var(--rule);margin:0 0 10px;}
-.annote .top{display:flex;align-items:baseline;gap:8px;}
+.annote .anhd{display:flex;align-items:flex-start;gap:10px;}
+.annote .anlbl{display:flex;flex-direction:column;gap:3px;min-width:0;padding-top:2px;}
 .annote .kick{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
-.annote .stat{margin-left:auto;font-size:11px;color:var(--muted2);font-variant-numeric:tabular-nums;}
-.annote .desc{font-size:12px;line-height:1.5;color:var(--muted2);margin:5px 0 9px;}
-.annote .gen{display:flex;align-items:center;gap:8px;width:100%;height:38px;border:0;border-radius:0;
-  background:var(--accent);color:#fff;font-size:12px;font-weight:800;letter-spacing:.1em;padding:0 14px;cursor:pointer;}
-.annote .gen:hover:not([disabled]){background:#dd2b0f;}
-.annote .gen[disabled]{opacity:.45;cursor:default;}
+.annote .stat{font-size:11px;color:var(--muted2);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.annote .anbtns{margin-left:auto;flex:0 0 auto;display:flex;flex-direction:column;gap:5px;}
+.annote .genmini{display:flex;align-items:center;justify-content:center;gap:5px;min-width:124px;height:26px;
+  border:0;border-radius:0;background:var(--accent);color:#fff;font-size:11px;font-weight:800;
+  letter-spacing:.02em;padding:0 12px;cursor:pointer;white-space:nowrap;}
+.annote .genmini:hover:not([disabled]){background:#dd2b0f;}
+.annote .genmini[disabled]{opacity:.45;cursor:default;}
+.annote .genmini.up{background:var(--bg);color:var(--muted);border:1px solid var(--line);}
+.annote .genmini.up:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);background:var(--bg);}
+.annote .genmini .n{font-weight:800;color:var(--accent);}
 .annote .lock{font-size:10.5px;color:var(--muted2);margin-top:6px;}
 .annote .bad{font-size:11px;color:var(--bad);margin-top:6px;line-height:1.5;}
 .annote .bad .retry{margin-left:6px;border:1px solid var(--line);background:none;border-radius:0;
@@ -1000,6 +1014,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .anmeta4 .k{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);}
 .anmeta4 .v{margin-top:5px;font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;
   overflow-wrap:anywhere;}
+.anmeta4.edt .c{padding:8px 10px;}
+.anmeta4.edt .c:first-child{padding-left:0;}
+.anmeta4 .metain{margin-top:4px;width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:0;
+  background:#fff;font-size:13px;font-weight:700;}
+.anmeta4 .metain:focus{border-color:var(--accent);outline:none;}
 
 .ansec{display:flex;align-items:center;gap:10px;margin-top:46px;}
 .ansec .no{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--accent);}
@@ -1178,6 +1197,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   body:not(.left-closed) #backdrop,body:not(.right-closed) #backdrop{display:block;}
   body.full #backdrop{display:none;}
   :root{--left-w:min(84vw,300px);--right-w:min(92vw,560px);}
+  body:not(.right-closed) #searchwrap{padding-right:16px;}
   #center{padding-left:var(--rail);padding-right:var(--rail);}
   #brand{display:none;}
   /* 좁은 화면에서는 커맨드 바가 통째로 옆으로 밀립니다 —
@@ -1294,6 +1314,13 @@ body.full .thumb.sum::after{background:#f3f2f2;}
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">One Page</span></button>
       <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span><button id="pagejump" title="p 번호로 이동" aria-label="p 번호로 이동" hidden></button></div>
+      <button class="vbtn" id="drawtoggle" title="그리기 도구 펴기 / 접기"
+              aria-label="그리기 도구 펴기 / 접기" aria-expanded="false" hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15.7 10.3 21 5l-2-2-5.3 5.3"/><path d="M18 13 5.5 2 2 5.5 13 18l5-5Z"/><path d="m13 18-2.5 3.5L7 18"/>
+        </svg>
+      </button>
       <div id="drawbar" hidden>
         <button class="dwtool on" id="dw-cursor" title="커서 (그리기 끄기)" aria-label="커서 · 그리기 끄기">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1341,7 +1368,6 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         <button class="dfbtn" id="docfind-next" title="다음 (Enter)" aria-label="다음 결과">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-        <button class="dfbtn" id="docfind-x" title="닫기 (Esc)" aria-label="검색 닫기">✕</button>
       </div>
       <button class="vbtn" id="btn-full" title="Full screen (Esc to exit)" aria-label="Full screen">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1866,7 +1892,9 @@ const KV_DEFAULT = {
   /* 파일 이름 → 회의 종류 자동 지정 규칙 : { "회의 종류": ["포함 단어", …] } */
   catMap:{},
   /* 그리기 도구 — 마지막에 쓴 굵기·색깔 (기기별로 유지) */
-  drawcfg:{}
+  drawcfg:{},
+  /* 그리기 도구 막대 — 평소엔 접어 둡니다 ("shown" 이면 펴 둡니다) */
+  drawUI:"hidden"
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -2598,15 +2626,8 @@ function scriptPages(id){
 const AT_TABS = { sum:"SUMMARY", note:"NOTE" };
 function atTab(t){ return t === "note" ? "note" : "sum"; }
 function atOf(id, tab){ const t = atTab(tab); return ATTACH.filter(a => a.docId === id && atTab(a.tab) === t); }
-function atBar(d, tab){
-  const t = atTab(tab), n = atOf(d.id, t).length;
-  return `<span class="atbtns">` +
-    `<button class="mini" data-at="up" data-attab="${t}"` +
-    ` title="${AT_TABS[t]} 탭에 딸린 PDF를 올리고 관리합니다">Upload</button>` +
-    `<button class="mini" data-at="view" data-attab="${t}" ${n ? "" : "disabled"}` +
-    ` title="${n ? AT_TABS[t] + " 탭에 올린 PDF를 팝업으로 봅니다" : "먼저 Upload 로 PDF를 올리세요"}">AI Note` +
-    `${n ? `<span class="n">${n}</span>` : ""}</button></span>`;
-}
+/* 첨부 PDF 단추(Upload · 보기)는 이제 SUMMARY·NOTE 탭 위쪽의
+   aiSumBlock() · aiNoteBlock() 안으로 들어갔습니다. */
 
 /* NOTE 탭 회의록 입력창 위에 얹는 'AI NOTE 생성 / 보기' 블록.
    생성은 makeAiNote() 가 하고, 여기서는 상태(없음·생성 중·완료·실패)만 그립니다.
@@ -2625,16 +2646,61 @@ function aiNoteBlock(d){
            (has.editedByUser ? " · 수정함" : "");
   }
 
-  const label = busy ? "생성 중…" : (has ? "AI NOTE 보기" : "AI NOTE 생성");
+  const label = busy ? "생성 중…" : (has ? "View AI NOTE" : "Generate AI NOTE");
   const act   = (has && !busy) ? "open" : "gen";
   const dis   = (!ready || busy) ? " disabled" : "";
 
+  /* 올려 붙인 Note(PDF) — 있으면 '보기', 없으면 '올리기' */
+  const nAtt    = atOf(d.id, "note").length;
+  const upLabel = nAtt ? "Attatched NOTE" : "NOTE Upload";
+  const upAct   = nAtt ? "view" : "up";
+  const upTitle = nAtt ? "올려 붙인 Note 파일을 팝업으로 봅니다" : "Note 파일(PDF)을 올려 붙입니다";
+
   return `<div class="annote">
-    <div class="top"><span class="kick">AI NOTE</span><span class="stat">${stat}</span></div>
-    <div class="desc">이 회의록에서 Executive Summary · 주요 Q&amp;A · 지시사항을 한 장으로 정리합니다.</div>
-    <button class="gen" data-annote="${act}"${dis}>${label}</button>
+    <div class="anhd">
+      <div class="anlbl"><span class="kick">AI NOTE</span><span class="stat">${stat}</span></div>
+      <div class="anbtns">
+        <button class="genmini" data-annote="${act}"${dis}>${label}</button>
+        <button class="genmini up" data-at="${upAct}" data-attab="note" title="${upTitle}">${upLabel}${
+          nAtt ? `<span class="n">${nAtt}</span>` : ""}</button>
+      </div>
+    </div>
     ${ ready ? "" : `<div class="lock">설정에서 제미나이 API 키를 넣으면 켜집니다.</div>` }
     ${ err ? `<div class="bad">✕ ${esc(err)}<button class="retry" data-annote="gen">다시 시도</button></div>` : "" }
+  </div>`;
+}
+
+/* SUMMARY 탭 위쪽 — AI NOTE 블록과 같은 모양의 두 단추.
+   'Generate AI Summary' 는 아직 기능이 없어 눌리지 않습니다(추후 연결 예정).
+   'SUMMARY Upload / Attatched SUMMARY' 는 첨부 PDF 를 올리고 봅니다. */
+function aiSumBlock(d){
+  const nAtt    = atOf(d.id, "sum").length;
+  const upLabel = nAtt ? "Attatched SUMMARY" : "SUMMARY Upload";
+  const upAct   = nAtt ? "view" : "up";
+  const upTitle = nAtt ? "올려 붙인 Summary 파일을 팝업으로 봅니다" : "Summary 파일(PDF)을 올려 붙입니다";
+
+  return `<div class="annote">
+    <div class="anhd">
+      <div class="anlbl"><span class="kick">AI SUMMARY</span><span class="stat">준비 중 — 곧 추가됩니다</span></div>
+      <div class="anbtns">
+        <button class="genmini" disabled title="곧 추가될 기능입니다">Generate AI Summary</button>
+        <button class="genmini up" data-at="${upAct}" data-attab="sum" title="${upTitle}">${upLabel}${
+          nAtt ? `<span class="n">${nAtt}</span>` : ""}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* SCRIPT 탭 위쪽 — 'Generate AI SCRIPT' 한 단추.
+   아직 기능이 없어 눌리지 않습니다(추후 연결 예정). 첨부 단추는 없습니다. */
+function aiScriptBlock(){
+  return `<div class="annote">
+    <div class="anhd">
+      <div class="anlbl"><span class="kick">AI SCRIPT</span><span class="stat">준비 중 — 곧 추가됩니다</span></div>
+      <div class="anbtns">
+        <button class="genmini" disabled title="곧 추가될 기능입니다">Generate AI SCRIPT</button>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -2697,7 +2763,7 @@ function renderRight(){
     ? `AI가 ${fmtWhen(mine.at)}에 만든 요약입니다.` : "";
 
   /* 요약 탭 위쪽 단추들과 상태 줄 — 글상자로 볼 때와 구조로 볼 때가 같은 것을 씁니다 */
-  const sumTools = atBar(d, "sum") +
+  const sumTools =
     ( aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
         busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" ) +
     ( ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" ) +
@@ -2736,7 +2802,7 @@ function renderRight(){
       <div class="skel line w90"></div><div class="skel line w50"></div>
     </div>`;
 
-  const paneSum =
+  const paneSum = aiSumBlock(d) + (
       (busy && !ex) ? skelBlk
     : asText
     ? `<div class="sect grow">
@@ -2748,13 +2814,13 @@ function renderRight(){
         ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
                  위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }
       </div>`
-    : execBox(ex, sumTools, sumStatus) + exSections(ex);
+    : execBox(ex, sumTools, sumStatus) + exSections(ex));
 
   /* ── 탭 2 : Meeting Notes — 입력창 하나가 패널을 꽉 채웁니다 ───────────── */
   const paneNote = `
     ${ aiNoteBlock(d) }
     <div class="sect grow">
-      <h4 class="aihead">${ atBar(d, "note") }${ lockBtn("B", !!b, S.editB) }</h4>
+      <h4 class="aihead">${ lockBtn("B", !!b, S.editB) }</h4>
       <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
         placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
       ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
@@ -2764,6 +2830,7 @@ function renderRight(){
   /* ── 탭 4 : 발표 스크립트 — 회의록과 같은 글상자를 쪽마다 하나씩 ─────
        지금 뷰어에 펼쳐진 쪽의 스크립트만 보이고, 쪽을 넘기면 그 쪽 글로 바뀝니다. */
   const paneScript = `
+    ${ aiScriptBlock() }
     <div class="sect grow">
       <h4 class="aihead">
         <span class="scpage">
@@ -3131,8 +3198,7 @@ document.addEventListener("keydown", e => {
 document.addEventListener("click", e => {
   if(e.target.closest("#docfind-next")){ stepDocFind(1); return; }
   if(e.target.closest("#docfind-prev")){ stepDocFind(-1); return; }
-  if(e.target.closest("#docfind-x")){ closeDocFind(); return; }
-  if(e.target.closest("#dfpop-x")){ closeDfPop(); $("#docfind-in").focus(); return; }
+  if(e.target.closest("#dfpop-x")){ closeDfPop(); return; }
   const row = e.target.closest(".dfres");
   if(row){ gotoDocFindHit(+row.dataset.k); return; }
   /* 바깥을 누르면 목록만 닫습니다 (검색어는 유지) */
@@ -3697,6 +3763,21 @@ function setFull(on){
 }
 $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full"));
 
+/* 그리기 도구 막대 — 펴기 / 접기 (기기별로 유지) */
+function applyDrawUI(){
+  const shown = KV.drawUI === "shown";
+  document.body.classList.toggle("draw-collapsed", !shown);
+  const t = $("#drawtoggle");
+  if(t){ t.classList.toggle("on", shown); t.setAttribute("aria-expanded", shown ? "true" : "false"); }
+}
+$("#drawtoggle").onclick = () => {
+  const shown = KV.drawUI === "shown";
+  KV.drawUI = shown ? "hidden" : "shown";
+  saveKV("drawUI");
+  if(shown && window.drawExit) window.drawExit();   /* 접을 때 켜져 있던 도구는 끕니다 */
+  applyDrawUI();
+};
+
 /* 가운데 화면이 좁아지면 툴바를 아이콘만 남깁니다.
    (사이드바를 펼쳤을 때도 좁아지므로 창 크기가 아니라 가운데 너비를 봅니다) */
 (function tightBar(){
@@ -3845,6 +3926,7 @@ $("#btn-full").onclick = () => setFull(!document.body.classList.contains("full")
   function drawSync(){
     const on = !!S.pdf;
     bar.hidden = !on;
+    const tgl = $("#drawtoggle"); if(tgl) tgl.hidden = !on;
     if(!on){ if(DRAW.tool) setTool(null); return; }
     if(String(lastPage) !== pageKey()){ lastPage = S.page; DRAW.past = []; DRAW.drawing = false; DRAW.cur = null; }
     const { w, h } = cssSize();
@@ -5629,6 +5711,8 @@ function renderAiNote(docId){
         : `<div class="anempty">해당 항목 없음</div>`);
 
   const cell = (k, v) => `<div class="c"><div class="k">${k}</div><div class="v">${esc(v || "—")}</div></div>`;
+  const mcell = (k, mk, v) => `<div class="c"><div class="k">${k}</div>
+    <input class="anin metain" data-an="meta" data-k="${mk}" value="${esc(v || "")}" placeholder="—"></div>`;
 
   /* ---- 흰 시트 ---- */
   $("#ainotebody").innerHTML = `<div class="ansheet">
@@ -5636,8 +5720,11 @@ function renderAiNote(docId){
     <div class="dkick">Meeting Minutes</div>
     <h1>${esc(title)}</h1>
     <div class="drule"></div>
-    <div class="anmeta4">
-      ${cell("일시", M.date)}${cell("장소", M.place)}${cell("참석", M.attendees)}${cell("작성", M.author)}
+    <div class="anmeta4${ed ? " edt" : ""}">
+      ${ ed
+        ? mcell("일시", "date", M.date) + mcell("장소", "place", M.place) +
+          mcell("참석", "attendees", M.attendees) + mcell("작성", "author", M.author)
+        : cell("일시", M.date) + cell("장소", M.place) + cell("참석", M.attendees) + cell("작성", M.author) }
     </div>
     ${secSum}${secQa}${secAct}
   </div>`;
@@ -5692,7 +5779,8 @@ $("#ainotebody").addEventListener("input", e => {
   if(!k || !dr) return;
   const i = +el.dataset.i, g = +el.dataset.g;
   const qg = dr.qa[g] || null, qi = qg ? qg.items[i] : null, ac = dr.actions[i];
-  if     (k === "sum"     && dr.summary[i]) dr.summary[i].text = el.value;
+  if     (k === "meta"){ (dr.doc.meta || (dr.doc.meta = {}))[el.dataset.k] = el.value; }
+  else if(k === "sum"     && dr.summary[i]) dr.summary[i].text = el.value;
   else if(k === "qteam"   && qg)  qg.team    = el.value;
   else if(k === "qkind"   && qi)  qi.kind    = el.value;
   else if(k === "qtext"   && qi)  qi.text    = el.value;
@@ -5733,7 +5821,7 @@ function openAiNote(docId){
 function closeAiNote(){
   $("#ainotebg").classList.remove("on");
   S.anOpen = null; S.anEdit = null; S.anDraft = null;
-  const back = $(".annote .gen");          /* 포커스를 열었던 자리로 되돌립니다 */
+  const back = $(".annote .genmini");      /* 포커스를 열었던 자리로 되돌립니다 */
   if(back && !back.disabled) back.focus();
 }
 
@@ -6803,6 +6891,7 @@ function registerSW(){
   toggleThumbs((KV.thumbs === null || KV.thumbs === undefined) ? !isNarrow() : KV.thumbs);
   document.body.classList.toggle("left-closed",  (KV.left  === null || KV.left  === undefined) ? isNarrow() : !KV.left);
   document.body.classList.toggle("right-closed", (KV.right === null || KV.right === undefined) ? isNarrow() : !KV.right);
+  applyDrawUI();
 
   /* 지난번에 보던 자료를 그대로 다시 엽니다 (지워졌으면 기억만 지웁니다) */
   const last = KV.sel ? DOCS.find(d => d.id === KV.sel) : null;
