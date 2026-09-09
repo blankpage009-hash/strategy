@@ -91,7 +91,7 @@ button[disabled]{opacity:.45;cursor:default;}
 }
 .iconbtn:hover:not([disabled]){background:var(--panel);}
 /* 검색 — 테두리 없이 밑줄만 긋습니다 */
-#searchwrap{flex:1 1 auto;min-width:80px;display:flex;align-items:center;gap:10px;padding:0 16px;}
+#searchwrap{flex:1 1 auto;min-width:80px;display:flex;align-items:center;gap:10px;padding:0 16px;position:relative;}
 #searchwrap .mag{flex:0 0 auto;display:flex;align-items:center;color:var(--muted2);}
 #searchwrap .mag svg{display:block;}
 #search{flex:1 1 auto;min-width:0;height:32px;padding:0;
@@ -104,6 +104,11 @@ button[disabled]{opacity:.45;cursor:default;}
   background:none;color:var(--muted2);display:none;line-height:1;font-size:13px;}
 #clearsearch:hover{color:var(--accent-ink);}
 #searchwrap.has-text #clearsearch{display:block;}
+/* 저작권 표기 — 검색창 길이는 그대로 두고, 그 오른쪽 남는 공간에 작게 얹습니다 */
+#copyright{position:absolute;right:18px;top:0;height:100%;display:flex;align-items:flex-end;
+  padding-bottom:8px;white-space:nowrap;font-size:11px;color:var(--muted2);letter-spacing:.02em;
+  pointer-events:none;user-select:none;}
+body.right-closed #copyright{display:none;}
 /* 검색칸 오른쪽 끝을 오른쪽 패널(NOTE) 왼쪽 선에 맞춥니다 — topright 버튼 2칸(112px) 제외 */
 body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 110px);}
 .primarybtn{height:32px;padding:0 12px;white-space:nowrap;background:var(--accent);color:#fff;
@@ -1228,6 +1233,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   body.full #backdrop{display:none;}
   :root{--left-w:min(84vw,300px);--right-w:min(92vw,560px);}
   body:not(.right-closed) #searchwrap{padding-right:16px;}
+  #copyright{display:none;}
   #center{padding-left:var(--rail);padding-right:var(--rail);}
   #brand{display:none;}
   /* 좁은 화면에서는 커맨드 바가 통째로 옆으로 밀립니다 —
@@ -1260,6 +1266,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
     </span>
     <input id="search" type="search" placeholder=" File name or Keyword" autocomplete="off">
     <button id="clearsearch" title="지우기">✕</button>
+    <span id="copyright">Copyright ⓒ C.Hwang. All rights reserved.</span>
   </div>
   <div id="topright">
     <button class="plainbtn" id="btn-agenda" title="회의 Agenda" aria-label="회의 Agenda">
@@ -4569,7 +4576,7 @@ async function atAdd(files){
   const list = Array.from(files || [])
     .filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
   if(!list.length){ toast("PDF 파일만 올릴 수 있습니다"); return; }
-  let done = 0;
+  let done = 0, fail = 0;
   for(const f of list){
     const rec = { id: uid(), docId: atCtx, tab: atCtxTab,
                   name: f.name, size: f.size, addedAt: new Date().toISOString() };
@@ -4580,11 +4587,14 @@ async function atAdd(files){
       catch(err){ await dbDel("attachfile", rec.id).catch(() => {}); throw err; }
       ATTACH.push(rec); done++;
     }catch(err){
+      fail++;
       toast(f.name + " — " + storeErrMsg(err));
     }
   }
   renderAtList(); renderRight(); updateUsage();
   if(done) toast(`${done}개 올렸습니다`);
+  /* 올리기가 끝나면 창을 자동으로 닫습니다. 실패가 있으면 열어 둡니다. */
+  if(done && !fail) closeAttach();
 }
 
 async function atDelete(ids){
@@ -6301,6 +6311,10 @@ $("#upstart").onclick = async () => {
   }
   renderAll(); updateUsage();
   if(done) toast(`${done}개를 등록했습니다`);
+
+  /* 등록이 끝나면 창을 자동으로 닫습니다.
+     실패가 있거나 중단한 경우에는 로그를 볼 수 있게 열어 둡니다. */
+  if(!cancelUpload && !fail) setTimeout(() => { if(!uploading) closeUpload(); }, 1000);
 };
 
 function log(msg, kind){
