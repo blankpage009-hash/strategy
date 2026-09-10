@@ -933,6 +933,18 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .mrow .btnrow button:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
 .mrow .chk{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;cursor:pointer;}
 .mrow .chk input{width:15px;height:15px;margin:0;}
+/* ---------- 설정 — 설명 문구는 숨기고 ? 아이콘을 눌렀을 때만 팝업으로 ---------- */
+#modalbg .mrow > .hint,#modalbg .subbox > .hint{display:none;}
+#modalbg #usageinfo,#modalbg #persistinfo{display:block;}
+.hintbtn{display:inline-block;width:15px;height:15px;flex:0 0 auto;margin-left:6px;padding:0;
+  border:1px solid var(--line);border-radius:0;background:var(--panel);color:var(--muted);
+  font-size:10px;font-weight:700;line-height:13px;text-align:center;cursor:pointer;vertical-align:middle;}
+.hintbtn:hover{border-color:var(--accent);color:var(--accent-ink);}
+.hintpop{position:fixed;z-index:120;max-width:320px;padding:10px 12px;
+  border:2px solid var(--rule);border-radius:0;background:var(--bg);
+  box-shadow:0 8px 30px color-mix(in srgb, #201e1d 25%, transparent);
+  font-size:11.5px;color:var(--muted);line-height:1.65;}
+.hintpop b{color:var(--text);}
 /* ---------- 회의 종류 관리 표 ---------- */
 #catlist{margin-top:8px;}
 .clrow{display:flex;gap:6px;align-items:center;margin-top:6px;}
@@ -6763,6 +6775,69 @@ function stripDoc(d){
    14) 설정 · 백업
    ========================================================= */
 $("#btn-settings").onclick = () => { updateUsage(); renderCatList(); renderCatMap(); syncAiNoteRow(); $("#modalbg").classList.add("on"); };
+
+/* ---------- 설정 화면 — 회색 설명 문구를 ? 아이콘 팝업으로 숨김 ---------- */
+(function(){
+  const scope = $("#modalbg"); if(!scope) return;
+  let pop = null;
+  const closePop = () => { if(pop){ pop.remove(); pop = null; } };
+
+  function showPop(btn){
+    if(pop && pop._owner === btn){ closePop(); return; }
+    closePop();
+    const p = document.createElement("div");
+    p.className = "hintpop";
+    p.innerHTML = btn._hint || "";
+    p._owner = btn;
+    document.body.appendChild(p);
+    const r = btn.getBoundingClientRect();
+    let left = r.left, top = r.bottom + 6;
+    if(left + p.offsetWidth > innerWidth - 8)  left = innerWidth - 8 - p.offsetWidth;
+    if(left < 8) left = 8;
+    if(top + p.offsetHeight > innerHeight - 8) top = r.top - 6 - p.offsetHeight;
+    if(top < 8) top = 8;
+    p.style.left = left + "px";
+    p.style.top  = top + "px";
+    pop = p;
+  }
+
+  document.addEventListener("click", e => {
+    if(pop && !e.target.classList.contains("hintbtn")) closePop();
+  });
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape" && pop){ closePop(); e.stopPropagation(); }
+  }, true);
+  addEventListener("resize", closePop);
+  const content = scope.querySelector(".content");
+  if(content) content.addEventListener("scroll", closePop, true);
+
+  function anchorFor(hint){
+    let el = hint.previousElementSibling;
+    while(el){
+      if(el.classList.contains("lbl") || el.classList.contains("lbl2")) return el;
+      el = el.previousElementSibling;
+    }
+    const row = hint.closest(".mrow");
+    return row ? row.querySelector(".lbl") : null;
+  }
+
+  scope.querySelectorAll(".mrow > .hint, .subbox > .hint").forEach(hint => {
+    if(hint.id === "usageinfo" || hint.id === "persistinfo") return;
+    const row = hint.closest(".mrow");
+    if(row && row.style.display === "none") return;
+    const anchor = anchorFor(hint);
+    if(!anchor || anchor.querySelector(".hintbtn")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "hintbtn";
+    btn.textContent = "?";
+    btn.title = "설명 보기";
+    btn.setAttribute("aria-label", "설명 보기");
+    btn._hint = hint.innerHTML;
+    btn.addEventListener("click", ev => { ev.stopPropagation(); showPop(btn); });
+    anchor.appendChild(btn);
+  });
+})();
 
 /* ---------- 회의 종류 더하기 · 이름 바꾸기 · 삭제 ---------- */
 function renderCatList(){
