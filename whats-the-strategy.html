@@ -968,6 +968,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .mgdel{flex:0 0 auto;width:28px;height:28px;border:2px solid var(--line);border-radius:0;
   background:var(--bg);color:#d7d3d3;font-size:13px;line-height:1;}
 .mgdel:hover{background:#ffe0d9;border-color:#ff9783;color:var(--bad);}
+.mgdetach{flex:0 0 auto;height:28px;padding:0 9px;border:1px solid var(--line);border-radius:0;
+  background:var(--bg);color:var(--muted);font-size:11px;white-space:nowrap;}
+.mgdetach:hover{border-color:var(--accent);color:var(--text);}
 .mgbot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0 0 22px;}
 .mgbot select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
   background:#fff;font-size:12px;}
@@ -1232,6 +1235,19 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .frow select.need{border-color:#ff9783;background:#fff2ef;}
 .frow .rm{border:none;background:none;color:#d7d3d3;font-size:13px;}
 .frow .rm:hover{color:var(--bad);}
+/* 한 줄 = 파일 한 개. 아래에 '이어붙임' 표시줄이 한 줄 더 붙습니다. */
+.fitem{border-bottom:1px solid var(--hairline);}
+.fitem:last-child{border-bottom:none;}
+.fitem .frow{border-bottom:none;}
+.frelink{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;padding:0 2px 8px;}
+.frelink .rlchk{display:flex;gap:4px;align-items:center;color:var(--muted);white-space:nowrap;}
+.frelink .rlbadge{padding:1px 6px;border:1px solid #9ccfa7;background:#eef8f0;color:#2f6b3d;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.frelink .rlbadge.rep{border-color:#ffc79a;background:#fff5ea;color:#8a5316;}
+.frelink .rlbadge.new{border-color:var(--line);background:none;color:var(--muted);}
+.frelink select{height:26px;border:1px solid var(--line);border-radius:0;background:none;
+  font-size:11px;padding:0 4px;max-width:260px;}
+.frelink small{color:var(--muted);}
 #progwrap{display:none;}
 .bar{height:10px;background:var(--panel2);border-radius:0;overflow:hidden;margin:10px 0 6px;}
 .bar > i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s;}
@@ -1645,12 +1661,16 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <div id="mgtools">
         <input id="mgsearch" type="search" placeholder="이름으로 걸러내기" autocomplete="off">
         <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="mgnopdf" style="width:15px;height:15px;margin:0"> 원본 없는 자료만</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
           <input type="checkbox" id="mgall" style="width:15px;height:15px;margin:0"> 전체 선택</label>
         <span class="cnt" id="mgcount"></span>
       </div>
       <div id="mglist"></div>
     </div>
     <footer>
+      <button class="ghostbtn" id="mgdetachsel" style="margin-right:8px" disabled
+        title="고른 자료의 PDF 원본만 비웁니다 — 요약·회의록·할 일은 그대로 둡니다">선택 원본 비우기</button>
       <button class="ghostbtn" id="mgdelsel" style="margin-right:auto;color:var(--bad);border-color:#ff9783" disabled>
         선택 삭제</button>
       <button class="ghostbtn" id="mgdone">닫기</button>
@@ -1778,12 +1798,14 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 
       <div class="mrow">
         <div class="lbl">백업</div>
-        <div class="hint">회의록·요약·할 일·스크립트·자료 종류 설정을 파일 하나로 내보냅니다(.json).
-          <b>원본 포함</b>은 PDF 원본과 AI Note 첨부 파일까지 함께 담은 .zip 으로 내보냅니다(용량이 큽니다).
-          불러오기는 두 형식 모두 받습니다.</div>
+        <div class="hint"><b>데이터만</b>은 회의록·요약·할 일·스크립트·메모·회의 Agenda·자료 종류 설정을 파일 하나로 내보냅니다(.json).
+          <b>원본 + 데이터</b>는 위 내용에 PDF 원본과 AI Note 첨부 파일까지 함께 담은 .zip 입니다(용량이 큽니다).
+          <b>PDF 원본만</b>은 자료 목록과 PDF 원본만 담은 .zip 으로, 데이터는 들어가지 않습니다.
+          자료 목록은 세 가지 모두에 들어가므로 어느 것이든 단독으로 복원됩니다. 불러오기는 세 형식 모두 받습니다.</div>
         <div class="btnrow">
-          <button id="btn-export">내보내기 (원본 제외)</button>
-          <button id="btn-export-pdf">내보내기 (원본 포함)</button>
+          <button id="btn-export">데이터만 (.json)</button>
+          <button id="btn-export-full">원본 + 데이터 (.zip)</button>
+          <button id="btn-export-pdf">PDF 원본만 (.zip)</button>
           <button id="btn-import">불러오기</button>
           <input type="file" id="importfile" accept=".json,.zip,application/json,application/zip" hidden>
         </div>
@@ -2196,10 +2218,10 @@ async function loadPdfFor(doc){
     return;
   }
   if(!doc.hasPdf){
-    setNoView("원본이 저장되지 않은 자료입니다",
-      `‘글자와 요약만 저장’ 으로 등록된 자료입니다.<br>
-       검색·요약·할 일은 그대로 쓸 수 있고, 화면 표시는 되지 않습니다.<br>
-       <span class="hint">원본을 보려면 이 기기에서 같은 PDF를 다시 올리세요.</span>`,
+    setNoView("원본이 없습니다",
+      `이 자료는 PDF 원본 없이 글자·요약만 있습니다.<br>
+       검색·요약·회의록·할 일은 그대로 쓸 수 있습니다.<br>
+       <span class="hint">같은 이름으로 다시 올리면 이어붙습니다.</span>`,
       "Upload", openUpload);
     return;
   }
@@ -3659,7 +3681,9 @@ const mgMeta = d =>
 
 function mgRows(){
   const q = ($("#mgsearch").value || "").trim().toLowerCase();
+  const nopdf = $("#mgnopdf").checked;
   return DOCS
+    .filter(d => !nopdf || !d.hasPdf)
     .filter(d => !q || (d.title || "").toLowerCase().includes(q)
                     || (d.cat   || "").toLowerCase().includes(q))
     .slice()
@@ -3672,10 +3696,14 @@ function mgChecked(){
     .map(c => c.closest(".mgrow").dataset.id);
 }
 function mgSyncSel(){
-  const n = mgChecked().length;
+  const ids = mgChecked(), n = ids.length;
   const btn = $("#mgdelsel");
   btn.disabled = !n;
   btn.textContent = n ? `선택 삭제 (${n}개)` : "선택 삭제";
+  const withPdf = ids.filter(id => { const d = DOCS.find(x => x.id === id); return d && d.hasPdf; }).length;
+  const db = $("#mgdetachsel");
+  db.disabled = !withPdf;
+  db.textContent = withPdf ? `선택 원본 비우기 (${withPdf}개)` : "선택 원본 비우기";
 }
 
 function mgRender(){
@@ -3687,7 +3715,8 @@ function mgRender(){
         <div class="mgtop">
           <input type="checkbox" class="mgchk" title="선택">
           <input type="text" class="mgname" data-f="title" value="${esc(d.title)}" placeholder="자료 이름">
-          <button class="mgdel" title="이 자료 지우기">✕</button>
+          ${d.hasPdf ? '<button class="mgdetach" title="PDF 원본만 비우기 — 요약·회의록·할 일은 그대로">원본 비우기</button>' : ""}
+          <button class="mgdel" title="자료를 통째로 지우기">✕</button>
         </div>
         <div class="mgbot">
           <select class="cat" data-f="cat">${mgCatOptions(d.cat)}</select>
@@ -3720,6 +3749,7 @@ async function mgSaveDoc(d){
 
 function openManage(){
   $("#mgsearch").value = "";
+  $("#mgnopdf").checked = false;
   mgRender();
   $("#managebg").classList.add("on");
 }
@@ -3734,6 +3764,7 @@ $("#mgclose").onclick    = closeManage;
 $("#mgdone").onclick     = closeManage;
 $("#managebg").addEventListener("click", e => { if(e.target.id === "managebg") closeManage(); });
 $("#mgsearch").addEventListener("input", mgRender);
+$("#mgnopdf").addEventListener("change", mgRender);
 $("#mgall").onchange = () => {
   const on = $("#mgall").checked;
   $$("#mglist .mgchk").forEach(c => c.checked = on);
@@ -3770,10 +3801,19 @@ $("#mglist").addEventListener("change", async e => {
 });
 
 $("#mglist").addEventListener("click", async e => {
-  const del = e.target.closest(".mgdel"); if(!del) return;
-  const row = del.closest(".mgrow");
+  const row = e.target.closest(".mgrow"); if(!row) return;
   const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
-  if(!confirm(`'${d.title}' 을(를) 지울까요?\n요약과 할 일도 함께 지워집니다. 되돌릴 수 없습니다.`)) return;
+
+  if(e.target.closest(".mgdetach")){
+    if(!confirm(`'${d.title}' 의 PDF 원본만 비웁니다.\n요약·회의록·할 일·메모는 그대로 남습니다.\n같은 이름으로 다시 올리면 이어붙습니다.`)) return;
+    await detachPdf(d.id);
+    renderAll(); mgRender();
+    toast("원본을 비웠습니다");
+    return;
+  }
+
+  if(!e.target.closest(".mgdel")) return;
+  if(!confirm(`'${d.title}' 을(를) 통째로 지울까요?\n${docDataDesc(d)}`)) return;
   await removeDoc(d.id);
   saveKV("tasks"); saveKV("sums"); saveKV("scripts");
   renderAll(); mgRender();
@@ -3787,6 +3827,15 @@ $("#mgdelsel").onclick = async () => {
   saveKV("tasks"); saveKV("sums"); saveKV("scripts");
   renderAll(); mgRender();
   toast(`자료 ${ids.length}개를 지웠습니다`);
+};
+
+$("#mgdetachsel").onclick = async () => {
+  const ids = mgChecked().filter(id => { const d = DOCS.find(x => x.id === id); return d && d.hasPdf; });
+  if(!ids.length) return;
+  if(!confirm(`고른 자료 ${ids.length}개의 PDF 원본만 비웁니다.\n요약·회의록·할 일·메모는 그대로 남습니다.`)) return;
+  for(const id of ids) await detachPdf(id);
+  renderAll(); mgRender();
+  toast(`원본 ${ids.length}개를 비웠습니다`);
 };
 
 async function selectDoc(id){
@@ -4644,6 +4693,39 @@ async function removeDoc(id){
     S.anErr = ""; S.anErrId = null;
     await loadPdfFor(null);
   }
+}
+
+/* 자료 레코드와 데이터(요약·회의록·할 일·메모·발표 스크립트·펜 자국)는 그대로 두고
+   PDF 원본만 비웁니다. 같은 이름으로 다시 올리면 2단계 코드가 이어붙입니다.
+   물어보지 않습니다 — 부르는 쪽에서 확인하세요. */
+async function detachPdf(id){
+  const d = DOCS.find(x => x.id === id); if(!d) return;
+  await dbDel("files", id).catch(()=>{});   /* draw(펜 자국) · pageTexts 는 남깁니다 */
+  d.hasPdf = false;
+  try{
+    await dbPut("docs", stripDoc(d));
+  }catch(err){
+    alert("저장하지 못했습니다 — " + storeErrMsg(err));
+    await loadAll(); renderAll();
+    return;
+  }
+  if(S.sel === id) await loadPdfFor(d);
+}
+
+/* 통째 삭제 확인창에 보여 줄, 이 자료에 딸린 데이터 요약 한 줄 */
+function docDataDesc(d){
+  const parts = [];
+  const note = (KV.sums[d.id] && KV.sums[d.id].b || "").replace(/[\sㆍ]/g, "");
+  if(note || noteOf(d) || AINOTES[d.id]) parts.push("회의록");
+  const tasks = (KV.tasks[d.id] || []).length;
+  if(tasks) parts.push("할 일 " + tasks + "개");
+  const sum = KV.sums[d.id];
+  if(sum && ((sum.a||"").replace(/[\sㆍ]/g,"") || (sum.ex||[]).length)) parts.push("요약");
+  if((KV.memos[d.id] || "").replace(/[\sㆍ]/g,"")) parts.push("메모");
+  if(Object.keys(KV.scripts[d.id] || {}).length) parts.push("발표 스크립트");
+  const at = (typeof ATTACH !== "undefined" ? ATTACH : []).filter(x => x.docId === d.id).length;
+  if(at) parts.push("첨부 PDF " + at + "개");
+  return parts.length ? parts.join(" · ") + " — 되돌릴 수 없습니다." : "딸린 데이터는 없습니다.";
 }
 
 /* =========================================================
@@ -6329,28 +6411,124 @@ function addFiles(files){
   renderPending();
 }
 
+/* ── 이어붙이기(재업로드) ──────────────────────────────────────────
+   같은 이름·같은 회의·같은 주차의 자료가 이미 있으면 새 자료를 만들지 않고,
+   그 자료의 PDF 원본만 다시 채웁니다. 요약·회의록·할 일·메모는 열쇠가
+   자료 id 라서 그대로 남아 있습니다.
+   한 줄마다 p.relinkId(이어붙일 자료) · p.rlAuto(자동으로 찾은 것)
+   · p.rlSet(손으로 정했다는 표시) · p.rlPrev(해제했다 되돌릴 때 쓰는 것)를 둡니다. */
+
+/* 이어붙일 만한 자료를 찾습니다 — 중복 감지와 똑같은 조건입니다.
+   여러 개면 원본이 비어 있는 것을 먼저 고릅니다.
+   taken 에 든 자료는 같은 목록의 앞줄이 이미 차지한 것이라 건너뜁니다. */
+function findRelink(p, taken){
+  if(!p.title || !p.cat || !p.year || !p.month || !p.week) return null;
+  const date = mkDate(p.year, p.month, p.week);
+  const same = DOCS.filter(d => d.title === p.title && d.cat === p.cat && d.date === date
+                             && !(taken && taken.has(d.id)));
+  if(!same.length) return null;
+  return same.find(d => !d.hasPdf) || same[0];
+}
+/* 손으로 고를 수 있는 자료 — 원본이 비어 있는 자료 전부 (+ 지금 걸려 있는 것) */
+function relinkCands(p){
+  const out = DOCS.filter(d => !d.hasPdf);
+  for(const id of [p.relinkId, p.rlAuto, p.rlPrev]){
+    const d = id && DOCS.find(x => x.id === id);
+    if(d && out.indexOf(d) < 0) out.push(d);
+  }
+  return out.sort((a,b) => (b.date + (b.addedAt||"")).localeCompare(a.date + (a.addedAt||"")));
+}
+const relinkLabel = d =>
+  `${d.title} · ${d.cat} · ${d.date}${d.week ? " " + d.week + "주차" : ""}`;
+
+/* 줄 아래에 붙는 '이어붙임' 표시줄 */
+function relinkLine(p){
+  const tgt = p.relinkId ? DOCS.find(d => d.id === p.relinkId) : null;
+  const cands = relinkCands(p);
+  if(!tgt && !cands.length) return "";
+  /* 되돌릴 자료가 있을 때만 체크칸을 보여 줍니다 — 켤 대상이 없으면 헷갈립니다 */
+  const chk = (tgt || p.rlAuto || p.rlPrev)
+    ? `<label class="rlchk"><input type="checkbox" data-f="rlon"${tgt ? " checked" : ""}> 이어붙이기</label>`
+    : "";
+  if(tgt){
+    const data = docDataDesc(tgt).replace(/ — 되돌릴 수 없습니다\.$/, "");
+    return `<div class="frelink">${chk}
+      <span class="rlbadge${tgt.hasPdf ? " rep" : ""}">↩ 이어붙임: ${esc(relinkLabel(tgt))}${tgt.hasPdf ? " (원본 교체)" : ""}</span>
+      <small>${esc(data)}</small>
+    </div>`;
+  }
+  const opts = cands.map(d => `<option value="${esc(d.id)}">${esc(relinkLabel(d))}</option>`).join("");
+  return `<div class="frelink">${chk}
+    <span class="rlbadge new">＋ 새 자료로 올립니다</span>
+    <select data-f="rlpick"><option value="">이어붙일 자료 고르기…</option>${opts}</select>
+  </div>`;
+}
+/* 한 자료에 두 줄이 이어붙지 않게, 방금 고른 줄이 그 자료를 가져갑니다. */
+function claimRelink(p, id){
+  if(!id) return;
+  for(const q of pending) if(q !== p && q.relinkId === id){ q.rlPrev = id; q.relinkId = null; }
+}
+/* 목록을 다시 그릴 때마다 이어붙일 자료를 다시 셈합니다.
+   손으로 정한 줄(rlSet)은 그대로 두고, 나머지만 자동으로 찾습니다. */
+function syncRelink(){
+  const taken = new Set();
+  /* ① 손으로 정한 줄이 먼저 자리를 잡습니다 */
+  for(const p of pending){
+    if(p.relinkId && !DOCS.some(d => d.id === p.relinkId)) p.relinkId = null;
+    if(!p.rlSet) continue;
+    if(p.relinkId && taken.has(p.relinkId)) p.relinkId = null;   /* 앞줄이 먼저 가져갔습니다 */
+    if(p.relinkId) taken.add(p.relinkId);
+  }
+  /* ② 나머지 줄은 자동으로 찾습니다 — 이미 누가 가져간 자료는 건너뜁니다 */
+  for(const p of pending){
+    const auto = findRelink(p, taken);
+    p.rlAuto = auto ? auto.id : null;
+    if(p.rlSet) continue;
+    p.relinkId = p.rlAuto;
+    if(p.relinkId) taken.add(p.relinkId);
+  }
+}
+
 function renderPending(){
+  syncRelink();
   $("#bulkrow").style.display = pending.length ? "" : "none";
   $("#filelist").innerHTML = pending.map((p,i) => `
-    <div class="frow" data-i="${i}">
-      <div class="fn">${esc(p.title)}<small>${fmtSize(p.file.size)}</small></div>
-      <select data-f="cat"   class="${p.cat?"":"need"}"><option value="">종류</option>${catOptions(p.cat)}</select>
-      <select data-f="year"  class="${p.year?"":"need"}"><option value="">연도</option>${yearOptions(p.year)}</select>
-      <select data-f="month" class="${p.month?"":"need"}"><option value="">월</option>${monthOptions(p.month)}</select>
-      <select data-f="week"  class="${p.week?"":"need"}"><option value="">주차</option>${weekOptions(p.week)}</select>
-      <button class="rm" data-x="${i}" title="목록에서 빼기">✕</button>
+    <div class="fitem" data-i="${i}">
+      <div class="frow">
+        <div class="fn">${esc(p.title)}<small>${fmtSize(p.file.size)}</small></div>
+        <select data-f="cat"   class="${p.cat?"":"need"}"><option value="">종류</option>${catOptions(p.cat)}</select>
+        <select data-f="year"  class="${p.year?"":"need"}"><option value="">연도</option>${yearOptions(p.year)}</select>
+        <select data-f="month" class="${p.month?"":"need"}"><option value="">월</option>${monthOptions(p.month)}</select>
+        <select data-f="week"  class="${p.week?"":"need"}"><option value="">주차</option>${weekOptions(p.week)}</select>
+        <button class="rm" data-x="${i}" title="목록에서 빼기">✕</button>
+      </div>
+      ${relinkLine(p)}
     </div>`).join("");
   const full = p => p.cat && p.year && p.month && p.week;
   const bad = pending.filter(p => !full(p)).length;
+  const rl  = pending.filter(p => p.relinkId).length;
   $("#upstart").disabled = !pending.length || bad > 0;
   $("#bulkinfo").textContent = pending.length
-    ? (bad ? `${bad}개는 종류·연도·월·주차를 채워야 합니다` : `${pending.length}개 준비됨`) : "";
+    ? (bad ? `${bad}개는 종류·연도·월·주차를 채워야 합니다`
+           : `${pending.length}개 준비됨${rl ? ` · ${rl}개는 기존 자료에 이어붙입니다` : ""}`)
+    : "";
 }
 
 $("#filelist").addEventListener("change", e => {
-  const row = e.target.closest(".frow"); if(!row) return;
+  const item = e.target.closest(".fitem"); if(!item) return;
+  const p = pending[+item.dataset.i]; if(!p) return;
   const f = e.target.dataset.f, v = e.target.value;
-  pending[+row.dataset.i][f] = (f === "cat") ? v : (v ? +v : "");
+  if(f === "rlon"){
+    p.rlSet = true;
+    if(e.target.checked){ p.relinkId = p.rlAuto || p.rlPrev || null; claimRelink(p, p.relinkId); }
+    else { p.rlPrev = p.relinkId; p.relinkId = null; }
+  }else if(f === "rlpick"){
+    p.rlSet = true; p.relinkId = v || null; p.rlPrev = p.relinkId;
+    claimRelink(p, p.relinkId);
+  }else{
+    p[f] = (f === "cat") ? v : (v ? +v : "");
+    p.rlSet = false;            /* 종류·날짜가 바뀌면 이어붙일 자료를 다시 찾습니다 */
+  }
   renderPending();
 });
 $("#filelist").addEventListener("click", e => {
@@ -6366,6 +6544,7 @@ $("#bulkapply").onclick = () => {
     if(y)  p.year  = +y;
     if(mo) p.month = +mo;
     if(w)  p.week  = +w;
+    p.rlSet = false;            /* 종류·날짜가 바뀌면 이어붙일 자료를 다시 찾습니다 */
   });
   renderPending();
 };
@@ -6437,7 +6616,11 @@ function log(msg, kind){
 async function ingest(p){
   const warns = [];
   const date  = mkDate(p.year, p.month, p.week);
-  if(DOCS.some(d => d.title === p.title && d.cat === p.cat && d.date === date))
+  /* 이어붙일 자료가 있으면 새 id 를 만들지 않고 그 자료의 원본만 다시 채웁니다 */
+  const old = p.relinkId ? DOCS.find(d => d.id === p.relinkId) : null;
+  if(p.relinkId && !old)
+    throw new Error("이어붙일 자료가 사라졌습니다. 목록에서 다시 골라 주세요.");
+  if(!old && DOCS.some(d => d.title === p.title && d.cat === p.cat && d.date === date))
     warns.push("같은 이름·같은 회의의 자료가 이미 있습니다");
 
   let buf;
@@ -6466,6 +6649,8 @@ async function ingest(p){
 
   if(!pageTexts.join("").trim())
     warns.push("글자를 뽑지 못했습니다 (스캔한 그림 문서일 수 있어 내용 검색이 안 됩니다)");
+
+  if(old) return await relinkDoc(old, p, buf, pages, pageTexts, warns);
 
   let keepPdf = KV.storeMode !== "light";
   const doc = indexDoc({
@@ -6496,6 +6681,77 @@ async function ingest(p){
   DOCS.push(doc);
   return warns.join(" · ");
 }
+
+/* 이미 있는 자료에 PDF 원본을 다시 끼워 넣습니다 (새 id 를 만들지 않습니다).
+   요약·회의록·할 일·메모·발표 스크립트는 열쇠가 자료 id 라서 손대지 않고,
+   이름·종류·주차·addedAt 도 기존 자료 것을 그대로 둡니다.
+   순서가 중요합니다 — 원본을 먼저 저장하고, 성공한 뒤에 doc 을 갱신합니다. */
+async function relinkDoc(d, p, buf, pages, pageTexts, warns){
+  const had = { pages:d.pages, pageTexts:d.pageTexts, size:d.size, hasPdf:d.hasPdf };
+  let keepPdf = KV.storeMode !== "light";
+
+  /* ① 원본 저장. 여기서 실패하면 기존 자료는 아직 하나도 건드리지 않은 상태입니다. */
+  if(keepPdf){
+    try{
+      await dbPut("files", { id: d.id, blob: new Blob([buf], { type:"application/pdf" }) });
+    }catch(err){
+      if((err && err.name) === "QuotaExceededError"){
+        keepPdf = false;
+        warns.push("저장 공간이 부족해 원본은 빼고 글자만 저장했습니다 (설정에서 ‘글자와 요약만 저장’ 권장)");
+      }else throw new Error("원본을 저장하지 못했습니다 — " + storeErrMsg(err));
+    }
+  }
+  /* ② 자료 레코드 갱신. 실패하면 화면과 저장소를 원래대로 되돌립니다. */
+  d.pages = pages; d.pageTexts = pageTexts; d.size = p.file.size; d.hasPdf = keepPdf;
+  indexDoc(d);
+  try{
+    await dbPut("docs", stripDoc(d));
+  }catch(err){
+    Object.assign(d, had); indexDoc(d);
+    if(!had.hasPdf) await dbDel("files", d.id).catch(() => {});
+    throw new Error("저장하지 못했습니다 — " + storeErrMsg(err));
+  }
+  SQC = { id:null, pages:null };          /* 쪽별 검색 색인을 다시 만들게 합니다 */
+  /* '글자와 요약만 저장' 인데 전에 원본이 있던 자료라면, 남은 원본을 치웁니다 */
+  if(!keepPdf && had.hasPdf) await dbDel("files", d.id).catch(() => {});
+
+  if(p.title !== d.title || p.cat !== d.cat || p.week !== d.week)
+    warns.push(`기존 자료의 이름·종류·주차(${d.title} · ${d.cat} · ${d.week}주차)를 그대로 씁니다`);
+  const dw = await trimDraw(d, had.pages, pages);
+  if(dw) warns.push(dw);
+  const what = !keepPdf     ? "글자만 갱신했습니다 (원본은 저장하지 않았습니다)"
+             : had.hasPdf  ? "원본을 새 파일로 바꿨습니다"
+             :               "비어 있던 원본을 다시 채웠습니다";
+  warns.unshift(`이어붙였습니다 — ${what} (${had.pages}쪽 → ${pages}쪽)`);
+  if(S.sel === d.id) await loadPdfFor(d);
+  return warns.join(" · ");
+}
+
+/* 쪽수가 줄었으면, 없어진 쪽에 남은 펜 자국을 어떻게 할지 한 번만 물어봅니다. */
+async function trimDraw(d, oldPages, newPages){
+  if(!(newPages < oldPages)) return "";
+  /* 화면이 펜 자국을 들고 있으면 먼저 저장하고 떼어 놓습니다 */
+  if(S.sel === d.id && typeof window.drawLoadDoc === "function")
+    await window.drawLoadDoc(null);
+  let rec = null;
+  try{ rec = await dbGet("draw", d.id); }catch(err){ return ""; }
+  if(!rec || !rec.pages) return "";
+  const over = Object.keys(rec.pages).filter(k => +k > newPages && (rec.pages[k] || []).length);
+  if(!over.length) return "";
+  const keep = confirm(
+    `“${d.title}” 의 쪽수가 ${oldPages}쪽 → ${newPages}쪽으로 줄었습니다.\n` +
+    `없어진 쪽에 펜 자국이 ${over.length}쪽 분량 남아 있습니다.\n\n` +
+    `[확인] 그대로 둡니다 — 나중에 쪽수가 다시 늘면 살아납니다\n` +
+    `[취소] 그 펜 자국을 지웁니다`);
+  if(keep) return `펜 자국 ${over.length}쪽이 ${newPages}쪽 뒤에 남아 있습니다`;
+  for(const k of over) delete rec.pages[k];
+  try{
+    if(Object.keys(rec.pages).length) await dbPut("draw", rec);
+    else await dbDel("draw", d.id);
+  }catch(err){ return "없어진 쪽의 펜 자국을 지우지 못했습니다"; }
+  return `없어진 쪽의 펜 자국 ${over.length}쪽을 지웠습니다`;
+}
+
 /* 저장할 때는 검색용 임시값(_ 로 시작하는 것들)을 뺍니다 */
 function stripDoc(d){
   const rest = {};
@@ -6837,20 +7093,28 @@ function downloadBlob(blob, name){
   setTimeout(() => URL.revokeObjectURL(a.href), 8000);
 }
 
-async function exportBackup(withPdf){
+async function exportBackup(mode){
+  /* mode: "data"(.json, 데이터만) · "full"(.zip, 원본+데이터) · "pdf"(.zip, PDF 원본만) */
+  if(mode === true)  mode = "full";      /* 옛 호출 호환 */
+  if(mode === false) mode = "data";
+  const withPdf   = mode === "full" || mode === "pdf";
+  const dataOnly  = mode === "pdf";      /* 데이터(kv·notes·ainote)는 빼고 자료 목록만 */
   const meta = {
     app:"whats-the-strategy", ver:withPdf ? 3 : 2, exportedAt:new Date().toISOString(),
-    kv:{ cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts, memos:KV.memos,
-         storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap },
-    docs: DOCS.map(stripDoc),
-    notes: Object.values(NOTES),
-    ainote: Object.values(AINOTES)
+    backupKind: mode,
+    docs: DOCS.map(stripDoc)
   };
+  if(!dataOnly){
+    meta.kv = { cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts, memos:KV.memos,
+                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap };
+    meta.notes  = Object.values(NOTES);
+    meta.ainote = Object.values(AINOTES);
+  }
   const stamp = new Date().toISOString().slice(0,10);
-  if(!withPdf){
+  if(mode === "data"){
     downloadBlob(new Blob([JSON.stringify(meta)], { type:"application/json" }),
                 `whats-the-strategy-백업-${stamp}.json`);
-    toast("백업 파일을 내려받았습니다 (PDF 원본 제외)");
+    toast("백업 파일을 내려받았습니다 (데이터만)");
     return;
   }
   const entries = [];
@@ -6880,12 +7144,15 @@ async function exportBackup(withPdf){
   }
   const mb = new TextEncoder().encode(JSON.stringify(meta));
   entries.unshift({ name:"backup.json", crc:crc32(mb), size:mb.length, part:mb });
-  downloadBlob(zipStore(entries), `whats-the-strategy-백업-원본포함-${stamp}.zip`);
+  const tag = dataOnly ? "PDF원본만" : "원본포함";
+  downloadBlob(zipStore(entries), `whats-the-strategy-백업-${tag}-${stamp}.zip`);
   toast(miss ? `백업 완료 — 원본 ${miss}개는 찾지 못해 건너뜀`
-             : "백업 파일을 내려받았습니다 (PDF 원본 포함)");
+             : (dataOnly ? "백업 파일을 내려받았습니다 (PDF 원본만)"
+                         : "백업 파일을 내려받았습니다 (원본 + 데이터)"));
 }
-$("#btn-export").onclick     = () => exportBackup(false);
-$("#btn-export-pdf").onclick = () => exportBackup(true);
+$("#btn-export").onclick      = () => exportBackup("data");
+$("#btn-export-full").onclick = () => exportBackup("full");
+$("#btn-export-pdf").onclick  = () => exportBackup("pdf");
 
 $("#btn-import").onclick = () => $("#importfile").click();
 $("#importfile").addEventListener("change", async e => {
@@ -6915,11 +7182,16 @@ $("#importfile").addEventListener("change", async e => {
       throw new Error("이 프로그램의 백업 파일이 아닙니다");
     const nPdf = Object.keys(fileMap).length;
     const nAtt = Object.keys(attachMap).length;
-    if(!confirm(`백업을 불러올까요?\n\n자료 ${(data.docs||[]).length}개 · 회의록 ${(data.notes||[]).length}개` +
+    const pdfOnly = data.backupKind === "pdf" || (isZip && !data.kv && !(data.notes||[]).length);
+    if(!confirm(`백업을 불러올까요?\n\n` +
+                (pdfOnly ? `PDF 원본만 있는 백업입니다.\n\n` : "") +
+                `자료 ${(data.docs||[]).length}개` +
+                (pdfOnly ? "" : ` · 회의록 ${(data.notes||[]).length}개`) +
                 (nPdf ? ` · PDF 원본 ${nPdf}개` : "") +
                 (nAtt ? ` · AI Note 첨부 ${nAtt}개` : "") + `\n\n` +
                 `같은 자료가 있으면 덮어씁니다.` +
-                (nPdf ? "" : ` PDF 원본은 백업에 없으므로 '글자만'으로 들어옵니다.`))) return;
+                (pdfOnly ? ` 회의록·요약·할 일 등 데이터는 건드리지 않습니다.`
+                         : (nPdf ? "" : ` PDF 원본은 백업에 없으므로 '글자만'으로 들어옵니다.`)))) return;
 
     for(const d of (data.docs || [])){
       const exist = DOCS.find(x => x.id === d.id);
@@ -6975,8 +7247,10 @@ $("#btn-wipe").onclick = async () => {
   await dbClear("docs"); await dbClear("files"); await dbClear("notes"); await dbClear("kv");
   await dbClear("draw").catch(() => {});
   await dbClear("ainote").catch(() => {});
+  await dbClear("attach").catch(() => {});
+  await dbClear("attachfile").catch(() => {});
   KV = Object.assign({}, KV_DEFAULT, { scripts:{}, memos:{} });
-  DOCS = []; NOTES = {}; AINOTES = {}; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
+  DOCS = []; NOTES = {}; AINOTES = {}; ATTACH = []; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
   $("#set-store").value = KV.storeMode; syncAiRow(); syncAiNoteRow();
