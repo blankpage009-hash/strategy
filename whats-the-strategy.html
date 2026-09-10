@@ -595,6 +595,13 @@ body.full #drawbar .dwtool:hover:not([disabled]):not(.on){background:#444141;}
 #dwpop .dwprev{height:38px;display:flex;align-items:center;padding:0 12px;
   border-top:1px solid var(--hairline);}
 #dwpop .dwprev .hl{display:block;width:150px;}
+/* 선택(닫기) 단추 — 펜·형광펜 옵션창 오른쪽 아래 */
+#dwpop .dwprev .dwdone{margin-left:auto;height:26px;padding:0 14px;border:none;
+  background:var(--rule);color:var(--bg);font-size:10px;font-weight:800;
+  letter-spacing:.12em;border-radius:0;cursor:pointer;flex:0 0 auto;}
+#dwpop .dwprev .dwdone:hover{background:var(--accent);}
+body.full #dwpop .dwprev .dwdone{background:#f3f2f2;color:#201e1d;}
+body.full #dwpop .dwprev .dwdone:hover{background:var(--accent);color:#fff;}
 /* 지우개 — 방식 / 크기 / 모두 지우기 */
 #dwpop .dwseg{display:flex;margin-top:8px;border:1px solid var(--hairline);}
 #dwpop .dwseg button{flex:1 1 0;height:30px;border:none;background:none;color:var(--text);
@@ -1539,9 +1546,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span><button id="pagejump" title="p 번호로 이동" aria-label="p 번호로 이동" hidden></button></div>
       <button class="vbtn" id="drawtoggle" title="그리기 도구 펴기 / 접기"
               aria-label="그리기 도구 펴기 / 접기" aria-expanded="false" hidden>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+          <path d="M2 13c2-4 4-4 5 0s3 4 5 0 4-4 5 0 3 4 4 0"/>
         </svg>
       </button>
       <div id="drawbar" hidden>
@@ -4537,11 +4544,13 @@ $("#filtertoggle").onclick = () => {
              min="15" max="70" step="1" value="${pct}"></div>
            <div class="dwval"><b id="dw-a-v">${pct}%</b><span>15 – 70%</span></div>`;
         foot = `<div class="dwprev"><span class="hl" id="dw-prev"
-          style="height:${g.size}px;background:${g.color};opacity:${DRAW.hi.alpha};mix-blend-mode:multiply"></span></div>`;
+          style="height:${g.size}px;background:${g.color};opacity:${DRAW.hi.alpha};mix-blend-mode:multiply"></span>
+          <button class="dwdone" id="dw-done">선택</button></div>`;
       }else{
-        foot = `<div class="dwprev"><svg width="150" height="18" viewBox="0 0 150 18" fill="none">
-          <path id="dw-prev" d="M2 13c14-14 28 10 42-2s28 8 42-4 28 6 62 2"
-            stroke="${g.color}" stroke-width="${g.size}" stroke-linecap="round"/></svg></div>`;
+        foot = `<div class="dwprev"><svg width="132" height="18" viewBox="0 0 132 18" fill="none">
+          <path id="dw-prev" d="M2 13c12-14 25 10 37-2s25 8 37-4 25 6 54 2"
+            stroke="${g.color}" stroke-width="${g.size}" stroke-linecap="round"/></svg>
+          <button class="dwdone" id="dw-done">선택</button></div>`;
       }
     }else{
       head = icon(SVG.er) + `<span>지우개</span>` +
@@ -4596,6 +4605,10 @@ $("#filtertoggle").onclick = () => {
       });
       aIn.addEventListener("change", saveCfg);
     }
+
+    /* --- 선택(닫기) — 색·굵기를 바꾼 뒤 옵션창을 닫습니다 --- */
+    const done = $("#dw-done");
+    if(done) done.onclick = () => closePop();
 
     /* --- 지우개 방식·크기 --- */
     pop.querySelectorAll(".dwseg button").forEach(b => b.onclick = () => {
