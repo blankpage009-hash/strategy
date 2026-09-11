@@ -702,10 +702,17 @@ body.thumbs-off #thumbs{display:none;}
 /* 자료 위에 그리는 판 — PDF 종이와 정확히 같은 자리·크기에 겹칩니다 */
 #drawlayer{position:absolute;left:0;top:0;touch-action:none;z-index:2;}
 #drawlayer.off{pointer-events:none;touch-action:auto;}
+/* 애플펜슬이 한 번이라도 닿으면(펜슬 전용) 손가락은 그리지 않고 밀기·확대만 합니다 */
+body.pencil-only #drawlayer{touch-action:pan-x pan-y;}
 /* 형광펜 전용 판 — 글자 '아래'에 곱하기(multiply)로 얹혀 글자가 가려지지 않습니다 */
 #drawlayer-hi{position:absolute;left:0;top:0;z-index:1;pointer-events:none;mix-blend-mode:multiply;}
 body.draw-on #stage{cursor:crosshair;}
 body.draw-on .pagenav{display:none;}
+/* 그리는 동안 손바닥이 화면 다른 곳에 닿아도 글자가 선택되거나 길게 누르기 메뉴가 뜨지 않게 —
+   글 입력란(메모·요약·검색)만 예외 */
+body.draw-on, body.draw-on *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+body.draw-on input, body.draw-on textarea, body.draw-on [contenteditable="true"]{
+  -webkit-user-select:text;user-select:text;}
 /* 포인터 — 커서 도구일 때 마우스 왼쪽 단추를 누르고 있으면 그 자리에 빨간 점이 따라다닙니다 */
 #laserdot{position:fixed;left:0;top:0;width:7px;height:7px;border-radius:50%;background:#ec3013;
   box-shadow:0 0 0 2px rgba(236,48,19,.28),0 0 7px 2px rgba(236,48,19,.55);
@@ -2188,6 +2195,8 @@ const KV_DEFAULT = {
   catMap:{},
   /* 그리기 도구 — 마지막에 쓴 굵기·색깔 (기기별로 유지) */
   drawcfg:{},
+  /* 애플펜슬을 한 번이라도 썼는지 — true 면 그리기 판에서 손가락은 그리지 않습니다 */
+  pencil:false,
   /* 그리기 도구 막대 — 평소엔 접어 둡니다 ("shown" 이면 펴 둡니다) */
   drawUI:"hidden",
   /* 회의 종류 거르개(Filter 막대) — 평소엔 펴 둡니다 ("hidden" 이면 접어 둡니다) */
@@ -4396,8 +4405,22 @@ $("#filtertoggle").onclick = () => {
     if(DRAW.past.length > 40) DRAW.past.shift();
   }
 
+  /* 애플펜슬 전용 — 펜슬(pointerType "pen")이 한 번이라도 닿으면 그 뒤로 손가락은
+     그리지 않습니다. 손바닥이 종이에 닿아도 획이 생기거나 긋던 획이 끊기지 않고,
+     손가락은 밀기·확대에만 쓰입니다. (펜슬이 없는 기기에서는 지금처럼 손가락으로 그립니다) */
+  let pencilSeen = false;
+  const fingerIgnored = e => {
+    if(!pencilSeen && (e.pointerType === "pen" || KV.pencil)){   /* KV 는 이 코드보다 늦게 읽히므로 그때그때 봅니다 */
+      pencilSeen = true;
+      document.body.classList.add("pencil-only");
+      if(!KV.pencil){ KV.pencil = true; saveKV("pencil"); }     /* 한 번 펜슬을 쓴 기기는 다음에도 바로 펜슬 전용 */
+    }
+    return pencilSeen && e.pointerType === "touch";
+  };
+
   layer.addEventListener("pointerdown", e => {
     if(!DRAW.tool || !S.pdf) return;
+    if(fingerIgnored(e)) return;              /* 손가락(손바닥) — 그리기·포인터 개수에서 뺍니다 */
     DRAW.ptrs++;
     if(DRAW.ptrs > 1){                       /* 두 번째 손가락 — 확대 동작에 양보 */
       if(DRAW.drawing){ DRAW.drawing = false; DRAW.cur = null; DRAW.past.pop(); repaint(); }
@@ -4427,6 +4450,7 @@ $("#filtertoggle").onclick = () => {
 
   layer.addEventListener("pointermove", e => {
     if(!DRAW.drawing || DRAW.ptrs > 1) return;
+    if(fingerIgnored(e)) return;
     e.preventDefault();
     if(DRAW.tool === "eraser"){ eraseAt(norm(e)); return; }
     const p = norm(e), pts = DRAW.cur.p, last = pts[pts.length - 1];
@@ -4436,6 +4460,7 @@ $("#filtertoggle").onclick = () => {
   });
 
   function endStroke(e){
+    if(e && fingerIgnored(e)) return;         /* 손가락은 애초에 세지 않았으니 끝낼 것도 없습니다 */
     if(e && e.pointerId != null){ try{ layer.releasePointerCapture(e.pointerId); }catch(_){} }
     DRAW.ptrs = Math.max(0, DRAW.ptrs - 1);
     if(!DRAW.drawing) return;
