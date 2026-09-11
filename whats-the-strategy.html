@@ -3887,7 +3887,7 @@ function mgRows(){
     .filter(d => !q || (d.title || "").toLowerCase().includes(q)
                     || (d.cat   || "").toLowerCase().includes(q))
     .slice()
-    .sort((a,b) => (a.date||"").localeCompare(b.date||"")   /* 목록과 같이 오름차순입니다 */
+    .sort((a,b) => (b.date||"").localeCompare(a.date||"")   /* 최신 일자(년월주) 순 내림차순 */
                 || (a.title||"").localeCompare(b.title||""));
 }
 
