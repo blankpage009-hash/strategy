@@ -8240,7 +8240,7 @@ document.addEventListener("keydown", e => {
     else if(document.body.classList.contains("full")) setFull(false);
     return;
   }
-  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ""));
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || "")) || e.target.isContentEditable;
   if(typing || !S.pdf) return;
   if(e.key === "ArrowLeft"  || e.key === "PageUp")   { goPage(S.page - 1); e.preventDefault(); }
   if(e.key === "ArrowRight" || e.key === "PageDown") { goPage(S.page + 1); e.preventDefault(); }
