@@ -772,12 +772,18 @@ body.rendering #spin{display:block;}
 .aibusy{font-size:11.5px;color:var(--accent);background:var(--accent-soft);border:1px solid #ffc4b8;
   border-radius:0;padding:7px 8px;line-height:1.6;margin:6px 0;}
 .sumlabel{font-size:11.5px;color:var(--muted);margin:6px 0 3px;}
-textarea.sum{width:100%;min-height:84px;resize:vertical;padding:7px 8px;line-height:1.6;font-size:12.5px;
-  border:1px solid var(--line);border-radius:0;background:#fff;}
-textarea.sum:focus{border-color:var(--accent);}
+.sum{display:block;width:100%;min-height:84px;padding:7px 8px;line-height:1.6;font-size:12.5px;
+  font-family:inherit;color:inherit;border:1px solid var(--line);border-radius:0;background:#fff;
+  white-space:pre-wrap;word-break:break-word;overflow-y:auto;outline:none;}
+textarea.sum{resize:vertical;}
+.sum:focus{border-color:var(--accent);}
 /* 잠겨 있을 때 — 읽기만 됩니다 */
-textarea.sum[readonly]{background:var(--panel2);cursor:default;}
-textarea.sum[readonly]:focus{border-color:var(--line);}
+textarea.sum[readonly],div.sum[contenteditable="false"]{background:var(--panel2);cursor:default;}
+textarea.sum[readonly]:focus,div.sum[contenteditable="false"]:focus{border-color:var(--line);}
+/* 비어 있을 때만 안내 글을 보여 줍니다 (Bold·밑줄 상자 공통) */
+div.sum:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none;}
+.sum b{font-weight:800;}
+.sum u{text-decoration:underline;}
 .sect > h4 .mini + .mini{margin-left:0;}
 /* Executive Summary 머리 — 단추 줄 밑에 [AI 켜짐·제미나이] 와 만든 시각을 한 줄로 */
 .sect > h4.aihead{min-height:22px;}
@@ -809,7 +815,7 @@ textarea.sum[readonly]:focus{border-color:var(--line);}
 /* Executive Summary(텍스트로 볼 때) · 회의록 탭 — 입력창이 패널 전체를 채웁니다 */
 #rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"],#rbody[data-tab="script"],#rbody[data-tab="memo"]{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px;}
 #rbody[data-tab="sum"][data-mode="text"] .sect.grow,#rbody[data-tab="note"] .sect.grow,#rbody[data-tab="script"] .sect.grow,#rbody[data-tab="memo"] .sect.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-bottom:0;}
-#rbody[data-tab="sum"][data-mode="text"] textarea.sum.fill,#rbody[data-tab="note"] textarea.sum.fill,#rbody[data-tab="script"] textarea.sum.fill,#rbody[data-tab="memo"] textarea.sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
+#rbody[data-tab="sum"][data-mode="text"] .sum.fill,#rbody[data-tab="note"] .sum.fill,#rbody[data-tab="script"] .sum.fill,#rbody[data-tab="memo"] .sum.fill{flex:1 1 auto;min-height:0;height:auto;resize:none;}
 
 /* ---------- 발표 스크립트 탭 — 쪽마다 따로 적습니다 ---------- */
 /* 머리줄 왼쪽 : 지금 보고 있는 쪽 번호와 앞뒤 쪽 단추 */
@@ -2006,6 +2012,29 @@ const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+/* 요약·회의록·스크립트·메모 글상자(contenteditable) — Bold·밑줄을 쓰므로
+   textarea가 아니라 div 에 저장된 HTML(굵게<b>·밑줄<u>, 줄이 늘면 브라우저가 넣는 <div>·<br>) 을 담습니다. */
+const stripHtml = v => String(v || "")
+  .replace(/<\/(div|p)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n")
+  .replace(/<[^>]+>/g, "")
+  .replace(/&nbsp;/gi, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+/* <b>·<u> 태그가 있어야만 '이미 저장된 서식 있는 글'로 보고, 그 밖엔 옛 글(순수 글자)로 봐서 이스케이프합니다 */
+const looksRich = v => /<\/?(b|u)\b[^>]*>/i.test(String(v || ""));
+const toEditableHtml = v => { const s = String(v || ""); return !s ? "" : (looksRich(s) ? s : esc(s)); };
+function sumBox(id, value, editing, placeholder){
+  return `<div class="sum fill" id="${id}" contenteditable="${editing ? "true" : "false"}"
+    data-placeholder="${esc(placeholder)}">${toEditableHtml(value)}</div>`;
+}
+function placeCaretEnd(el){
+  el.focus();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 /* ---- 띄어쓰기를 무시하고 찾기 --------------------------------------
    파워포인트로 만든 PDF는 한 낱말이 여러 조각으로 쪼개져 나옵니다.
    글자를 뽑을 때 그 조각들을 이어 붙이면서 '공 동 영 업' 처럼
@@ -2878,7 +2907,7 @@ function rtabsHtml(tab, taskCount, scriptCount, off){
 /* 자료 하나의 쪽별 스크립트 — { 쪽 번호: 글 } (없으면 빈 객체) */
 function scriptsOf(id){ return (KV.scripts && KV.scripts[id]) || {}; }
 /* 알맹이가 있는 글인지 — ㆍ 와 공백만 남은 것은 안 적은 것으로 봅니다 */
-function scHas(v){ return /[^\sㆍ]/.test(String(v || "")); }
+function scHas(v){ return /[^\sㆍ]/.test(stripHtml(v)); }
 /* 실제로 글이 들어 있는 쪽 번호만 작은 수부터 */
 function scriptPages(id){
   const m = scriptsOf(id);
@@ -3031,7 +3060,7 @@ function renderRight(){
     ( aiOn ? `<button class="mini" id="aigen" ${busy?"disabled":""}>${
         busy ? "만드는 중…" : (a ? "다시 만들기" : "AI로 요약 만들기")}</button>` : "" ) +
     ( ex ? `<button class="mini" id="sumview">${asText ? "구조 요약" : "텍스트"}</button>` : "" ) +
-    ( asText ? lockBtn("A", !!a, S.editA) : "" );
+    ( asText ? lockBtn("A", scHas(a), S.editA) : "" );
 
   const sumStatus =
     ( (aiOn || whenTxt) ? `<div class="airow">
@@ -3072,9 +3101,9 @@ function renderRight(){
     ? `<div class="sect grow">
         <h4 class="aihead">${sumTools}</h4>
         ${sumStatus}
-        <textarea class="sum fill" id="sumA" ${S.editA?"":"readonly"}
-          placeholder="${S.editA ? "ㆍ핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요"}">${esc(a)}</textarea>
-        ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
+        ${ sumBox("sumA", a, S.editA, S.editA ? "ㆍ핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요") }
+        ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.
+                 <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
         ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
                  위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }
       </div>`
@@ -3084,10 +3113,10 @@ function renderRight(){
   const paneNote = `
     ${ aiNoteBlock(d) }
     <div class="sect grow">
-      <h4 class="aihead">${ lockBtn("B", !!b, S.editB) }</h4>
-      <textarea class="sum fill" id="sumB" ${S.editB?"":"readonly"}
-        placeholder="${S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요"}">${esc(b)}</textarea>
-      ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
+      <h4 class="aihead">${ lockBtn("B", scHas(b), S.editB) }</h4>
+      ${ sumBox("sumB", b, S.editB, S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요") }
+      ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.
+             <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
     </div>
   `;
 
@@ -3109,11 +3138,11 @@ function renderRight(){
               title="${n}p로 가기">${n}</button>`).join("") }</span>` : "" }
         ${ lockBtn("S", scHas(scText), S.editS) }
       </h4>
-      <textarea class="sum fill" id="sumS" ${S.editS?"":"readonly"}
-        placeholder="${S.editS ? "ㆍ이 p에서 할 말을 한 줄씩"
-                    : `Add 를 눌러 ${curPg}p에서 할 말을 적으세요`}">${esc(scText)}</textarea>
+      ${ sumBox("sumS", scText, S.editS, S.editS ? "ㆍ이 p에서 할 말을 한 줄씩"
+                    : `Add 를 눌러 ${curPg}p에서 할 말을 적으세요`) }
       ${ S.editS ? `<div class="tip">지금 보고 있는 <b>${curPg}p</b> 의 스크립트입니다.
-             줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙고, 적는 대로 저장됩니다.</div>` : "" }
+             줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙고, 적는 대로 저장됩니다.
+             <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
     </div>
   `;
 
@@ -3122,10 +3151,10 @@ function renderRight(){
   const paneMemo = `
     <div class="sect grow">
       <h4 class="aihead">${ lockBtn("M", scHas(memoText), S.editM) }</h4>
-      <textarea class="sum fill" id="sumM" ${S.editM ? "" : "readonly"}
-        placeholder="${S.editM ? "ㆍ이 자료에 대한 메모를 한 줄씩"
-                    : "Add 를 눌러 메모를 적으세요"}">${esc(memoText)}</textarea>
-      ${ S.editM ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.</div>` : "" }
+      ${ sumBox("sumM", memoText, S.editM, S.editM ? "ㆍ이 자료에 대한 메모를 한 줄씩"
+                    : "Add 를 눌러 메모를 적으세요") }
+      ${ S.editM ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.
+             <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
     </div>
   `;
 
@@ -3190,9 +3219,8 @@ function renderRight(){
   if(S.focusSum){
     const t = $("#" + S.focusSum); S.focusSum = null;
     if(t){
-      if(t.value === "") t.value = BULLET;
-      t.focus();
-      t.selectionStart = t.selectionEnd = t.value.length;
+      if(t.innerHTML === ""){ t.textContent = BULLET; t.dispatchEvent(new Event("input", {bubbles:true})); }
+      placeCaretEnd(t);
     }
   }
 }
@@ -4707,42 +4735,64 @@ $("#rbody").addEventListener("input", e => {
     const pg = +($("#rbody").dataset.page || S.page || 1);
     if(!(pg > 0)) return;
     const cur = Object.assign({}, KV.scripts[S.sel]);
-    const v = e.target.value;
+    const v = e.target.innerHTML;
     if(scHas(v)) cur[pg] = v; else delete cur[pg];
     KV.scripts[S.sel] = cur; saveKV("scripts");
     return;
   }
   if(e.target.id === "sumM"){
     const cur = Object.assign({}, KV.memos);
-    const v = e.target.value;
-    if(/[^\sㆍ]/.test(v)) cur[S.sel] = v; else delete cur[S.sel];
+    const v = e.target.innerHTML;
+    if(scHas(v)) cur[S.sel] = v; else delete cur[S.sel];
     KV.memos = cur; saveKV("memos");
     return;
   }
   if(e.target.id === "sumA" || e.target.id === "sumB"){
     const cur = KV.sums[S.sel] || {};
-    cur[e.target.id === "sumA" ? "a" : "b"] = e.target.value;
+    cur[e.target.id === "sumA" ? "a" : "b"] = e.target.innerHTML;
     cur.by = "me";                   /* 손으로 고친 요약은 AI가 덮어쓰지 않습니다 */
     KV.sums[S.sel] = cur; saveKV("sums");
   }
 });
 $("#rbody").addEventListener("focusin", e => {
   const t = e.target;
-  if(SUMBOX.has(t.id) && !t.readOnly && t.value===""){
-    t.value = BULLET; t.dispatchEvent(new Event("input",{bubbles:true}));
+  if(SUMBOX.has(t.id) && t.isContentEditable && t.innerHTML===""){
+    t.textContent = BULLET; t.dispatchEvent(new Event("input",{bubbles:true}));
+    placeCaretEnd(t);
   }
 });
 $("#rbody").addEventListener("keydown", e => {
   const t = e.target;
-  if(SUMBOX.has(t.id) && !t.readOnly && e.key==="Enter"){
-    e.preventDefault();
-    const i = t.selectionStart, ins = "\n" + BULLET;
-    t.value = t.value.slice(0,i) + ins + t.value.slice(t.selectionEnd);
-    t.selectionStart = t.selectionEnd = i + ins.length;
-    t.dispatchEvent(new Event("input",{bubbles:true}));
-    return;
+  if(SUMBOX.has(t.id) && t.isContentEditable){
+    /* Ctrl/Cmd+B, Ctrl/Cmd+U — 골라 둔 글자를 굵게·밑줄로 */
+    if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "b" || e.key === "B")){
+      e.preventDefault();
+      document.execCommand("bold");
+      t.dispatchEvent(new Event("input",{bubbles:true}));
+      return;
+    }
+    if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "u" || e.key === "U")){
+      e.preventDefault();
+      document.execCommand("underline");
+      t.dispatchEvent(new Event("input",{bubbles:true}));
+      return;
+    }
+    if(e.key === "Enter"){
+      e.preventDefault();
+      document.execCommand("insertText", false, "\n" + BULLET);
+      t.dispatchEvent(new Event("input",{bubbles:true}));
+      return;
+    }
   }
   if(t.id === "newtask" && e.key === "Enter") addTask(t.value);
+});
+/* 붙여넣기는 서식을 걷어내고 글자만 넣습니다 (다른 문서의 스타일이 섞이지 않도록) */
+$("#rbody").addEventListener("paste", e => {
+  const t = e.target;
+  if(!SUMBOX.has(t.id) || !t.isContentEditable) return;
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+  document.execCommand("insertText", false, text);
 });
 
 function addTask(text){
@@ -4919,13 +4969,13 @@ async function detachPdf(id){
 /* 통째 삭제 확인창에 보여 줄, 이 자료에 딸린 데이터 요약 한 줄 */
 function docDataDesc(d){
   const parts = [];
-  const note = (KV.sums[d.id] && KV.sums[d.id].b || "").replace(/[\sㆍ]/g, "");
+  const note = scHas(KV.sums[d.id] && KV.sums[d.id].b);
   if(note || noteOf(d) || AINOTES[d.id]) parts.push("회의록");
   const tasks = (KV.tasks[d.id] || []).length;
   if(tasks) parts.push("할 일 " + tasks + "개");
   const sum = KV.sums[d.id];
-  if(sum && ((sum.a||"").replace(/[\sㆍ]/g,"") || (sum.ex||[]).length)) parts.push("요약");
-  if((KV.memos[d.id] || "").replace(/[\sㆍ]/g,"")) parts.push("메모");
+  if(sum && (scHas(sum.a) || (sum.ex||[]).length)) parts.push("요약");
+  if(scHas(KV.memos[d.id])) parts.push("메모");
   if(Object.keys(KV.scripts[d.id] || {}).length) parts.push("발표 스크립트");
   const at = (typeof ATTACH !== "undefined" ? ATTACH : []).filter(x => x.docId === d.id).length;
   if(at) parts.push("첨부 PDF " + at + "개");
@@ -5996,7 +6046,7 @@ async function makeAiNote(docId){
   const d = DOCS.find(x => x.id === docId);
   if(!d || !aiNoteReady() || S.anBusy) return;
 
-  const noteText = (KV.sums[docId] || {}).b || "";
+  const noteText = stripHtml((KV.sums[docId] || {}).b || "");
   if(!noteText.trim()){ toast("먼저 회의록을 적어 주세요"); return; }
 
   S.anBusy = docId; S.anErr = ""; S.anErrId = null;
