@@ -8240,8 +8240,9 @@ document.addEventListener("keydown", e => {
     else if(document.body.classList.contains("full")) setFull(false);
     return;
   }
-  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || "")) || e.target.isContentEditable;
-  if(typing || !S.pdf) return;
+  /* 글을 적는 중이면 (입력창·글상자에 커서가 있으면) 방향키는 글 안에서만 움직입니다 */
+  const isTyping = el => !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || "") || el.isContentEditable);
+  if(isTyping(e.target) || isTyping(document.activeElement) || !S.pdf) return;
   if(e.key === "ArrowLeft"  || e.key === "PageUp")   { goPage(S.page - 1); e.preventDefault(); }
   if(e.key === "ArrowRight" || e.key === "PageDown") { goPage(S.page + 1); e.preventDefault(); }
 });
