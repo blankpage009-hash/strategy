@@ -706,6 +706,11 @@ body.thumbs-off #thumbs{display:none;}
 #drawlayer-hi{position:absolute;left:0;top:0;z-index:1;pointer-events:none;mix-blend-mode:multiply;}
 body.draw-on #stage{cursor:crosshair;}
 body.draw-on .pagenav{display:none;}
+/* 포인터 — 커서 도구일 때 마우스 왼쪽 단추를 누르고 있으면 그 자리에 빨간 점이 따라다닙니다 */
+#laserdot{position:fixed;left:0;top:0;width:14px;height:14px;border-radius:50%;background:#ec3013;
+  box-shadow:0 0 0 3px rgba(236,48,19,.28),0 0 14px 4px rgba(236,48,19,.55);
+  transform:translate(-50%,-50%);pointer-events:none;z-index:90;}
+#laserdot[hidden]{display:none !important;}
 /* 무대에 마우스를 올렸을 때만 나타나는 앞뒤 장 넘김 단추 */
 .pagenav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;padding:0;
   display:flex;align-items:center;justify-content:center;border:none;border-radius:0;
@@ -1558,7 +1563,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         </svg>
       </button>
       <div id="drawbar" hidden>
-        <button class="dwtool on" id="dw-cursor" title="커서 (그리기 끄기)" aria-label="커서 · 그리기 끄기">
+        <button class="dwtool on" id="dw-cursor" title="커서 (그리기 끄기) · 왼쪽 단추를 누르면 빨간 포인터" aria-label="커서 · 그리기 끄기 · 포인터">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/>
@@ -1618,6 +1623,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
     </div>
 
     <div id="dwpop" hidden></div>
+    <div id="laserdot" hidden aria-hidden="true"></div>
 
     <div id="stagewrap">
     <div id="thumbs" role="navigation" aria-label="쪽 미리보기"></div>
@@ -4693,6 +4699,31 @@ $("#filtertoggle").onclick = () => {
   });
   $("#dw-cursor").addEventListener("click", () => setTool(null));
   $("#dw-undo").addEventListener("click", undo);
+
+  /* ---- 포인터 — 커서 도구에서 마우스 왼쪽 단추를 누르는 동안 빨간 점 ----
+     그리기 막대가 펴져 있고(커서 도구가 보일 때), 도구가 꺼진 상태에서만.
+     자료 위 아무 곳이나 누르면 그 자리에 점이 뜨고, 누른 채 움직이면 따라옵니다. */
+  (function laser(){
+    const dot = $("#laserdot"), stage = $("#stage");
+    let on = false;
+    const move = e => { dot.style.left = e.clientX + "px"; dot.style.top = e.clientY + "px"; };
+    const hide = () => {
+      if(!on) return;
+      on = false; dot.hidden = true;
+      document.removeEventListener("pointermove", move);
+    };
+    stage.addEventListener("pointerdown", e => {
+      if(DRAW.tool || !S.pdf) return;                          /* 커서 도구일 때만 */
+      if(document.body.classList.contains("draw-collapsed")) return;   /* 그리기 막대가 접혀 있으면 안 함 */
+      if(e.button !== 0 || e.pointerType === "touch") return;  /* 마우스·펜 왼쪽 단추만 */
+      if(e.target.closest(".pagenav")) return;
+      on = true; move(e); dot.hidden = false;
+      document.addEventListener("pointermove", move);
+    });
+    document.addEventListener("pointerup", hide);
+    document.addEventListener("pointercancel", hide);
+    window.addEventListener("blur", hide);
+  })();
 
   document.addEventListener("pointerdown", e => {
     if(pop.hidden) return;
@@ -7811,7 +7842,7 @@ const TUT = [
       { ic:"pen", html:"뷰어 툴바 가운데 — 연필 단추를 누르면 도구 줄이 펼쳐집니다" }
     ]},
     { h:"도구", type:"where", items:[
-      { ic:"cursor", html:"커서 — 그리기를 끕니다" },
+      { ic:"cursor", html:"커서 — 그리기를 끕니다. 마우스 왼쪽 단추를 누르고 있으면 그 자리에 <b>빨간 포인터 점</b>이 따라다닙니다" },
       { ic:"pen",    html:"펜 — 한 번 더 누르면 굵기 · 색을 고릅니다" },
       { ic:"hi",     html:"형광펜" },
       { ic:"eraser", html:"지우개" },
