@@ -2031,9 +2031,19 @@ const stripHtml = v => String(v || "")
   .replace(/<\/(div|p)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n")
   .replace(/<[^>]+>/g, "")
   .replace(/&nbsp;/gi, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+/* 줄이 늘 때 브라우저가 끼워 넣는 <div>·<br> 을 실제 줄바꿈 글자로 바꿉니다
+   (안 그러면 <b>·<u> 이 없는 글은 '옛 글'로 보고 이스케이프할 때 태그가 그대로 글자로 보입니다) */
+const normalizeSumHtml = v => String(v || "")
+  .replace(/<div><br\s*\/?><\/div>/gi, "\n")
+  .replace(/<\/div>\s*<div>/gi, "\n")
+  .replace(/<\/?div>/gi, "")
+  .replace(/<br\s*\/?>/gi, "\n");
 /* <b>·<u> 태그가 있어야만 '이미 저장된 서식 있는 글'로 보고, 그 밖엔 옛 글(순수 글자)로 봐서 이스케이프합니다 */
 const looksRich = v => /<\/?(b|u)\b[^>]*>/i.test(String(v || ""));
-const toEditableHtml = v => { const s = String(v || ""); return !s ? "" : (looksRich(s) ? s : esc(s)); };
+const toEditableHtml = v => {
+  const s = normalizeSumHtml(v);
+  return !s ? "" : (looksRich(s) ? s : esc(s));
+};
 function sumBox(id, value, editing, placeholder){
   return `<div class="sum fill" id="${id}" contenteditable="${editing ? "true" : "false"}"
     data-placeholder="${esc(placeholder)}">${toEditableHtml(value)}</div>`;
@@ -4815,21 +4825,21 @@ $("#rbody").addEventListener("input", e => {
     const pg = +($("#rbody").dataset.page || S.page || 1);
     if(!(pg > 0)) return;
     const cur = Object.assign({}, KV.scripts[S.sel]);
-    const v = e.target.innerHTML;
+    const v = normalizeSumHtml(e.target.innerHTML);
     if(scHas(v)) cur[pg] = v; else delete cur[pg];
     KV.scripts[S.sel] = cur; saveKV("scripts");
     return;
   }
   if(e.target.id === "sumM"){
     const cur = Object.assign({}, KV.memos);
-    const v = e.target.innerHTML;
+    const v = normalizeSumHtml(e.target.innerHTML);
     if(scHas(v)) cur[S.sel] = v; else delete cur[S.sel];
     KV.memos = cur; saveKV("memos");
     return;
   }
   if(e.target.id === "sumA" || e.target.id === "sumB"){
     const cur = KV.sums[S.sel] || {};
-    cur[e.target.id === "sumA" ? "a" : "b"] = e.target.innerHTML;
+    cur[e.target.id === "sumA" ? "a" : "b"] = normalizeSumHtml(e.target.innerHTML);
     cur.by = "me";                   /* 손으로 고친 요약은 AI가 덮어쓰지 않습니다 */
     KV.sums[S.sel] = cur; saveKV("sums");
   }
