@@ -3116,8 +3116,8 @@ function renderRight(){
     ? `<div class="sect grow">
         <h4 class="aihead">${sumTools}</h4>
         ${sumStatus}
-        ${ sumBox("sumA", a, S.editA, S.editA ? "ㆍ핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요") }
-        ${ S.editA ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.
+        ${ sumBox("sumA", a, S.editA, S.editA ? "핵심만 한 줄씩" : "Add 를 눌러 요약을 적으세요") }
+        ${ S.editA ? `<div class="tip">적는 대로 저장됩니다.
                  <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
         ${ ex ? `<div class="tip">여기서 고친 글은 검색·내보내기에 쓰입니다.
                  위 <b>구조 요약</b> 을 누르면 원래 표로 돌아갑니다.</div>` : "" }
@@ -3129,8 +3129,8 @@ function renderRight(){
     ${ aiNoteBlock(d) }
     <div class="sect grow">
       <h4 class="aihead">${ lockBtn("B", scHas(b), S.editB) }</h4>
-      ${ sumBox("sumB", b, S.editB, S.editB ? "ㆍ회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요") }
-      ${ S.editB ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.
+      ${ sumBox("sumB", b, S.editB, S.editB ? "회의에서 정해진 것만 한 줄씩" : "Add 를 눌러 회의록을 적으세요") }
+      ${ S.editB ? `<div class="tip">적는 대로 저장됩니다.
              <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
     </div>
   `;
@@ -3153,10 +3153,10 @@ function renderRight(){
               title="${n}p로 가기">${n}</button>`).join("") }</span>` : "" }
         ${ lockBtn("S", scHas(scText), S.editS) }
       </h4>
-      ${ sumBox("sumS", scText, S.editS, S.editS ? "ㆍ이 p에서 할 말을 한 줄씩"
+      ${ sumBox("sumS", scText, S.editS, S.editS ? "이 p에서 할 말을 한 줄씩"
                     : `Add 를 눌러 ${curPg}p에서 할 말을 적으세요`) }
       ${ S.editS ? `<div class="tip">지금 보고 있는 <b>${curPg}p</b> 의 스크립트입니다.
-             줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙고, 적는 대로 저장됩니다.
+             적는 대로 저장됩니다.
              <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
     </div>
   `;
@@ -3166,9 +3166,9 @@ function renderRight(){
   const paneMemo = `
     <div class="sect grow">
       <h4 class="aihead">${ lockBtn("M", scHas(memoText), S.editM) }</h4>
-      ${ sumBox("sumM", memoText, S.editM, S.editM ? "ㆍ이 자료에 대한 메모를 한 줄씩"
+      ${ sumBox("sumM", memoText, S.editM, S.editM ? "이 자료에 대한 메모를 한 줄씩"
                     : "Add 를 눌러 메모를 적으세요") }
-      ${ S.editM ? `<div class="tip">줄을 바꾸면 <b>ㆍ</b> 가 자동으로 붙습니다. 적는 대로 저장됩니다.
+      ${ S.editM ? `<div class="tip">적는 대로 저장됩니다.
              <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
     </div>
   `;
@@ -3230,13 +3230,10 @@ function renderRight(){
   body.dataset.page = tab === "script" ? String(curPg) : "";
   body.scrollTop = keep;
 
-  /* 방금 잠금을 푼 상자로 바로 들어갑니다 (비어 있으면 ㆍ 를 하나 놓아 둡니다) */
+  /* 방금 잠금을 푼 상자로 바로 들어갑니다 */
   if(S.focusSum){
     const t = $("#" + S.focusSum); S.focusSum = null;
-    if(t){
-      if(t.innerHTML === ""){ t.textContent = BULLET; t.dispatchEvent(new Event("input", {bubbles:true})); }
-      placeCaretEnd(t);
-    }
+    if(t) placeCaretEnd(t);
   }
 }
 
@@ -4810,13 +4807,6 @@ $("#rbody").addEventListener("input", e => {
     KV.sums[S.sel] = cur; saveKV("sums");
   }
 });
-$("#rbody").addEventListener("focusin", e => {
-  const t = e.target;
-  if(SUMBOX.has(t.id) && t.isContentEditable && t.innerHTML===""){
-    t.textContent = BULLET; t.dispatchEvent(new Event("input",{bubbles:true}));
-    placeCaretEnd(t);
-  }
-});
 $("#rbody").addEventListener("keydown", e => {
   const t = e.target;
   if(SUMBOX.has(t.id) && t.isContentEditable){
@@ -4835,7 +4825,7 @@ $("#rbody").addEventListener("keydown", e => {
     }
     if(e.key === "Enter"){
       e.preventDefault();
-      document.execCommand("insertText", false, "\n" + BULLET);
+      document.execCommand("insertText", false, "\n");
       t.dispatchEvent(new Event("input",{bubbles:true}));
       return;
     }
@@ -7899,8 +7889,7 @@ const TUT = [
     ]},
     { h:"하는 법", type:"steps", items:[
       "탭 이름을 눌러 옮겨 다닙니다.",
-      "<b class='k'>Add</b> (처음 적을 때) 또는 <b class='k'>Edit</b> (고칠 때) 를 누르면 글상자가 열립니다. 적는 대로 바로 저장되고, <b class='k'>완료</b> 를 누르면 다시 잠깁니다.",
-      "줄을 바꾸면 <b>ㆍ</b> 가 저절로 붙습니다. 항목을 하나씩 적기 좋습니다."
+      "<b class='k'>Add</b> (처음 적을 때) 또는 <b class='k'>Edit</b> (고칠 때) 를 누르면 글상자가 열립니다. 적는 대로 바로 저장되고, <b class='k'>완료</b> 를 누르면 다시 잠깁니다."
     ]},
     { h:"알아두기", type:"note", html:
       "<b>SCRIPT</b> 는 지금 뷰어에 펼쳐진 쪽에 저장됩니다. 쪽을 넘기면 그 쪽의 스크립트가 나옵니다. 탭 이름 옆 숫자는 <b>글이 적힌 쪽 수</b>입니다." },
