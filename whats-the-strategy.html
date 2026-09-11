@@ -702,8 +702,8 @@ body.thumbs-off #thumbs{display:none;}
 /* 자료 위에 그리는 판 — PDF 종이와 정확히 같은 자리·크기에 겹칩니다 */
 #drawlayer{position:absolute;left:0;top:0;touch-action:none;z-index:2;}
 #drawlayer.off{pointer-events:none;touch-action:auto;}
-/* 애플펜슬이 한 번이라도 닿으면(펜슬 전용) 손가락은 그리지 않고 밀기·확대만 합니다 */
-body.pencil-only #drawlayer{touch-action:pan-x pan-y;}
+/* 펜슬 전용일 때도 touch-action 은 none 그대로 둡니다 — Safari 가 펜슬 획을 스크롤로
+   오판해 pointercancel 을 보내면 획이 끊기기 때문. 손가락 밀기는 아래 스크립트가 직접 합니다 */
 /* 형광펜 전용 판 — 글자 '아래'에 곱하기(multiply)로 얹혀 글자가 가려지지 않습니다 */
 #drawlayer-hi{position:absolute;left:0;top:0;z-index:1;pointer-events:none;mix-blend-mode:multiply;}
 body.draw-on #stage{cursor:crosshair;}
@@ -4414,6 +4414,33 @@ $("#filtertoggle").onclick = () => {
     }
     return pencilSeen && e.pointerType === "touch";
   };
+
+  /* 펜슬 전용일 때 손가락 한 개로 자료 밀기 — 판의 touch-action 이 none 이라 브라우저가
+     대신 밀어 주지 않으므로 여기서 직접 stage 를 스크롤합니다. (iOS 는 touch.touchType 으로
+     펜슬 "stylus" / 손가락 "direct" 를 구분해 줍니다) 펜슬로 긋는 중엔 손바닥이 닿아도 밀지 않습니다. */
+  (function fingerPan(){
+    const stage = $("#stage");
+    let id = null, x0 = 0, y0 = 0, sl0 = 0, st0 = 0;
+    const isStylus = t => t.touchType === "stylus";
+    layer.addEventListener("touchstart", e => {
+      if(!pencilSeen || e.touches.length !== 1 || DRAW.drawing) { id = null; return; }
+      const t = e.touches[0]; if(isStylus(t)) { id = null; return; }
+      id = t.identifier; x0 = t.clientX; y0 = t.clientY; sl0 = stage.scrollLeft; st0 = stage.scrollTop;
+    }, { passive:true });
+    layer.addEventListener("touchmove", e => {
+      if(!pencilSeen) return;
+      /* 펜슬이 섞여 있거나 긋는 중이면 브라우저 기본 동작(스크롤·선택)을 전부 막습니다 */
+      if(DRAW.drawing || Array.from(e.touches).some(isStylus)){ e.preventDefault(); id = null; return; }
+      if(id === null || e.touches.length !== 1) return;   /* 두 손가락은 확대(pinch) 쪽에 맡깁니다 */
+      const t = e.touches[0]; if(t.identifier !== id) return;
+      e.preventDefault();
+      stage.scrollLeft = sl0 - (t.clientX - x0);
+      stage.scrollTop  = st0 - (t.clientY - y0);
+    }, { passive:false });
+    const done = () => { id = null; };
+    layer.addEventListener("touchend", done, { passive:true });
+    layer.addEventListener("touchcancel", done, { passive:true });
+  })();
 
   layer.addEventListener("pointerdown", e => {
     if(!DRAW.tool || !S.pdf) return;
