@@ -983,6 +983,8 @@ table.ext td.sub .k0{padding-left:11px;color:var(--muted);font-weight:600;}
 .dot{width:9px;height:9px;border-radius:0;background:#d7d3d3;flex:0 0 auto;}
 .dot.ok{background:var(--ok);} .dot.warn{background:var(--warn);} .dot.bad{background:var(--accent);}
 .dot.go{background:#2b8a3e;}
+/* 상단 막대 동기화 상태 점 — 토큰을 안 넣은 사본에서는 아예 숨깁니다(지금과 완전히 같게) */
+#syncdot.on{background:#2b8a3e;} #syncdot.pending{background:#e8890c;} #syncdot.err{background:var(--accent-ink);}
 
 /* 쪽별 요약 — 쪽 번호 딱지를 누르면 그 쪽으로 갑니다 */
 .pgdept{margin:10px 0 2px;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--muted2);}
@@ -1479,6 +1481,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         <path d="M12 7v14"/>
         <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
       </svg>
+    </button>
+    <button class="plainbtn" id="btn-syncdot" title="동기화" aria-label="동기화 상태" style="display:none">
+      <i class="dot" id="syncdot"></i>
     </button>
     <button class="plainbtn" id="btn-settings" title="설정" aria-label="설정">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2018,7 +2023,10 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 
           <div class="btnrow">
             <button id="sync-test">연결 확인</button>
+            <button id="sync-pushall">이 기기 자료 전부 올리기</button>
           </div>
+          <div class="hint">전부 올리기는 이 기기의 모든 자료를 서버로 올립니다. 자료가 많으면 몇 분 걸릴 수 있고,
+            도중에 창을 닫아도 다음에 이어서 올라갑니다.</div>
           <div id="syncstatus">연결 안 됨</div>
         </div>
       </div>
@@ -2192,7 +2200,7 @@ function toast(msg){
       kv   : 설정·회의종류·할 일·요약 등
    ========================================================= */
 /* 저장소 이름은 처음 것을 그대로 씁니다. 바꾸면 이미 저장된 자료를 못 찾습니다. */
-const DB_NAME = "strategy-library", DB_VER = 4;
+const DB_NAME = "strategy-library", DB_VER = 5;
 let DB = null;
 
 function openDB(){
@@ -2211,6 +2219,8 @@ function openDB(){
       if(!db.objectStoreNames.contains("draw"))        db.createObjectStore("draw",        { keyPath:"id" });
       /* AI NOTE — 자료 하나에 회의록 한 장 { id:자료 id, note, at, model } */
       if(!db.objectStoreNames.contains("ainote"))      db.createObjectStore("ainote",      { keyPath:"id" });
+      /* 동기화(GitHub) — 서버와 맞춰 둔 상태 { path, sha, dirty, deleted, at }. path 가 곧 저장소 안 경로입니다 */
+      if(!db.objectStoreNames.contains("sync"))        db.createObjectStore("sync",        { keyPath:"path" });
     };
     req.onsuccess = () => res(req.result);
     req.onerror   = () => rej(req.error);
@@ -2225,11 +2235,33 @@ function idb(store, mode, fn){
     t.onabort = () => rej(t.error);
   });
 }
-const dbGet  = (s,k) => idb(s,"readonly",  st => st.get(k));
-const dbAll  = s     => idb(s,"readonly",  st => st.getAll());
-const dbPut  = (s,v) => idb(s,"readwrite", st => st.put(v));
-const dbDel  = (s,k) => idb(s,"readwrite", st => st.delete(k));
-const dbClear= s     => idb(s,"readwrite", st => st.clear());
+const dbGet     = (s,k) => idb(s,"readonly",  st => st.get(k));
+const dbAll     = s     => idb(s,"readonly",  st => st.getAll());
+const dbAllKeys = s     => idb(s,"readonly",  st => st.getAllKeys());   /* PDF 는 안 읽고 열쇠만 — 동기화 경로 계산용 */
+/* 조용한 버전 — 동기화가 서버에서 내려받아 저장할 때 씁니다. sync 스토어에 기록을 남기지 않습니다 (2단계) */
+const dbPutQuiet   = (s,v) => idb(s,"readwrite", st => st.put(v));
+const dbDelQuiet   = (s,k) => idb(s,"readwrite", st => st.delete(k));
+const dbClearQuiet = s     => idb(s,"readwrite", st => st.clear());
+/* store 마다 레코드의 열쇠 필드 이름이 다릅니다 (docs/files/… 는 id, kv 는 k, notes 는 key) */
+function storeKeyField(s){ return s === "kv" ? "k" : s === "notes" ? "key" : "id"; }
+/* 이 기기에서 무언가 바뀌면(등록·수정·삭제) sync 스토어에도 남깁니다. syncMarkDirty/Deleted/syncClearStore 는
+   15) 동기화 절에서 정의합니다 — 동기화 대상이 아닌 스토어·열쇠면 아무 일도 하지 않습니다(무해).
+   44곳의 원래 dbPut/dbDel/dbClear 호출부는 이름 그대로 두고 여기 안에서만 기록을 더합니다. */
+async function dbPut(s, v){
+  const res = await dbPutQuiet(s, v);
+  syncMarkDirty(s, v[storeKeyField(s)]).catch(() => {});
+  return res;
+}
+async function dbDel(s, k){
+  const res = await dbDelQuiet(s, k);
+  syncMarkDeleted(s, k).catch(() => {});
+  return res;
+}
+async function dbClear(s){
+  const res = await dbClearQuiet(s);
+  syncClearStore(s).catch(() => {});
+  return res;
+}
 
 /* kv 는 메모리에 올려두고 씁니다 */
 const KV_DEFAULT = {
@@ -7742,7 +7774,8 @@ window.addEventListener("beforeunload", e => {
       · 토큰을 넣지 않은 사본(다른 사람에게 건넨 것)에서는 syncEnabled() 가 늘 false 이므로
         아무 통신도 일어나지 않습니다.
    ========================================================= */
-const SYNC = { key:null };   /* 암호문구로 유도한 열쇠(CryptoKey) — 메모리에만 둡니다. 저장하지 않습니다 */
+/* key: 암호문구로 유도한 열쇠(CryptoKey, 메모리에만) · busy: 올리기가 도는 중 · pendingPush: 그 사이에 또 바뀐 것이 있어 끝나면 다시 올려야 함 */
+const SYNC = { key:null, busy:false, pendingPush:false };
 const SYNC_PBKDF2_ITER = 600000;
 const SYNC_MAGIC = new Uint8Array([0x57,0x54,0x53,0x31]);   /* "WTS1" — 파일 형식 표시 */
 const SYNC_CHECK_TEXT = "whats-the-strategy";
@@ -7817,7 +7850,7 @@ async function ghFetch(method, path, opts){
     "Authorization": "Bearer " + KV.syncToken,
     "Accept": opts.raw ? "application/vnd.github.raw+json" : "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28"
-  }, opts.headers || {});
+  }, opts.body !== undefined ? { "Content-Type": "application/json" } : {}, opts.headers || {});
   let res;
   try{
     res = await fetch(ghUrl(path), { method, headers,
@@ -7826,7 +7859,10 @@ async function ghFetch(method, path, opts){
     const e = new Error("네트워크 오류"); e.status = 0; throw e;
   }
   if(!res.ok){
-    const e = new Error(`GitHub 오류 (${res.status})`); e.status = res.status; throw e;
+    const e = new Error(`GitHub 오류 (${res.status})`); e.status = res.status;
+    const ra = res.headers.get("retry-after");
+    if(ra) e.retryAfter = parseInt(ra, 10) || 60;
+    throw e;
   }
   if(res.status === 204) return null;
   return opts.raw ? new Uint8Array(await res.arrayBuffer()) : res.json();
@@ -7840,6 +7876,123 @@ function syncErrMsg(err){
   return (err && err.message) || "알 수 없는 문제가 생겼습니다";
 }
 
+/* ---------- 통신 계층 확장 (2단계) — ghTree/ghGetRaw/ghPut/ghDelete, 요청 간격 조절, 재시도 ---------- */
+/* 저장소 안 경로는 슬래시로 나뉜 폴더 구조이므로 칸마다 인코딩합니다(파일 이름 자체는 uid()·kv 열쇠·해시라 특수문자가 없지만, 안전하게) */
+function ghEncodePath(path){ return path.split("/").map(encodeURIComponent).join("/"); }
+/* 내용을 만드는 요청(PUT·DELETE)만 최소 800ms 간격을 둡니다. 목록 조회(GET)는 대상이 아닙니다 */
+let ghLastWriteAt = 0;
+async function ghThrottleWrite(){
+  const wait = 800 - (Date.now() - ghLastWriteAt);
+  if(wait > 0) await sleep(wait);
+  ghLastWriteAt = Date.now();
+}
+/* 403 + retry-after 로 막히면 그만큼 기다렸다가 한 번만 다시 시도합니다 */
+async function ghRequestWithRetry(method, path, opts){
+  try{
+    return await ghFetch(method, path, opts);
+  }catch(err){
+    if(err.status === 403 && err.retryAfter){
+      await sleep(err.retryAfter * 1000);
+      ghLastWriteAt = Date.now();
+      return ghFetch(method, path, opts);
+    }
+    throw err;
+  }
+}
+/* 저장소 전체 목록 — { "docs/abc.enc": "sha…", … }. 빈 저장소(브랜치가 아직 없음)는 404/409 → 빈 목록 */
+async function ghTree(){
+  let data;
+  try{
+    data = await ghFetch("GET", "git/trees/main?recursive=1");
+  }catch(err){
+    if(err.status === 404 || err.status === 409) return {};
+    throw err;
+  }
+  const out = {};
+  (data.tree || []).forEach(e => { if(e.type === "blob") out[e.path] = e.sha; });
+  return out;
+}
+async function ghGetRaw(path){
+  return ghFetch("GET", `contents/${ghEncodePath(path)}`, { raw:true });
+}
+/* 새 sha 를 돌려줍니다. sha 를 안 주면 새 파일, 주면 그 sha 가 있어야 고칠 수 있습니다(다르면 409/422) */
+async function ghPut(path, bytes, sha){
+  await ghThrottleWrite();
+  const body = { message:"동기화: 자료 올림", content: syncBytesToB64(bytes) };
+  if(sha) body.sha = sha;
+  const res = await ghRequestWithRetry("PUT", `contents/${ghEncodePath(path)}`, { body });
+  return res && res.content && res.content.sha;
+}
+async function ghDelete(path, sha){
+  await ghThrottleWrite();
+  await ghRequestWithRetry("DELETE", `contents/${ghEncodePath(path)}`, { body: { message:"동기화: 자료 지움", sha } });
+}
+
+/* ---------- 저장소 경로 규칙 (1-2 표 그대로) ---------- */
+const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap"];
+/* store 이름 → 저장소 폴더 이름. kv·notes 는 규칙이 달라 아래에서 따로 다룹니다 */
+const SYNC_STORE_PREFIX = { docs:"docs", files:"pdf", draw:"draw", ainote:"ainote", attach:"attach", attachfile:"attachfile" };
+const SYNC_PREFIX_STORE = {};
+Object.entries(SYNC_STORE_PREFIX).forEach(([store, prefix]) => { SYNC_PREFIX_STORE[prefix] = store; });
+function syncPrefixOf(store){
+  if(store === "kv") return "kv/";
+  if(store === "notes") return "notes/";
+  const p = SYNC_STORE_PREFIX[store];
+  return p ? p + "/" : null;
+}
+/* notes 열쇠는 "회의종류|날짜" 형식이라 파일 이름에 그대로 못 씁니다 — SHA-256 앞 16자리(hex)로 갈음하고,
+   원래 열쇠는 파일 내용 안에 넣어 둡니다(4단계에서 내려받을 때 그 값으로 복원) */
+async function syncSha256Hex16(text){
+  const buf = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+  return Array.from(buf.subarray(0, 8)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+/* store+key → 저장소 안 경로. 동기화 대상이 아니면(kv 의 제외 열쇠 등) null */
+async function syncPathOf(store, key){
+  if(store === "kv")    return SYNC_KV_KEYS.includes(key) ? `kv/${key}.enc` : null;
+  if(store === "notes") return `notes/${await syncSha256Hex16(String(key))}.enc`;
+  const prefix = SYNC_STORE_PREFIX[store];
+  return prefix ? `${prefix}/${key}.enc` : null;
+}
+/* 저장소 경로 → { store, key }. notes 는 key 를 되돌릴 수 없으므로 null(복호화한 내용 안의 원래 key 를 씁니다) */
+function syncKeyOf(path){
+  if(path === "crypto.json") return null;
+  const m = path.match(/^([a-z]+)\/(.+)\.enc$/);
+  if(!m) return null;
+  const [, prefix, rest] = m;
+  if(prefix === "kv")    return { store:"kv", key: rest };
+  if(prefix === "notes") return { store:"notes", key: null };
+  const store = SYNC_PREFIX_STORE[prefix];
+  return store ? { store, key: rest } : null;
+}
+
+/* ---------- 바뀐 것 기록 — dbPut/dbDel/dbClear(2193행 근처)가 부릅니다 ---------- */
+async function syncMarkDirty(store, key){
+  const path = await syncPathOf(store, key);
+  if(!path) return;
+  const prev = await dbGet("sync", path).catch(() => null);
+  await dbPutQuiet("sync", { path, sha: prev ? prev.sha : null, dirty:true, deleted:false, at: Date.now() });
+  syncSchedulePush();
+}
+async function syncMarkDeleted(store, key){
+  const path = await syncPathOf(store, key);
+  if(!path) return;
+  const prev = await dbGet("sync", path).catch(() => null);
+  if(!prev || !prev.sha){
+    /* 서버에 올린 적이 없으면 지울 것도 없습니다 — 기록만 지웁니다 */
+    if(prev) await dbDelQuiet("sync", path).catch(() => {});
+    return;
+  }
+  await dbPutQuiet("sync", { path, sha: prev.sha, dirty:false, deleted:true, at: Date.now() });
+  syncSchedulePush();
+}
+/* 전체 지우기(#btn-wipe) 가 스토어별로 dbClear 를 부르면, 그 스토어에 해당하는 sync 기록도 함께 지웁니다 */
+async function syncClearStore(store){
+  const prefix = syncPrefixOf(store);
+  if(!prefix) return;
+  const all = await dbAll("sync").catch(() => []);
+  for(const r of all){ if(r.path.startsWith(prefix)) await dbDelQuiet("sync", r.path).catch(() => {}); }
+}
+
 /* ---------- 설정 화면 — 동기화 칸 ---------- */
 function syncSettingsRow(){
   $("#sync-owner").value = KV.syncOwner || "";
@@ -7847,10 +8000,26 @@ function syncSettingsRow(){
   $("#sync-token").value = KV.syncToken || "";
   $("#sync-pass").value  = KV.syncPass  || "";
   $("#sync-enabled").checked = !!KV.syncOn;
-  const out = $("#syncstatus");
-  out.className = "";
-  out.textContent = KV.syncOn ? "연결됨"
-    : (syncEnabled() ? "연결 안 됨 — 아래 연결 확인을 눌러 주세요" : "연결 안 됨");
+  syncRefreshStatusLine();
+  syncUpdateStatusDot();
+}
+/* 켜져 있으면 "올릴 것 N개 / 맞춰짐" 을 보여줍니다(3단계). 연결 확인 직후의 자세한 안내문은 덮어쓰지 않습니다 —
+   이 함수는 모달을 열 때·올리기가 끝났을 때만 부릅니다. */
+async function syncRefreshStatusLine(){
+  const out = $("#syncstatus"); if(!out) return;
+  if(!KV.syncOn){
+    out.className = "";
+    out.textContent = syncEnabled() ? "연결 안 됨 — 아래 연결 확인을 눌러 주세요" : "연결 안 됨";
+    return;
+  }
+  try{
+    const all = await dbAll("sync");
+    const n = all.filter(r => r.dirty || r.deleted).length;
+    out.className = n ? "" : "ok";
+    out.textContent = n ? `연결됨 · 올릴 것 ${n}개` : "연결됨 · 맞춰짐";
+  }catch(err){
+    out.className = ""; out.textContent = "연결됨";
+  }
 }
 Object.entries({ "sync-owner":"syncOwner", "sync-repo":"syncRepo", "sync-token":"syncToken" }).forEach(([id, k]) => {
   $("#" + id).addEventListener("change", e => { KV[k] = e.target.value.trim(); saveKV(k); });
@@ -7863,9 +8032,12 @@ $("#sync-enabled").addEventListener("change", e => {
   if(e.target.checked) syncTestConnection();
   else{
     KV.syncOn = false; saveKV("syncOn");
+    clearTimeout(syncPushTimer);
     const out = $("#syncstatus"); out.className = ""; out.textContent = "연결 안 됨";
+    syncUpdateStatusDot();
   }
 });
+$("#btn-syncdot").onclick = () => $("#btn-settings").click();
 $("#sync-test").onclick = () => syncTestConnection();
 
 async function syncTestConnection(){
@@ -7928,8 +8100,168 @@ async function syncTestConnection(){
     KV.syncOn = false; saveKV("syncOn"); chk.checked = false;
   }finally{
     btn.disabled = false; chk.disabled = false;
+    syncUpdateStatusDot();
   }
 }
+
+/* ---------- 올리기(push) — 3단계 ---------- */
+/* store 의 레코드 하나를 암호화하기 전의 원본 바이트로 바꿉니다 */
+async function syncEncodeRecord(store, rec){
+  if(store === "files" || store === "attachfile") return new Uint8Array(await rec.blob.arrayBuffer());
+  if(store === "docs") return new TextEncoder().encode(JSON.stringify(stripDoc(rec)));
+  if(store === "kv")   return new TextEncoder().encode(JSON.stringify(rec.v));
+  return new TextEncoder().encode(JSON.stringify(rec));   /* notes · draw · ainote · attach — 레코드 그대로 */
+}
+const SYNC_MAX_BYTES = 100 * 1024 * 1024;
+let syncPushTimer = null;
+/* 저장 후 5초 잠잠하면 올립니다. 꺼져 있거나(syncEnabled/syncOn) 사본이면 아무 일도 안 함 */
+function syncSchedulePush(){
+  if(!syncEnabled() || !KV.syncOn) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => { syncPush().catch(err => console.warn("syncPush", err)); }, 5000);
+}
+/* 동기화 대상 레코드를 모두 다시 dirty 로 찍습니다("이 기기 자료 전부 올리기") — 기존 sha 는 그대로 둡니다 */
+async function syncMarkAllDirty(){
+  for(const s of ["docs","files","draw","ainote","attach","attachfile"]){
+    for(const r of await dbAll(s)) await syncMarkDirtyNoSchedule(s, r[storeKeyField(s)]);
+  }
+  for(const n of await dbAll("notes")) await syncMarkDirtyNoSchedule("notes", n.key);
+  for(const k of SYNC_KV_KEYS) if(k in KV) await syncMarkDirtyNoSchedule("kv", k);
+}
+/* syncMarkDirty 와 같지만 push 를 예약하지 않습니다 — syncMarkAllDirty 가 수백 번 부를 수 있어서입니다 */
+async function syncMarkDirtyNoSchedule(store, key){
+  const path = await syncPathOf(store, key);
+  if(!path) return;
+  const prev = await dbGet("sync", path).catch(() => null);
+  await dbPutQuiet("sync", { path, sha: prev ? prev.sha : null, dirty:true, deleted:false, at: Date.now() });
+}
+/* 상단 막대 점 — 회색(꺼짐)·초록(맞춤)·주황(올릴 것 있음)·빨강(오류). 토큰이 없으면 아예 숨깁니다 */
+function syncUpdateStatusDot(state){
+  const btn = $("#btn-syncdot"); if(!btn) return;
+  if(!syncEnabled()){ btn.style.display = "none"; return; }
+  btn.style.display = "";
+  const dot = $("#syncdot");
+  dot.className = "dot";
+  if(state === "busy"){ dot.classList.add("pending"); btn.title = "동기화: 올리는 중…"; return; }
+  if(state === "err"){ dot.classList.add("err"); btn.title = "동기화: 오류 — 눌러서 확인"; return; }
+  if(!KV.syncOn){ btn.title = "동기화: 연결 안 됨"; return; }
+  dbAll("sync").then(all => {
+    const pending = all.some(r => r.dirty || r.deleted);
+    dot.classList.toggle("pending", pending);
+    dot.classList.toggle("on", !pending);
+    btn.title = pending ? "동기화: 올릴 것 있음" : "동기화: 맞춰짐";
+  }).catch(() => {});
+}
+/* 저장소 경로 → { store, key } 색인. notes 는 경로가 해시라 syncKeyOf 로 되돌릴 수 없으므로,
+   실제 있는 레코드들의 경로를 미리 계산해 맞춰 봅니다. PDF 같은 무거운 값은 안 읽고 열쇠만 읽습니다 */
+async function syncPathIndex(){
+  const idx = new Map();
+  for(const s of ["docs","files","draw","ainote","attach","attachfile"]){
+    for(const key of await dbAllKeys(s)){
+      const path = await syncPathOf(s, key);
+      if(path) idx.set(path, { store:s, key });
+    }
+  }
+  for(const key of await dbAllKeys("notes")) idx.set(await syncPathOf("notes", key), { store:"notes", key });
+  for(const k of SYNC_KV_KEYS) if(k in KV) idx.set(await syncPathOf("kv", k), { store:"kv", key:k });
+  return idx;
+}
+/* sync 스토어의 dirty/deleted 를 모아 저장소로 올립니다. 한 파일이 실패해도 나머지는 계속합니다 */
+async function syncPush(opts){
+  opts = opts || {};
+  if(!syncEnabled() || !KV.syncOn) return null;
+  if(SYNC.busy){ SYNC.pendingPush = true; return null; }
+  if(!navigator.onLine) return null;
+  await syncDeriveKeyIfNeeded();
+  if(!SYNC.key) return null;   /* 아직 연결 확인 전 */
+  SYNC.busy = true;
+  syncUpdateStatusDot("busy");
+  const result = { pushed:0, failed:0, tooBig:0 };
+  try{
+    const targets = (await dbAll("sync")).filter(r => r.dirty || r.deleted);
+    const total = targets.length, t0 = Date.now();
+    let done = 0;
+    const idx = await syncPathIndex();
+    for(const rec of targets){
+      try{
+        if(rec.deleted){
+          try{
+            if(rec.sha) await ghDelete(rec.path, rec.sha);
+          }catch(err){
+            if(err.status === 409 || err.status === 422){
+              const fresh = (await ghTree())[rec.path];
+              if(fresh) await ghDelete(rec.path, fresh);
+            }else if(err.status !== 404) throw err;
+          }
+          await dbDelQuiet("sync", rec.path);
+        }else{
+          const found = idx.get(rec.path);
+          const raw = found ? (found.store === "kv" ? { k: found.key, v: KV[found.key] } : await dbGet(found.store, found.key)) : null;
+          if(!found || !raw){ await dbDelQuiet("sync", rec.path); continue; }   /* 알 수 없는 경로거나 이미 다른 길로 지워짐 */
+          const bytes = await syncEncodeRecord(found.store, raw);
+          if(bytes.length > SYNC_MAX_BYTES){
+            result.tooBig++;
+            await dbPutQuiet("sync", Object.assign({}, rec, { dirty:false }));
+            continue;
+          }
+          const enc = await cryptoEncrypt(SYNC.key, bytes);
+          let sha;
+          try{
+            sha = await ghPut(rec.path, enc, rec.sha || undefined);
+          }catch(err){
+            if(err.status === 409 || err.status === 422){
+              /* 다른 기기가 먼저 고쳤음 — 서버 sha 를 다시 읽어 이 기기 것으로 덮어씁니다 */
+              const fresh = (await ghTree())[rec.path];
+              sha = await ghPut(rec.path, enc, fresh);
+            }else throw err;
+          }
+          await dbPutQuiet("sync", { path:rec.path, sha, dirty:false, deleted:false, at:Date.now() });
+        }
+        result.pushed++;
+      }catch(err){
+        result.failed++;
+        console.warn("syncPush", rec.path, err);
+      }finally{
+        /* continue 로 건너뛴 항목도 진행률에는 꼭 잡혀야 합니다 */
+        done++;
+        if(opts.onProgress) opts.onProgress(done, total, Date.now() - t0);
+      }
+    }
+  }finally{
+    SYNC.busy = false;
+    syncUpdateStatusDot(result.failed ? "err" : null);
+    syncRefreshStatusLine();
+    if(SYNC.pendingPush){ SYNC.pendingPush = false; syncSchedulePush(); }
+  }
+  return result;
+}
+$("#sync-pushall").onclick = async () => {
+  if(!syncEnabled() || !KV.syncOn){ toast("먼저 위에서 연결 확인을 해 주세요"); return; }
+  const btn = $("#sync-pushall"), out = $("#syncstatus");
+  btn.disabled = true;
+  out.className = ""; out.textContent = "올릴 것을 찾는 중…";
+  try{
+    await syncMarkAllDirty();
+    const result = await syncPush({ onProgress:(done, total, ms) => {
+      const remainSec = done ? Math.round((ms / done) * (total - done) / 1000) : 0;
+      out.className = "";
+      out.textContent = `올리는 중… ${done}/${total}` +
+        (remainSec > 5 ? ` (약 ${remainSec >= 60 ? Math.round(remainSec / 60) + "분" : remainSec + "초"} 남음)` : "");
+    } });
+    if(!result){ toast("동기화가 꺼져 있거나 인터넷이 연결되어 있지 않습니다"); }
+    else{
+      toast(result.failed || result.tooBig
+        ? `올리기 완료 — 실패 ${result.failed}개, 너무 커서 건너뜀 ${result.tooBig}개`
+        : `올리기 완료 — ${result.pushed}개`);
+    }
+  }catch(err){
+    toast("올리지 못했습니다 — " + syncErrMsg(err));
+  }finally{
+    btn.disabled = false;
+    syncRefreshStatusLine();
+    syncUpdateStatusDot();
+  }
+};
 
 /* =========================================================
    17) 튜토리얼 (사용 설명서)
@@ -8580,6 +8912,7 @@ function registerSW(){
   if(DOCS.length && navigator.storage && navigator.storage.persist)
     navigator.storage.persist().then(updatePersist).catch(() => {});
   registerSW();
+  syncUpdateStatusDot();
 })();
 </script>
 </body>
