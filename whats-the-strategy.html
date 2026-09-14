@@ -1999,6 +1999,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
           GitHub 저장소에는 알아볼 수 없는 덩어리만 놓입니다. 올라가는 것은 자료(문서·PDF·필기·AI Note)와
           회의 종류·할 일·요약·발표 스크립트·메모·회의 Agenda 뿐입니다. <b>제미나이 API 키는 어떤 경우에도 올라가지 않습니다.</b>
           이 기기만의 설정(그리기 도구, 마지막에 보던 자료 등)도 올라가지 않습니다.
+          켜 두면 앱을 열 때·창을 다시 앞으로 가져올 때 다른 기기에서 바꾼 것을 받아오고, 이 기기에서 바꾼 것은 저장 5초 뒤에 올립니다.
+          다른 기기에서 올린 PDF 원본은 그 자료를 처음 열 때 내려받아 이 기기에 보관합니다.
+          양쪽에서 같은 것을 고쳤으면 나중에 올린 쪽이 남습니다.
           토큰을 넣지 않으면 아무 통신도 하지 않습니다 — <b>다른 사람에게 앱 파일만 건네줘도 지금과 완전히 같게 동작합니다.</b>
           저장소가 너무 커지면 새 저장소를 만들어 이름만 바꾸면 됩니다.</div>
 
@@ -2023,10 +2026,13 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 
           <div class="btnrow">
             <button id="sync-test">연결 확인</button>
+            <button id="sync-now">지금 동기화</button>
             <button id="sync-pushall">이 기기 자료 전부 올리기</button>
+            <button id="sync-pullall">전부 내려받기</button>
           </div>
-          <div class="hint">전부 올리기는 이 기기의 모든 자료를 서버로 올립니다. 자료가 많으면 몇 분 걸릴 수 있고,
-            도중에 창을 닫아도 다음에 이어서 올라갑니다.</div>
+          <div class="hint">지금 동기화는 받을 것을 받고 올릴 것을 올립니다(평소엔 자동으로 됩니다).
+            전부 올리기는 이 기기의 모든 자료를 서버로 올리고, 전부 내려받기는 서버의 모든 자료를 다시 받습니다.
+            자료가 많으면 몇 분 걸릴 수 있고, 도중에 창을 닫아도 다음에 이어서 진행됩니다.</div>
           <div id="syncstatus">연결 안 됨</div>
         </div>
       </div>
@@ -2535,7 +2541,16 @@ async function loadPdfFor(doc){
   const seq = ++S.renderSeq;
   document.body.classList.add("rendering");
   try{
-    const rec = await dbGet("files", doc.id);
+    let rec = await dbGet("files", doc.id);
+    /* 이 기기에 원본이 없는데 동기화 저장소에는 있으면(다른 기기에서 올린 자료) 지금 내려받아 보관합니다 (15) 동기화) */
+    if((!rec || !rec.blob) && await syncHasRemote("files", doc.id)){
+      setNoView("원본을 내려받는 중…",
+        "다른 기기에서 올린 PDF 원본을 저장소에서 가져오고 있습니다.<br><span class=\"hint\">파일이 크면 잠시 걸립니다.</span>",
+        null, null);
+      const blob = await syncFetchBlob("files", doc.id);
+      if(seq !== S.renderSeq) return;
+      if(blob) rec = { id: doc.id, blob };
+    }
     if(!rec || !rec.blob) throw new Error("원본 파일을 찾을 수 없습니다");
     const buf = await rec.blob.arrayBuffer();
     if(seq !== S.renderSeq) return;
@@ -4652,7 +4667,7 @@ $("#filtertoggle").onclick = () => {
   let saveT = null;
   function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(flush, 600); }
   function flush(){
-    clearTimeout(saveT);
+    clearTimeout(saveT); saveT = null;   /* null 로 되돌려 두어야 "저장 안 된 획이 남았는지"를 알 수 있습니다(reloadDoc) */
     if(!DRAW.docId) return;
     const pages = {};
     for(const k in DRAW.pages){ if((DRAW.pages[k] || []).length) pages[k] = DRAW.pages[k]; }
@@ -4672,6 +4687,18 @@ $("#filtertoggle").onclick = () => {
     repaint();
   }
   window.drawLoadDoc = loadDoc;
+  /* 동기화가 다른 기기의 펜 자국을 받아왔을 때 — 지금 보는 자료면 저장된 것을 다시 읽어 그립니다.
+     loadDoc 과 달리 flush() 를 하지 않습니다(하면 메모리의 옛 자국이 방금 받은 것을 덮어씁니다).
+     그리는 중이거나 아직 저장 안 된 획이 있으면 이 기기 것을 지키기 위해 건너뜁니다(그 획이 저장되면서 이 기기 것이 올라갑니다). */
+  async function reloadDoc(id){
+    if(!id || DRAW.docId !== id) return;
+    if(DRAW.drawing || saveT) return;
+    try{ const rec = await dbGet("draw", id); DRAW.pages = (rec && rec.pages) || {}; }
+    catch(_){ return; }
+    DRAW.past = [];
+    repaint();
+  }
+  window.drawReloadDoc = reloadDoc;
 
   /* ---- 도구 선택 & 쪽지(패널) ---- */
   function setTool(t){
@@ -5281,11 +5308,24 @@ async function atvShow(){
         h.className = "fname"; h.textContent = a.name;
         box.appendChild(h);
       }
-      const rec = await dbGet("attachfile", a.id);
+      let rec = await dbGet("attachfile", a.id);
       if(seq !== atvSeq) return;
+      /* 이 기기에 없고 동기화 저장소에 있으면(다른 기기에서 붙인 첨부) 지금 내려받아 보관합니다 (15) 동기화) */
+      let fetchErr = "";
+      if((!rec || !rec.blob) && await syncHasRemote("attachfile", a.id)){
+        const m = document.createElement("div");
+        m.className = "msg"; m.textContent = a.name + " — 내려받는 중…";
+        box.appendChild(m);
+        try{
+          const blob = await syncFetchBlob("attachfile", a.id);
+          if(blob) rec = { id: a.id, blob };
+        }catch(err){ fetchErr = " — 내려받지 못했습니다: " + syncErrMsg(err); }
+        if(seq !== atvSeq) return;
+        m.remove();
+      }
       if(!rec || !rec.blob){
         const m = document.createElement("div");
-        m.className = "msg"; m.textContent = a.name + " — 파일을 찾을 수 없습니다";
+        m.className = "msg"; m.textContent = a.name + (fetchErr || " — 파일을 찾을 수 없습니다");
         box.appendChild(m); continue;
       }
       const pdf = await pdfjsLib.getDocument({ data: await rec.blob.arrayBuffer() }).promise;
@@ -7733,7 +7773,11 @@ $("#btn-wipe").onclick = async () => {
   await dbClear("ainote").catch(() => {});
   await dbClear("attach").catch(() => {});
   await dbClear("attachfile").catch(() => {});
-  KV = Object.assign({}, KV_DEFAULT, { scripts:{}, memos:{} });
+  /* 동기화 설정(토큰·암호문구 등)은 남깁니다 — 서버는 건드리지 않으며, 다음 동기화 때 서버 자료를 전부 다시 받아옵니다 */
+  const keepSync = {};
+  for(const k of Object.keys(KV)) if(k.startsWith("sync")) keepSync[k] = KV[k];
+  KV = Object.assign({}, KV_DEFAULT, { scripts:{}, memos:{} }, keepSync);
+  for(const k of Object.keys(keepSync)) saveKV(k);
   DOCS = []; NOTES = {}; AINOTES = {}; ATTACH = []; S.sel = null; S.offCats = new Set(); S.agOff = new Set(); S.open = new Set();
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
@@ -7774,8 +7818,10 @@ window.addEventListener("beforeunload", e => {
       · 토큰을 넣지 않은 사본(다른 사람에게 건넨 것)에서는 syncEnabled() 가 늘 false 이므로
         아무 통신도 일어나지 않습니다.
    ========================================================= */
-/* key: 암호문구로 유도한 열쇠(CryptoKey, 메모리에만) · busy: 올리기가 도는 중 · pendingPush: 그 사이에 또 바뀐 것이 있어 끝나면 다시 올려야 함 */
-const SYNC = { key:null, busy:false, pendingPush:false };
+/* key: 암호문구로 유도한 열쇠(CryptoKey, 메모리에만) · keyPromise: 유도 중이면 그 약속(두 번 돌리지 않게)
+   busy: 올리기/받기가 도는 중 · pendingPush: 그 사이에 또 바뀐 것이 있어 끝나면 다시 올려야 함
+   lastPullAt: 마지막으로 받은 시각 · lastErr: 마지막 오류(한글) · renderTimer: 편집이 끝나길 기다리는 다시 그리기 */
+const SYNC = { key:null, keyPromise:null, busy:false, pendingPush:false, lastPullAt:0, lastErr:null, renderTimer:null };
 const SYNC_PBKDF2_ITER = 600000;
 const SYNC_MAGIC = new Uint8Array([0x57,0x54,0x53,0x31]);   /* "WTS1" — 파일 형식 표시 */
 const SYNC_CHECK_TEXT = "whats-the-strategy";
@@ -7832,8 +7878,14 @@ async function cryptoVerify(key, checkB64){
    PBKDF2 600,000회는 기기에 따라 0.5~2초 걸리므로 start() 를 막지 않도록 await 하지 않고 부릅니다. */
 async function syncDeriveKeyIfNeeded(){
   if(SYNC.key || !KV.syncPass || !KV.syncSalt) return;
-  try{ SYNC.key = await cryptoDeriveKey(KV.syncPass, syncB64ToBytes(KV.syncSalt)); }
-  catch(err){ console.warn("sync 열쇠 유도 실패", err); }
+  /* 시작 직후 여러 곳(자동 동기화·PDF 내려받기)에서 동시에 불러도 유도는 한 번만 합니다 */
+  if(!SYNC.keyPromise){
+    SYNC.keyPromise = cryptoDeriveKey(KV.syncPass, syncB64ToBytes(KV.syncSalt))
+      .then(k => { SYNC.key = k; })
+      .catch(err => { console.warn("sync 열쇠 유도 실패", err); })
+      .finally(() => { SYNC.keyPromise = null; });
+  }
+  await SYNC.keyPromise;
 }
 
 /* ---------- GitHub 최소 통신 (GET/PUT 하나씩 — 본격 계층은 2단계에서 ghFetch 를 그대로 확장) ---------- */
@@ -7872,7 +7924,7 @@ function syncErrMsg(err){
   if(status === 401) return "토큰이 틀리거나 만료되었습니다";
   if(status === 404) return "저장소 이름이나 권한을 확인해 주세요";
   if(status === 409 || status === 422) return "다른 기기에서 먼저 고쳤습니다";
-  if(!status) return "인터넷 연결을 확인해 주세요";
+  if(status === 0) return "인터넷 연결을 확인해 주세요";   /* ghFetch 가 fetch 실패에 0 을 붙입니다. status 가 아예 없는 오류(복호화 실패 등)는 제 메시지를 그대로 */
   return (err && err.message) || "알 수 없는 문제가 생겼습니다";
 }
 
@@ -8012,6 +8064,11 @@ async function syncRefreshStatusLine(){
     out.textContent = syncEnabled() ? "연결 안 됨 — 아래 연결 확인을 눌러 주세요" : "연결 안 됨";
     return;
   }
+  if(SYNC.lastErr){
+    out.className = "bad";
+    out.textContent = "✕ 오류: " + SYNC.lastErr;
+    return;
+  }
   try{
     const all = await dbAll("sync");
     const n = all.filter(r => r.dirty || r.deleted).length;
@@ -8050,6 +8107,7 @@ async function syncTestConnection(){
   }
   btn.disabled = true; chk.disabled = true;
   out.className = ""; out.textContent = "확인 중…";
+  let connected = false;
   try{
     const repoInfo = await ghFetch("GET", "");
     if(repoInfo.private === false){
@@ -8094,6 +8152,8 @@ async function syncTestConnection(){
       out.textContent = "연결됨 · 저장소에 자료가 있습니다.";
     }
     KV.syncOn = true; saveKV("syncOn"); chk.checked = true;
+    SYNC.lastErr = null;
+    connected = true;
   }catch(err){
     out.className = "bad";
     out.textContent = "✕ " + syncErrMsg(err);
@@ -8102,6 +8162,11 @@ async function syncTestConnection(){
     btn.disabled = false; chk.disabled = false;
     syncUpdateStatusDot();
   }
+  if(!connected) return;
+  /* 이 기기가 한 번이라도 맞춰 본 적이 있으면 그냥 평소처럼 동기화하고, 처음이면 갈림길(syncFirstConnect)로 갑니다 */
+  const everSynced = (await dbAll("sync").catch(() => [])).some(r => r.sha);
+  if(everSynced) syncAuto({ loud:true });
+  else await syncFirstConnect();
 }
 
 /* ---------- 올리기(push) — 3단계 ---------- */
@@ -8142,8 +8207,8 @@ function syncUpdateStatusDot(state){
   btn.style.display = "";
   const dot = $("#syncdot");
   dot.className = "dot";
-  if(state === "busy"){ dot.classList.add("pending"); btn.title = "동기화: 올리는 중…"; return; }
-  if(state === "err"){ dot.classList.add("err"); btn.title = "동기화: 오류 — 눌러서 확인"; return; }
+  if(state === "busy"){ dot.classList.add("pending"); btn.title = "동기화: 진행 중…"; return; }
+  if(state === "err" || SYNC.lastErr){ dot.classList.add("err"); btn.title = "동기화: 오류 — 눌러서 확인"; return; }
   if(!KV.syncOn){ btn.title = "동기화: 연결 안 됨"; return; }
   dbAll("sync").then(all => {
     const pending = all.some(r => r.dirty || r.deleted);
@@ -8177,6 +8242,7 @@ async function syncPush(opts){
   SYNC.busy = true;
   syncUpdateStatusDot("busy");
   const result = { pushed:0, failed:0, tooBig:0 };
+  let ok = false;
   try{
     const targets = (await dbAll("sync")).filter(r => r.dirty || r.deleted);
     const total = targets.length, t0 = Date.now();
@@ -8227,8 +8293,13 @@ async function syncPush(opts){
         if(opts.onProgress) opts.onProgress(done, total, Date.now() - t0);
       }
     }
+    ok = true;
+  }catch(err){
+    SYNC.lastErr = syncErrMsg(err);
+    throw err;
   }finally{
     SYNC.busy = false;
+    if(ok) SYNC.lastErr = result.failed ? `올리지 못한 항목 ${result.failed}개` : null;
     syncUpdateStatusDot(result.failed ? "err" : null);
     syncRefreshStatusLine();
     if(SYNC.pendingPush){ SYNC.pendingPush = false; syncSchedulePush(); }
@@ -8262,6 +8333,316 @@ $("#sync-pushall").onclick = async () => {
     syncUpdateStatusDot();
   }
 };
+
+/* ---------- 내려받기(pull) · 병합 — 4단계 ----------
+   저장소 목록(ghTree)과 이 기기의 sync 기록을 견주어
+     · 서버에만 있거나 서버 쪽이 바뀐 것 → 받아서 저장(조용히, dirty 안 찍음)
+     · 서버에서 사라졌는데 예전에 맞춰 둔 것(sha 있음) → 다른 기기에서 지운 것 → 이 기기에서도 지움
+     · 이 기기에서 고친(dirty) 것과 겹치면 → 이 기기 것을 유지(다음 올리기가 덮어씀)
+   PDF 원본(pdf/·attachfile/)은 목록만 기억하고 바이트는 그 자료를 열 때 받습니다(syncFetchBlob). */
+/* 저장소 파일 하나를 복호화해 레코드로 되돌립니다 (syncEncodeRecord 의 반대) */
+async function syncDecodeRecord(store, key, bytes){
+  const plain = await cryptoDecrypt(SYNC.key, bytes);
+  if(store === "files" || store === "attachfile") return { id:key, blob: new Blob([plain], { type:"application/pdf" }) };
+  const val = JSON.parse(new TextDecoder().decode(plain));
+  if(store === "kv") return { k:key, v:val };
+  if(store === "notes"){
+    if(!val || !val.key) throw new Error("회의록 파일에 열쇠가 없습니다");
+    return val;
+  }
+  if(!val || typeof val !== "object") throw new Error("파일 내용이 비어 있습니다");
+  val.id = key;   /* 파일 이름(경로)이 곧 열쇠입니다 — 내용 안의 id 와 어긋나지 않게 맞춥니다 */
+  return val;
+}
+/* 이 기기에 원본이 없을 때, 저장소에 그 PDF 가 있는지(목록에 sha 가 있는지) 봅니다 */
+async function syncHasRemote(store, id){
+  if(!syncEnabled() || !KV.syncOn) return false;
+  const path = await syncPathOf(store, id);
+  const rec = path ? await dbGet("sync", path).catch(() => null) : null;
+  return !!(rec && rec.sha && !rec.deleted);
+}
+/* PDF 원본을 지금 내려받아 이 기기에 보관합니다(캐시). 저장 공간을 "글자만" 으로 둔 기기도 한 번 본 원본은 남겨 둡니다. */
+async function syncFetchBlob(store, id){
+  const path = await syncPathOf(store, id);
+  const rec = path ? await dbGet("sync", path).catch(() => null) : null;
+  if(!rec || !rec.sha) return null;
+  if(!navigator.onLine) throw new Error("인터넷이 연결되어 있지 않아 원본을 내려받지 못했습니다");
+  await syncDeriveKeyIfNeeded();
+  if(!SYNC.key) throw new Error("동기화 열쇠가 준비되지 않았습니다 — 설정에서 연결 확인을 해 주세요");
+  let bytes;
+  try{ bytes = await ghGetRaw(path); }
+  catch(err){ throw new Error("원본을 내려받지 못했습니다 — " + syncErrMsg(err)); }
+  const out = await syncDecodeRecord(store, id, bytes);
+  await dbPutQuiet(store, out);
+  await dbPutQuiet("sync", Object.assign({}, rec, { lazy:false, at:Date.now() }));
+  updateUsage();
+  return out.blob;
+}
+/* 다른 기기에서 자료를 지웠을 때 — removeDoc() 과 같은 범위를 이 기기에서만(통신 없이) 지웁니다 */
+async function syncRemoveDocLocal(id, changed){
+  for(const s of ["docs","files","draw","ainote"]){
+    await dbDelQuiet(s, id).catch(() => {});
+    const p = await syncPathOf(s, id); if(p){ await dbDelQuiet("sync", p).catch(() => {}); changed.removedPaths.add(p); }
+  }
+  const atts = (await dbAll("attach").catch(() => [])).filter(a => a && a.docId === id);
+  for(const a of atts){
+    for(const s of ["attach","attachfile"]){
+      await dbDelQuiet(s, a.id).catch(() => {});
+      const p = await syncPathOf(s, a.id); if(p){ await dbDelQuiet("sync", p).catch(() => {}); changed.removedPaths.add(p); }
+    }
+  }
+  changed.docs.add(id); changed.any = true;
+}
+/* 서버 파일 하나를 이 기기에 적용합니다 */
+async function syncApplyRemote(g, changed){
+  const { path, sha, where, rec } = g;
+  if(where.store === "files" || where.store === "attachfile"){
+    /* 바이트는 지금 안 받습니다. 예전에 받아 둔 원본이 있는데 서버 쪽이 바뀌었으면(다시 올림) 옛 원본을 지워 다음에 열 때 새로 받게 합니다 */
+    if(rec && rec.sha && rec.sha !== sha){
+      await dbDelQuiet(where.store, where.key).catch(() => {});
+      if(where.store === "files") changed.files.add(where.key);
+      changed.any = true;
+    }
+    await dbPutQuiet("sync", { path, sha, dirty:false, deleted:false, lazy:true, at:Date.now() });
+    if(!rec && where.store === "files"){ changed.files.add(where.key); changed.any = true; }   /* "원본 없음" 으로 보고 있었다면 다시 열어 받게 */
+    return;
+  }
+  const out = await syncDecodeRecord(where.store, where.key, await ghGetRaw(path));
+  await dbPutQuiet(where.store, out);
+  if(where.store === "kv"){ KV[where.key] = out.v; changed.kv.add(where.key); }
+  else if(where.store === "docs") changed.docs.add(where.key);
+  else if(where.store === "draw") changed.draw.add(where.key);
+  await dbPutQuiet("sync", { path, sha, dirty:false, deleted:false, at:Date.now() });
+  changed.any = true;
+}
+/* 서버에서 사라진 것을 이 기기에서도 지웁니다 */
+async function syncApplyRemoteDelete(rec, idx, changed){
+  if(changed.removedPaths.has(rec.path)) return;   /* 자료와 함께 이미 지워짐 */
+  const where = idx.get(rec.path) || syncKeyOf(rec.path);
+  if(where && where.key != null){
+    if(where.store === "docs") await syncRemoveDocLocal(where.key, changed);
+    else{
+      await dbDelQuiet(where.store, where.key).catch(() => {});
+      if(where.store === "kv"){
+        /* kv 열쇠가 서버에서 없어지는 일은 드뭅니다(전체 지우기는 서버를 안 건드림). 기본값으로 되돌립니다 */
+        const d = KV_DEFAULT[where.key];
+        KV[where.key] = Array.isArray(d) ? d.slice() : (d && typeof d === "object" ? Object.assign({}, d) : d);
+        changed.kv.add(where.key);
+      }
+      else if(where.store === "draw") changed.draw.add(where.key);
+      else if(where.store === "files") changed.files.add(where.key);
+      changed.any = true;
+    }
+  }
+  await dbDelQuiet("sync", rec.path).catch(() => {});
+  changed.removedPaths.add(rec.path);
+}
+/* 저장소와 이 기기를 맞춥니다. opts.force 면 sha 가 같아도 다시 받습니다("전부 내려받기"). 실패하면 오류를 던집니다 */
+async function syncPull(opts){
+  opts = opts || {};
+  if(!syncEnabled() || !KV.syncOn) return null;
+  if(SYNC.busy) return null;
+  if(!navigator.onLine) return null;
+  await syncDeriveKeyIfNeeded();
+  if(!SYNC.key) return null;   /* 아직 연결 확인 전 */
+  SYNC.busy = true;
+  syncUpdateStatusDot("busy");
+  const result = { got:0, removed:0, conflicts:0, failed:0 };
+  const changed = { any:false, docs:new Set(), draw:new Set(), files:new Set(), kv:new Set(), removedPaths:new Set() };
+  try{
+    const tree = await ghTree();
+    /* 안전장치: crypto.json 이 안 보이면 저장소를 잘못 가리키거나 목록을 못 받은 것입니다.
+       이때 "서버에 없으니 지우자" 로 가면 이 기기 자료를 몽땅 지우게 되므로 여기서 멈춥니다 */
+    if(!tree["crypto.json"]) throw new Error("저장소에서 crypto.json 을 찾지 못했습니다 — 저장소 이름과 토큰을 확인해 주세요");
+    const local = new Map((await dbAll("sync")).map(r => [r.path, r]));
+    const idx = await syncPathIndex();
+    const toGet = [], toDel = [];
+    for(const [path, sha] of Object.entries(tree)){
+      const where = syncKeyOf(path); if(!where) continue;
+      const rec = local.get(path);
+      const lazy = where.store === "files" || where.store === "attachfile";
+      if(rec && rec.sha === sha && (!opts.force || lazy)) continue;          /* 이미 맞춰짐 */
+      if(rec && (rec.dirty || rec.deleted)){ result.conflicts++; continue; }  /* 이 기기 것이 이김 */
+      toGet.push({ path, sha, where, rec });
+    }
+    for(const rec of local.values()){
+      if(tree[rec.path] !== undefined) continue;
+      if(!rec.sha || rec.deleted) continue;                 /* 새로 만든 것 · 이미 지운 것 → 올리기가 처리 */
+      if(rec.dirty){ result.conflicts++; continue; }        /* 서버에선 지웠지만 여기서 고침 → 이 기기 것 유지 */
+      toDel.push(rec);
+    }
+    const total = toGet.length + toDel.length, t0 = Date.now();
+    let done = 0;
+    const tick = () => { done++; if(opts.onProgress) opts.onProgress(done, total, Date.now() - t0); };
+    for(const g of toGet){
+      try{ await syncApplyRemote(g, changed); result.got++; local.set(g.path, { sha:g.sha }); }
+      catch(err){ result.failed++; console.warn("syncPull", g.path, err); }
+      finally{ tick(); }
+    }
+    for(const rec of toDel){
+      try{ await syncApplyRemoteDelete(rec, idx, changed); result.removed++; }
+      catch(err){ result.failed++; console.warn("syncPull 삭제", rec.path, err); }
+      finally{ tick(); }
+    }
+    /* 기록이 없는 이 기기 레코드(동기화를 켜기 전부터 있던 것)는 올릴 것으로 표시해 둡니다 —
+       "서버 것을 받고, 이 기기 것 중 서버에 없는 것만 올림" 규칙이 이걸로 저절로 됩니다 */
+    let marked = 0;
+    for(const [path, where] of idx){
+      if(local.has(path) || changed.removedPaths.has(path)) continue;
+      await syncMarkDirtyNoSchedule(where.store, where.key); marked++;
+    }
+    if(marked) syncSchedulePush();
+    SYNC.lastPullAt = Date.now();
+    SYNC.lastErr = result.failed ? `받지 못한 항목 ${result.failed}개` : null;
+  }catch(err){
+    SYNC.lastErr = syncErrMsg(err);
+    throw err;
+  }finally{
+    SYNC.busy = false;
+    try{ await syncApplyToScreen(changed); }catch(err){ console.warn("syncApplyToScreen", err); }
+    syncUpdateStatusDot();
+    syncRefreshStatusLine();
+    if(SYNC.pendingPush){ SYNC.pendingPush = false; syncSchedulePush(); }
+  }
+  return result;
+}
+/* 받은 것을 화면에 반영합니다. 글상자를 편집 중이면 다시 그리는 것만 미룹니다(입력이 날아가지 않게) */
+async function syncApplyToScreen(changed){
+  if(!changed.any) return;
+  await loadAll();
+  S.offCats = new Set(KV.offcats || []);
+  S.agOff   = new Set(KV.agOff || []);
+  /* 폴더 펼침을 따로 정한 적이 없으면(처음 받은 기기) 새로 들어온 연도·달이 접혀 있지 않게 다시 계산합니다 */
+  if(KV.folders === null || KV.folders === undefined) S.open = new Set(defaultFolders());
+  const cur = S.sel ? DOCS.find(d => d.id === S.sel) : null;
+  if(S.sel && !cur){
+    /* 보고 있던 자료가 다른 기기에서 지워졌습니다 */
+    S.sel = null; KV.sel = null; saveKV("sel");
+    S.aiErr = ""; S.aiErrId = null; S.anErr = ""; S.anErrId = null;
+    S.editA = S.editB = S.editS = S.editM = false;
+    await loadPdfFor(null);
+  }else if(cur && (changed.files.has(cur.id) || (changed.docs.has(cur.id) && cur.hasPdf !== !!S.pdf))){
+    await loadPdfFor(cur);
+  }else if(!cur && changed.docs.size){
+    await loadPdfFor(null);   /* "자료가 없습니다 / 자료를 고르세요" 안내문을 지금 개수에 맞게 */
+  }
+  if(cur && changed.draw.has(cur.id) && typeof window.drawReloadDoc === "function") await window.drawReloadDoc(cur.id);
+  syncRenderSoon();
+  updateUsage();
+}
+/* 편집 중(S.editA/B/S/M)이면 편집이 끝난 뒤에 한 번 그립니다 */
+function syncRenderSoon(){
+  const editing = () => S.editA || S.editB || S.editS || S.editM;
+  if(!editing()){ renderAll(); return; }
+  if(SYNC.renderTimer) return;
+  SYNC.renderTimer = setInterval(() => {
+    if(editing()) return;
+    clearInterval(SYNC.renderTimer); SYNC.renderTimer = null;
+    renderAll();
+  }, 1500);
+}
+
+/* ---------- 자동 동기화 ----------
+   ① 앱 시작 직후 받기 → 올리기 ② 창이 다시 앞으로 오면 받기(마지막 받기 후 30초 안이면 생략) ③ 인터넷이 다시 연결되면
+   ④ 저장 5초 뒤 올리기는 syncSchedulePush(3단계) ⑤ 설정의 "지금 동기화". 오프라인이면 건너뜁니다. */
+async function syncAuto(opts){
+  opts = opts || {};
+  if(!syncEnabled() || !KV.syncOn || !navigator.onLine || SYNC.busy) return null;
+  let pulled = null, pushed = null;
+  try{
+    pulled = await syncPull(opts);
+    pushed = await syncPush(opts);
+  }catch(err){
+    console.warn("syncAuto", err);
+    if(opts.loud) toast("동기화하지 못했습니다 — " + syncErrMsg(err));
+    return null;
+  }
+  if(pulled){
+    const n = pulled.got + pulled.removed;
+    if(pulled.conflicts) toast(`겹친 항목 ${pulled.conflicts}개는 이 기기 것을 유지합니다`);
+    else if(n && !opts.quiet && !opts.loud) toast(`다른 기기에서 바뀐 것 ${n}개를 받았습니다`);
+  }
+  if(opts.loud && pulled && pushed && !pulled.conflicts)
+    toast(`동기화 완료 — 받음 ${pulled.got + pulled.removed}개 · 올림 ${pushed.pushed}개` +
+      (pulled.failed || pushed.failed ? ` · 실패 ${pulled.failed + pushed.failed}개` : ""));
+  return { pulled, pushed };
+}
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden) return;
+  if(Date.now() - (SYNC.lastPullAt || 0) < 30000) return;
+  syncAuto();
+});
+window.addEventListener("online", () => syncAuto());
+
+/* 설정 단추 — 진행 중엔 #syncstatus 에 "n/N (약 M분 남음)" 을 보여줍니다 */
+function syncProgressLine(verb){
+  const out = $("#syncstatus");
+  return (done, total, ms) => {
+    const remainSec = done ? Math.round((ms / done) * (total - done) / 1000) : 0;
+    out.className = "";
+    out.textContent = `${verb}… ${done}/${total}` +
+      (remainSec > 5 ? ` (약 ${remainSec >= 60 ? Math.round(remainSec / 60) + "분" : remainSec + "초"} 남음)` : "");
+  };
+}
+async function syncRunFromSettings(fn){
+  if(!syncEnabled() || !KV.syncOn){ toast("먼저 위에서 연결 확인을 해 주세요"); return; }
+  const btns = ["#sync-test","#sync-now","#sync-pushall","#sync-pullall"].map(s => $(s));
+  btns.forEach(b => { b.disabled = true; });
+  try{ await fn(); }
+  finally{
+    btns.forEach(b => { b.disabled = false; });
+    syncRefreshStatusLine();
+    syncUpdateStatusDot();
+  }
+}
+$("#sync-now").onclick = () => syncRunFromSettings(async () => {
+  const out = $("#syncstatus"); out.className = ""; out.textContent = "동기화 중…";
+  const r = await syncAuto({ loud:true, onProgress: syncProgressLine("동기화 중") });
+  if(!r) toast("동기화가 꺼져 있거나 인터넷이 연결되어 있지 않습니다");
+});
+$("#sync-pullall").onclick = () => syncRunFromSettings(async () => {
+  const out = $("#syncstatus"); out.className = ""; out.textContent = "받을 것을 찾는 중…";
+  try{
+    const r = await syncPull({ force:true, onProgress: syncProgressLine("내려받는 중") });
+    if(!r) toast("동기화가 꺼져 있거나 인터넷이 연결되어 있지 않습니다");
+    else toast(`내려받기 완료 — ${r.got}개` + (r.removed ? ` · 지움 ${r.removed}개` : "") +
+      (r.conflicts ? ` · 이 기기 것 유지 ${r.conflicts}개` : "") + (r.failed ? ` · 실패 ${r.failed}개` : ""));
+  }catch(err){ toast("내려받지 못했습니다 — " + syncErrMsg(err)); }
+});
+/* 연결 확인 직후 — 처음 연결하는 기기의 갈림길 (1-5).
+   서버에 자료가 있고 이 기기가 비어 있으면 전부 내려받기를 제안하고, 양쪽 다 있으면 합치기를 확인받습니다 */
+async function syncFirstConnect(){
+  let serverHas = false;
+  try{
+    const tree = await ghTree();
+    serverHas = Object.keys(tree).some(p => p !== "crypto.json" && syncKeyOf(p));
+  }catch(err){ return; }
+  if(!serverHas){
+    const out = $("#syncstatus");
+    out.className = "ok";
+    out.textContent = "연결됨 · 저장소가 비어 있습니다 — 아래 '이 기기 자료 전부 올리기'를 눌러 주세요.";
+    return;
+  }
+  const localHas = DOCS.length > 0;
+  const ok = confirm(localHas
+    ? "서버와 이 기기 양쪽에 자료가 있습니다.\n서버 것을 받고, 이 기기 것 중 서버에 없는 것만 올립니다.\n계속할까요?"
+    : "서버에 자료가 있습니다. 지금 전부 내려받을까요?");
+  if(!ok){
+    KV.syncOn = false; saveKV("syncOn"); $("#sync-enabled").checked = false;
+    const out = $("#syncstatus"); out.className = "";
+    out.textContent = "연결은 되지만 동기화는 켜지 않았습니다 — 다시 켜면 그때 합쳐집니다.";
+    return;
+  }
+  await syncRunFromSettings(async () => {
+    const out = $("#syncstatus"); out.className = ""; out.textContent = "받을 것을 찾는 중…";
+    try{
+      const r = await syncPull({ onProgress: syncProgressLine("내려받는 중") });
+      if(r) toast(`내려받기 완료 — ${r.got}개` + (r.failed ? ` · 실패 ${r.failed}개` : ""));
+      const p = await syncPush({ onProgress: syncProgressLine("올리는 중") });
+      if(p && p.pushed) toast(`올리기 완료 — ${p.pushed}개`);
+    }catch(err){ toast("동기화하지 못했습니다 — " + syncErrMsg(err)); }
+  });
+}
 
 /* =========================================================
    17) 튜토리얼 (사용 설명서)
@@ -8913,6 +9294,7 @@ function registerSW(){
     navigator.storage.persist().then(updatePersist).catch(() => {});
   registerSW();
   syncUpdateStatusDot();
+  syncAuto();   /* 켜져 있으면 받기 → 올리기. 열쇠 유도가 안 끝났으면 안에서 기다립니다(화면은 이미 떠 있음) */
 })();
 </script>
 </body>
