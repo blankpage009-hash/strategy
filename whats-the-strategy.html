@@ -2003,7 +2003,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
           다른 기기에서 올린 PDF 원본은 그 자료를 처음 열 때 내려받아 이 기기에 보관합니다.
           양쪽에서 같은 것을 고쳤으면 나중에 올린 쪽이 남습니다.
           토큰을 넣지 않으면 아무 통신도 하지 않습니다 — <b>다른 사람에게 앱 파일만 건네줘도 지금과 완전히 같게 동작합니다.</b>
-          저장소가 너무 커지면 새 저장소를 만들어 이름만 바꾸면 됩니다.</div>
+          저장소가 너무 커지면 새 저장소를 만들어 이름만 바꾸면 됩니다.
+          토큰이 만료되면(보통 1년 뒤) 자동 동기화가 멈추고 아래 상태 줄에 빨갛게 뜹니다 — 새 토큰을 만들어 다시 넣으면 이어집니다.
+          저장소를 실수로 공개(Public)로 바꾸면 하루 안에 자동으로 알아채 동기화를 끕니다.</div>
 
         <div class="subbox">
           <div class="lbl2">GitHub 아이디</div>
@@ -2296,7 +2298,9 @@ const KV_DEFAULT = {
   filterUI:"shown",
   /* 동기화(GitHub) — 이 기기에만 두는 값입니다. syncToken · syncPass 는 절대 올리지 않습니다.
      syncSalt 는 crypto.json 의 salt 를 기기에 캐시해 둔 것으로, 인터넷 없이도 앱 시작 때 열쇠를 다시 유도하기 위한 것입니다. */
-  syncOwner:"", syncRepo:"", syncToken:"", syncPass:"", syncSalt:"", syncOn:false
+  syncOwner:"", syncRepo:"", syncToken:"", syncPass:"", syncSalt:"", syncOn:false,
+  /* 저장소가 실수로 공개로 바뀌었는지 하루 한 번만 확인하기 위한 날짜("YYYY-MM-DD") */
+  syncPrivChecked:""
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -7821,7 +7825,7 @@ window.addEventListener("beforeunload", e => {
 /* key: 암호문구로 유도한 열쇠(CryptoKey, 메모리에만) · keyPromise: 유도 중이면 그 약속(두 번 돌리지 않게)
    busy: 올리기/받기가 도는 중 · pendingPush: 그 사이에 또 바뀐 것이 있어 끝나면 다시 올려야 함
    lastPullAt: 마지막으로 받은 시각 · lastErr: 마지막 오류(한글) · renderTimer: 편집이 끝나길 기다리는 다시 그리기 */
-const SYNC = { key:null, keyPromise:null, busy:false, pendingPush:false, lastPullAt:0, lastErr:null, renderTimer:null };
+const SYNC = { key:null, keyPromise:null, busy:false, pendingPush:false, lastPullAt:0, lastErr:null, renderTimer:null, authFailed:false };
 const SYNC_PBKDF2_ITER = 600000;
 const SYNC_MAGIC = new Uint8Array([0x57,0x54,0x53,0x31]);   /* "WTS1" — 파일 형식 표시 */
 const SYNC_CHECK_TEXT = "whats-the-strategy";
@@ -8066,7 +8070,7 @@ async function syncRefreshStatusLine(){
   }
   if(SYNC.lastErr){
     out.className = "bad";
-    out.textContent = "✕ 오류: " + SYNC.lastErr;
+    out.textContent = "✕ 오류: " + SYNC.lastErr + (SYNC.authFailed ? " — 위에서 토큰을 다시 넣어 주세요" : "");
     return;
   }
   try{
@@ -8079,7 +8083,10 @@ async function syncRefreshStatusLine(){
   }
 }
 Object.entries({ "sync-owner":"syncOwner", "sync-repo":"syncRepo", "sync-token":"syncToken" }).forEach(([id, k]) => {
-  $("#" + id).addEventListener("change", e => { KV[k] = e.target.value.trim(); saveKV(k); });
+  $("#" + id).addEventListener("change", e => {
+    KV[k] = e.target.value.trim(); saveKV(k);
+    if(k === "syncToken") SYNC.authFailed = false;   /* 토큰을 새로 넣으면 자동 동기화 멈춤을 풀고 다시 시도해 봅니다 */
+  });
 });
 $("#sync-pass").addEventListener("change", e => {
   KV.syncPass = e.target.value; saveKV("syncPass");
@@ -8296,10 +8303,11 @@ async function syncPush(opts){
     ok = true;
   }catch(err){
     SYNC.lastErr = syncErrMsg(err);
+    if(err.status === 401) SYNC.authFailed = true;
     throw err;
   }finally{
     SYNC.busy = false;
-    if(ok) SYNC.lastErr = result.failed ? `올리지 못한 항목 ${result.failed}개` : null;
+    if(ok){ SYNC.lastErr = result.failed ? `올리지 못한 항목 ${result.failed}개` : null; SYNC.authFailed = false; }
     syncUpdateStatusDot(result.failed ? "err" : null);
     syncRefreshStatusLine();
     if(SYNC.pendingPush){ SYNC.pendingPush = false; syncSchedulePush(); }
@@ -8494,8 +8502,10 @@ async function syncPull(opts){
     if(marked) syncSchedulePush();
     SYNC.lastPullAt = Date.now();
     SYNC.lastErr = result.failed ? `받지 못한 항목 ${result.failed}개` : null;
+    SYNC.authFailed = false;
   }catch(err){
     SYNC.lastErr = syncErrMsg(err);
+    if(err.status === 401) SYNC.authFailed = true;
     throw err;
   }finally{
     SYNC.busy = false;
@@ -8542,18 +8552,45 @@ function syncRenderSoon(){
   }, 1500);
 }
 
+/* 저장소를 실수로 공개(Public)로 바꾸는 경우를 대비해, 하루 한 번만 확인합니다(매번 확인하면 요청이 낭비됩니다).
+   공개로 바뀐 게 확인되면 동기화를 끄고 경고합니다 — 던진 오류는 syncAuto 가 받아 조용히 멈춥니다 */
+async function syncCheckPrivateDaily(){
+  const today = new Date().toISOString().slice(0, 10);
+  if(KV.syncPrivChecked === today) return;
+  let info;
+  try{ info = await ghFetch("GET", ""); }
+  catch(err){ return; }   /* 확인 자체가 실패해도(네트워크 등) 그냥 넘어가고 다음 기회에 다시 봅니다 */
+  KV.syncPrivChecked = today; saveKV("syncPrivChecked");
+  if(info.private === false){
+    KV.syncOn = false; saveKV("syncOn");
+    const chk = $("#sync-enabled"); if(chk) chk.checked = false;
+    SYNC.lastErr = "저장소가 공개(Public)로 바뀌어 동기화를 껐습니다 — GitHub 에서 Private 로 바꾼 뒤 다시 켜 주세요";
+    syncUpdateStatusDot("err");
+    syncRefreshStatusLine();
+    toast("⚠ 저장소가 공개로 바뀌어 동기화를 껐습니다");
+    throw new Error(SYNC.lastErr);
+  }
+}
+
 /* ---------- 자동 동기화 ----------
    ① 앱 시작 직후 받기 → 올리기 ② 창이 다시 앞으로 오면 받기(마지막 받기 후 30초 안이면 생략) ③ 인터넷이 다시 연결되면
    ④ 저장 5초 뒤 올리기는 syncSchedulePush(3단계) ⑤ 설정의 "지금 동기화". 오프라인이면 건너뜁니다. */
 async function syncAuto(opts){
   opts = opts || {};
   if(!syncEnabled() || !KV.syncOn || !navigator.onLine || SYNC.busy) return null;
+  /* 토큰이 틀리거나 만료된 뒤(401)에는 창이 앞에 올 때마다 자동으로 또 실패하지 않도록 멈춥니다.
+     "지금 동기화" 를 직접 누르거나(opts.loud) 토큰을 새로 넣으면(SYNC.authFailed=false) 다시 시도합니다 */
+  if(SYNC.authFailed && !opts.loud) return null;
+  try{ await syncCheckPrivateDaily(); }
+  catch(err){ if(opts.loud) toast(syncErrMsg(err)); return null; }
   let pulled = null, pushed = null;
   try{
     pulled = await syncPull(opts);
     pushed = await syncPush(opts);
+    SYNC.authFailed = false;
   }catch(err){
     console.warn("syncAuto", err);
+    if(err.status === 401) SYNC.authFailed = true;
     if(opts.loud) toast("동기화하지 못했습니다 — " + syncErrMsg(err));
     return null;
   }
