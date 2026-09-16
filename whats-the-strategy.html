@@ -731,6 +731,16 @@ body.draw-on input, body.draw-on textarea, body.draw-on [contenteditable="true"]
 body.thumbs-off #nav-prev{left:12px;}
 /* 아이패드 등 터치 기기에서는 넘김 단추를 감춥니다 (위아래로 밀어 넘깁니다) */
 @media (hover: none){ .pagenav{display:none;} }
+/* 자료 닫기 — 평소엔 숨어 있다가 무대 오른쪽 위 구석에 마우스를 올리면 나타납니다 */
+#btn-docclose{position:absolute;top:10px;right:12px;z-index:6;width:30px;height:30px;padding:0;
+  display:flex;align-items:center;justify-content:center;border:none;border-radius:0;
+  background:var(--rule);color:var(--bg);opacity:0;transition:opacity .12s ease;}
+#stagewrap:hover #btn-docclose{opacity:1;}
+#btn-docclose:hover{background:var(--accent);opacity:1;}
+#btn-docclose[hidden]{display:none;}
+#btn-docclose svg{display:block;}
+/* 호버가 없는 터치 기기(아이패드 등)는 가리지 말고 늘 보여 둡니다 */
+@media (hover: none){ #btn-docclose{opacity:1;} }
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   color:var(--muted);text-align:center;padding:30px;margin:auto;max-width:460px;line-height:1.7;font-size:13px;}
 #novideo .big{font-size:15px;font-weight:800;color:var(--text);}
@@ -1653,6 +1663,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <button class="pagenav" id="nav-next" title="다음 장" aria-label="다음 장">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button id="btn-docclose" title="자료 닫기" aria-label="자료 닫기" hidden>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
 
     <div id="spin">불러오는 중…</div>
@@ -2382,8 +2395,8 @@ const S = {
   /* 자료 내 검색 — 지금 열린 자료에서만. raw=친 그대로, q=공백을 걷어 낸 것 */
   find:{ raw:"", q:"", hits:[], i:-1, total:0 },
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
-  fitMode:"width",                          /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
-  fitPref:"width",                          /* 기본은 화면 너비 — 장표가 늘 칸을 꽉 채우게 */
+  fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
+  fitPref:"page",                           /* 기본은 One Page — 처음 열 때 쪽 전체가 한눈에 보이게 */
   aiBusy:null, aiErr:"", aiErrId:null, aiStep:"",   /* AI 요약 진행/오류 상태 */
   anBusy:null, anErr:"", anErrId:null,              /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
   /* AI NOTE 고치기 — anEdit 은 지금 고치고 있는 자료 id, anDraft 는 그 노트의 사본입니다.
@@ -2660,6 +2673,7 @@ async function fitTo(mode){
 
 function updateBars(){
   const d = DOCS.find(x => x.id === S.sel);
+  $("#btn-docclose").hidden = !d;
   $("#zoomval").textContent = Math.round(S.zoom * 100) + "%";
   $("#viewtitle").textContent = d ? d.title : "";
   $("#viewmeta").textContent = "";
@@ -3365,7 +3379,7 @@ function renderAll(){ renderCats(); renderTree(); renderRight(); updateBars(); }
    7) 사이드바
    ========================================================= */
 /* 패널을 여닫거나 전체화면을 오갈 때마다 넓어진 자리에 다시 맞춥니다.
-   기본은 '화면 너비'이고, 툴바에서 '한 페이지 전체'를 고르면 그 뒤로는 그것을 지킵니다.
+   기본은 'One Page'이고, 툴바에서 'Fit Width'를 고르면 그 뒤로는 그것을 지킵니다.
    확대·축소로 직접 배율을 만졌다면(manual) 그 배율을 건드리지 않습니다. */
 function autoFit(){
   if(!S.pdf || S.fitMode === "manual") return;
@@ -3388,6 +3402,39 @@ document.addEventListener("click", e => {
   if(b) toggleSide(b.dataset.close, false);
 });
 $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", false); };
+
+/* 아이패드 등 손가락 기기에서 좌우 패널을 스와이프로 여닫습니다.
+   접혀 있을 때는 화면 가장자리(레일 폭 안)에서 시작해 안쪽으로 미는 손짓만 받고,
+   펴져 있을 때는 그 칸 안 아무 데서나 시작해 바깥쪽으로 미는 손짓을 받습니다.
+   입력란·글상자 위에서는 글자를 고르는 손짓일 수 있으니 손대지 않습니다. */
+(function(){
+  const EDGE = 32, MINDX = 60, MAXDY = 60, MAXMS = 600;
+  let sx = 0, sy = 0, sT = 0, act = null;
+  $("#workspace").addEventListener("touchstart", e => {
+    act = null;
+    if(e.touches.length !== 1) return;
+    if(e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY; sT = Date.now();
+    const leftClosed  = document.body.classList.contains("left-closed");
+    const rightClosed = document.body.classList.contains("right-closed");
+    if(leftClosed && sx <= EDGE) act = "left-open";
+    else if(!leftClosed && e.target.closest("#left")) act = "left-close";
+    else if(rightClosed && sx >= window.innerWidth - EDGE) act = "right-open";
+    else if(!rightClosed && e.target.closest("#right")) act = "right-close";
+  }, { passive:true });
+  $("#workspace").addEventListener("touchend", e => {
+    if(!act) return;
+    const cur = act; act = null;
+    if(Date.now() - sT > MAXMS) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Math.abs(dy) > MAXDY) return;
+    if(cur === "left-open"   && dx >  MINDX) toggleSide("left",  true);
+    if(cur === "left-close"  && dx < -MINDX) toggleSide("left",  false);
+    if(cur === "right-open"  && dx < -MINDX) toggleSide("right", true);
+    if(cur === "right-close" && dx >  MINDX) toggleSide("right", false);
+  }, { passive:true });
+})();
 
 /* =========================================================
    8) 검색
@@ -4178,6 +4225,19 @@ async function selectDoc(id){
   await loadPdfFor(DOCS.find(d => d.id === id));
   /* 요약은 자동으로 만들지 않습니다 — 오른쪽 ‘AI로 요약 만들기’ 단추를 눌렀을 때만 만듭니다 */
 }
+
+/* 보고 있던 자료를 뷰어에서 완전히 내립니다 — 지우는 게 아니라 그냥 닫는 것뿐이라,
+   왼쪽 목록에서 다시 누르면 그대로 열립니다. */
+async function closeDoc(){
+  if(!S.sel) return;
+  S.sel = null; KV.sel = null; saveKV("sel");
+  S.aiErr = ""; S.aiErrId = null; S.editA = S.editB = S.editS = S.editM = false;
+  S.anErr = ""; S.anErrId = null;
+  renderTree(); renderRight();
+  await loadPdfFor(null);
+  updateBars();
+}
+$("#btn-docclose").onclick = closeDoc;
 
 $("#tree").addEventListener("click", e => {
   const fold = e.target.closest(".fold");
