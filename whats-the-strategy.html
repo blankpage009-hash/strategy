@@ -449,7 +449,9 @@ table.tuttable td b{font-weight:800;}
 #center{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel2);}
 /* 뷰어 툴바 — 칸이 맞닿는 44px 줄. 칸 사이는 1px, 묶음 사이는 2px 로 나눕니다 */
 #viewbar{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
-  background:var(--bg);border-bottom:2px solid var(--rule);white-space:nowrap;}
+  background:var(--bg);border-bottom:2px solid var(--rule);white-space:nowrap;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;}
+#viewbar::-webkit-scrollbar{display:none;}
 #viewbar .vbtn{flex:0 0 auto;width:40px;display:flex;align-items:center;justify-content:center;
   padding:0;border:none;border-right:1px solid var(--hairline);border-radius:0;
   background:none;color:var(--text);}
@@ -462,11 +464,10 @@ table.tuttable td b{font-weight:800;}
 #viewbar #btn-thumbs.on{background:var(--rule);color:var(--bg);}
 #viewbar #btn-thumbs.on:hover{background:var(--rule);}
 #viewbar #zoom-in{border-right:2px solid var(--line);}
-/* 맞춤 단추 — 지금 쓰는 방식만 이름과 함께 검게 채워집니다 */
+/* 맞춤 단추 — 이름 글자 없이 아이콘만, 지금 쓰는 방식은 배경으로만 표시합니다 (설명은 title 로 hover 때) */
 #viewbar .fitbtn .t{display:none;}
-#viewbar .fitbtn.on{width:auto;padding:0 12px;gap:7px;background:var(--rule);color:var(--bg);}
+#viewbar .fitbtn.on{background:var(--rule);color:var(--bg);}
 #viewbar .fitbtn.on:hover{background:var(--rule);}
-#viewbar .fitbtn.on .t{display:inline;font-size:10.5px;font-weight:800;letter-spacing:.1em;}
 #viewbar #fit-page{border-right:2px solid var(--line);}
 /* min-width 를 0 으로 두지 않습니다 — 좁아져도 쪽 번호가 찌그러져
    검색칸 위로 올라타지 않게, 자료 이름(.nm) 쪽에서만 줄어들게 합니다 */
@@ -484,30 +485,28 @@ table.tuttable td b{font-weight:800;}
 #viewbar #pagejump:not([disabled]):hover,#viewbar #pagejump:not([disabled]):hover .tot{color:var(--accent-ink);}
 #viewbar #pagejump[disabled]{color:var(--muted);}
 #viewbar #pagejump[hidden]{display:none;}
-#viewbar #btn-full{width:auto;min-width:44px;padding:0 14px;gap:6px;
-  border-right:none;border-left:2px solid var(--line);}
-#viewbar #btn-full .t{font-size:10.5px;font-weight:800;letter-spacing:.06em;white-space:nowrap;}
+#viewbar #btn-full{width:40px;padding:0;
+  border-right:none;border-left:2px solid var(--line);
+  position:sticky;right:0;z-index:3;background:var(--bg);}
+#viewbar #btn-full .t{display:none;}
 #viewbar #btn-full .ic{font-size:13px;line-height:1;}
 #viewbar #btn-full:hover{background:var(--accent-soft);color:var(--accent-ink);}
-/* 전체화면일 때는 '나가기' 글자가 오른쪽 끝·세로선에 닿지 않게 안쪽으로 들입니다 */
-body.full #viewbar #btn-full{padding-right:24px;}
-/* 가운데가 좁아지면 자료 이름부터 감추고, 더 좁으면 맞춤 단추 이름도 뗍니다 */
+/* 가운데가 좁아지면 자료 이름부터 줄어들고, 더 좁으면 쪽 번호 칸의 여백도 뗍니다 */
 body.hide-doctitle #viewbar .doctitle .meta{display:none;}
 body.tight-bar #viewbar .doctitle{padding:0 8px;}
-body.tight-bar #viewbar .doctitle .nm{display:none;}
 body.tight-bar #viewbar #pagejump{margin-left:0;padding-left:0;border-left:none;}
-body.tight-bar #viewbar .fitbtn.on{width:40px;padding:0;}
-body.tight-bar #viewbar .fitbtn.on .t{display:none;}
+body.tight-bar #viewbar .vbtn{width:34px;}
+body.tight-bar #zoomval{width:42px;font-size:11px;}
 
 /* ---------- 자료 내 검색 — 뷰어 툴바 오른쪽 ----------
    display 를 아이디 선택자로 주므로, 브라우저 기본 [hidden]{display:none} 보다
    우선순위가 높습니다. 숨김 규칙을 여기서 다시 못 박아 둡니다. */
 #docfind[hidden],#dfpop[hidden]{display:none !important;}
-#docfind{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:0 10px;
+#docfind{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:7px;padding:0 10px;
   border-left:2px solid var(--line);}
 #docfind .mag{flex:0 0 auto;display:flex;align-items:center;color:var(--muted2);}
 #docfind .mag svg{display:block;}
-#docfind-in{flex:0 0 auto;width:150px;height:32px;padding:0;border:none;
+#docfind-in{flex:0 1 130px;width:auto;min-width:36px;height:32px;padding:0;border:none;
   border-bottom:2px solid var(--line);border-radius:0;background:none;
   font-size:12px;font-weight:500;}
 #docfind-in:focus{border-bottom-color:var(--accent);}
@@ -522,9 +521,9 @@ body.tight-bar #viewbar .fitbtn.on .t{display:none;}
 #docfind .dfbtn:hover:not([disabled]){color:var(--accent-ink);}
 #docfind .dfbtn[disabled]{opacity:.35;}
 #docfind .dfbtn svg{display:block;}
-body.hide-doctitle #docfind-in{width:120px;}
+body.hide-doctitle #docfind-in{flex-basis:104px;}
 body.tight-bar #docfind{padding:0 8px;gap:5px;}
-body.tight-bar #docfind-in{width:88px;}
+body.tight-bar #docfind-in{flex-basis:72px;}
 body.tight-bar #docfind-count{display:none;}
 body.full #viewbar #docfind{border-left-color:#605d5d;}
 body.full #docfind-in{color:#f3f2f2;border-bottom-color:#605d5d;}
@@ -1034,7 +1033,7 @@ body.full #viewbar .vbtn:hover:not([disabled]){background:#444141;}
 body.full #viewbar #zoom-in,body.full #viewbar #fit-page,
 body.full #viewbar #btn-thumbs{border-right-color:#605d5d;}
 body.full #viewbar #btn-thumbs.on{background:#f3f2f2;color:#201e1d;}
-body.full #viewbar #btn-full{border-left-color:#605d5d;}
+body.full #viewbar #btn-full{border-left-color:#605d5d;background:#2d2b2b;}
 body.full #viewbar .fitbtn.on{background:#f3f2f2;color:#201e1d;}
 body.full #viewbar .doctitle .meta{border-left-color:#605d5d;}
 body.full #viewbar #pagejump{color:#f3f2f2;border-left-color:#605d5d;}
