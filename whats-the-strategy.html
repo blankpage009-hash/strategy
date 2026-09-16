@@ -1999,7 +1999,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
           GitHub 저장소에는 알아볼 수 없는 덩어리만 놓입니다. 올라가는 것은 자료(문서·PDF·필기·AI Note)와
           회의 종류·할 일·요약·발표 스크립트·메모·회의 Agenda 뿐입니다. <b>제미나이 API 키는 어떤 경우에도 올라가지 않습니다.</b>
           이 기기만의 설정(그리기 도구, 마지막에 보던 자료 등)도 올라가지 않습니다.
-          켜 두면 앱을 열 때·창을 다시 앞으로 가져올 때 다른 기기에서 바꾼 것을 받아오고, 이 기기에서 바꾼 것은 저장 5초 뒤에 올립니다.
+          켜 두면 앱을 열 때·창을 다시 앞으로 가져올 때·창이 열려 있는 동안 1분마다 다른 기기에서 바꾼 것을 받아오고, 이 기기에서 바꾼 것은 저장 5초 뒤에 올립니다.
           다른 기기에서 올린 PDF 원본은 그 자료를 처음 열 때 내려받아 이 기기에 보관합니다.
           양쪽에서 같은 것을 고쳤으면 나중에 올린 쪽이 남습니다.
           토큰을 넣지 않으면 아무 통신도 하지 않습니다 — <b>다른 사람에게 앱 파일만 건네줘도 지금과 완전히 같게 동작합니다.</b>
@@ -7909,7 +7909,9 @@ async function ghFetch(method, path, opts){
   }, opts.body !== undefined ? { "Content-Type": "application/json" } : {}, opts.headers || {});
   let res;
   try{
-    res = await fetch(ghUrl(path), { method, headers,
+    /* GitHub 응답에는 max-age=60 이 붙어 와서, 그대로 두면 크롬이 1분 안의 같은 목록 요청에 예전 답을 다시 씁니다.
+       no-cache 면 늘 서버에 "바뀌었나" 물어보고(안 바뀌었으면 304 — 요청 한도에 안 셈) 새 것을 받습니다 */
+    res = await fetch(ghUrl(path), { method, headers, cache:"no-cache",
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined });
   }catch(err){
     const e = new Error("네트워크 오류"); e.status = 0; throw e;
@@ -8077,7 +8079,8 @@ async function syncRefreshStatusLine(){
     const all = await dbAll("sync");
     const n = all.filter(r => r.dirty || r.deleted).length;
     out.className = n ? "" : "ok";
-    out.textContent = n ? `연결됨 · 올릴 것 ${n}개` : "연결됨 · 맞춰짐";
+    const last = SYNC.lastPullAt ? ` · 마지막 받기 ${new Date(SYNC.lastPullAt).toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" })}` : " · 아직 받은 적 없음";
+    out.textContent = (n ? `연결됨 · 올릴 것 ${n}개` : "연결됨 · 맞춰짐") + last;
   }catch(err){
     out.className = ""; out.textContent = "연결됨";
   }
@@ -8189,6 +8192,7 @@ let syncPushTimer = null;
 /* 저장 후 5초 잠잠하면 올립니다. 꺼져 있거나(syncEnabled/syncOn) 사본이면 아무 일도 안 함 */
 function syncSchedulePush(){
   if(!syncEnabled() || !KV.syncOn) return;
+  syncUpdateStatusDot();   /* 올릴 것이 생겼으니 점을 바로 주황으로(올리기가 끝나면 다시 초록) */
   clearTimeout(syncPushTimer);
   syncPushTimer = setTimeout(() => { syncPush().catch(err => console.warn("syncPush", err)); }, 5000);
 }
@@ -8573,7 +8577,7 @@ async function syncCheckPrivateDaily(){
 }
 
 /* ---------- 자동 동기화 ----------
-   ① 앱 시작 직후 받기 → 올리기 ② 창이 다시 앞으로 오면 받기(마지막 받기 후 30초 안이면 생략) ③ 인터넷이 다시 연결되면
+   ① 앱 시작 직후 받기 → 올리기 ② 창이 다시 앞으로 오면(visibilitychange·focus)·창이 보이는 동안 60초마다 받기(마지막 받기 후 30초 안이면 생략) ③ 인터넷이 다시 연결되면
    ④ 저장 5초 뒤 올리기는 syncSchedulePush(3단계) ⑤ 설정의 "지금 동기화". 오프라인이면 건너뜁니다. */
 async function syncAuto(opts){
   opts = opts || {};
@@ -8604,11 +8608,18 @@ async function syncAuto(opts){
       (pulled.failed || pushed.failed ? ` · 실패 ${pulled.failed + pushed.failed}개` : ""));
   return { pulled, pushed };
 }
-document.addEventListener("visibilitychange", () => {
+/* 창이 앞에 올 때·60초마다 — 마지막 받기 후 30초 안이면 생략합니다.
+   예전엔 visibilitychange 만 봤는데, PC 에서 창을 그냥 켜 둔 채 아이패드로 고치면 그 신호가 영영 안 와서
+   받아오지 못했습니다. 그래서 (1) Alt+Tab 복귀(focus) 와 (2) 창이 보이는 동안 60초마다 조용히 확인을 더했습니다.
+   서버가 안 바뀌었으면 목록 요청은 304 로 끝나 요청 한도를 쓰지 않습니다 */
+function syncMaybePull(){
   if(document.hidden) return;
   if(Date.now() - (SYNC.lastPullAt || 0) < 30000) return;
   syncAuto();
-});
+}
+document.addEventListener("visibilitychange", syncMaybePull);
+window.addEventListener("focus", syncMaybePull);
+setInterval(syncMaybePull, 60000);
 window.addEventListener("online", () => syncAuto());
 
 /* 설정 단추 — 진행 중엔 #syncstatus 에 "n/N (약 M분 남음)" 을 보여줍니다 */
