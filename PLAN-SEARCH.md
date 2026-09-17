@@ -19,8 +19,8 @@
 
 | 단계 | 내용 | 난이도 | 추천 모델 · 노력 | 상태 |
 | --- | --- | --- | --- | --- |
-| 1 | 검색 엔진 — 문법 파서 · 적중 계산 · 정렬 · 오타 허용 | **상** | Opus 5 · 높음 | 대기 — **새 창에서 시작** |
-| 2 | 결과 드롭다운 — 모달 제거, 머리글 · 집계 레일 · 자료 블록 · Zero-state · 결과 없음 | 중 | Sonnet 5 · 높음 | 대기 |
+| 1 | 검색 엔진 — 문법 파서 · 적중 계산 · 정렬 · 오타 허용 | **상** | Opus 5 · 높음 | **[완료]** 2026-09-17 · 커밋 `723f26f` |
+| 2 | 결과 드롭다운 — 모달 제거, 머리글 · 집계 레일 · 자료 블록 · Zero-state · 결과 없음 | 중 | Sonnet 5 · 높음 | 대기 — **새 창에서 시작** |
 | 3 | 키보드 · 단축키 · 입력칸 연산자 색 표시 · 문법 도움 패널 | 중 | Sonnet 5 · 중간 | 대기 |
 | 4 | 딥링크 — 뷰어 하이라이트 층 + 결과 이동 막대(자료 넘나들기) | **상** | Opus 5 · 높음 | 대기 |
 | 5 | 레일 필터 · 커맨드바 교집합 · 최근 검색어/열람 저장 · 좁은 화면 · 설명서 · 옛 코드 정리 | 하~중 | Sonnet 5 · 중간 | 대기 |
@@ -49,9 +49,10 @@
 | --- | --- | --- |
 | 검색 input | HTML `#topbar > #searchwrap > #search` (1465~1475줄), CSS 91~110줄 | `#searchwrap` 은 `position:relative`, 오른쪽 패널이 열려 있으면 `padding-right:calc(var(--right-w) - 166px)` |
 | 결과 모달 | HTML `#searchpop` (1685줄), CSS 238~262줄 (`.pop .pophead #popbody .res .snip .where #popempty`) | **통째로 없앱니다** (`.pophead` 는 Agenda 팝업도 쓰므로 CSS 는 남김) |
-| 검색 JS | "8) 검색" 절 3435~3512줄: `searchDocs(q)` `snippetOf()` `openPop/closePop/renderPop` + input·focus·click 핸들러 | `sqzQ` 로 공백 걷어낸 `includes` 한 가지 |
-| 띄어쓰기 무시 부품 | `sqz(s)→{t,map}` `sqzQ(q)` `findSpans(sq,needle,limit)` `cutSpan(hay,from,to)` (2138~2172줄) | 그대로 재사용. `cutSpan` 은 span 하나만 표시 → 여러 span 표시판이 필요 |
-| 색인 | `indexDoc(d)` (2362줄): `d._allSq = sqzQ(title + SEP + pages.join(SEP))`. `sqzPages(d)` 는 마지막 자료 1개만 캐시 | 쪽별 색인은 새로 둡니다 (1단계) |
+| 검색 JS | "8) 검색" 절 3595~3790줄: **`runSearch(Q,opt)` `editDist` `suggestFix(Q)`** (1단계) + 호환용 `searchDocs(q)` `snippetOf(d,q,inNote,r)` + `openPop/closePop/renderPop` + input·focus·click 핸들러 | 옛 모달은 `searchDocs`→`runSearch` 호환 함수로 동작 중. 2단계에서 모달·호환 함수 삭제 |
+| 띄어쓰기 무시 부품 | `sqz(s)→{t,map}` `sqzQ(q)` `findSpans(sq,needle,limit)` `cutSpan(hay,from,to)` (2138~2176줄) | 그대로 재사용. `cutSpan` 은 `docfind` 가 씀 |
+| **검색 문법 부품 (1단계)** | `cutSpans(hay,spans,center)` 2178 · `parseQuery(raw)` 2199 · `queryHasTerms(Q)` · `fuzzyK(nq)` · `bitap(text,pat,k)` 2259 · `termHits(str,alt)` · `termSpans(sq,alt,limit)` · `hitSpans(sq,Q,fieldOk)` 2312 | 모두 `cutSpan` 바로 아래. `hitSpans` 는 검색어의 모든 조각 자리를 시작순으로 |
+| 색인 | `indexDoc(d)` (2510줄): `d._allSq = sqzQ(title + SEP + pages.join(SEP))` + `d._pgQ = null`. **`pgQ(d)`** (2520줄) 가 쪽별 문자열을 게으르게 만듦. `sqzPages(d)` 는 **LRU 24개**(`SQLRU` Map, 2527줄) | 자료를 다시 끼우는 `relinkDoc` 은 `SQLRU.delete(d.id)` |
 | 자료 내 검색 | "8-3)" 절 3519~3690줄: `#docfind` `S.find` `runDocFind` `gotoDocFindHit` `#dfpop` | 건드리지 않음. 결과 이동 막대(4단계)는 별개 요소 |
 | 회의 종류 칩 | `renderCats()` 2426줄, 클릭 토글 3900줄, `S.offCats` / `KV.offcats` | `activeDocs()` 가 이미 꺼진 종류를 뺍니다 → 검색은 이미 커맨드바와 교집합 |
 | 자료 열기 | `selectDoc(id)` 4208줄 → `loadPdfFor` → `renderPage()` 2600줄 (canvas 만, **텍스트 층 없음**) `goPage(n)` 4262줄 | 하이라이트 층은 새로 만듭니다 (4단계) |
@@ -189,9 +190,27 @@
 
 ## 2. 단계별 작업
 
-### [1단계] 검색 엔진 — 난이도 상 · Opus 5 · 노력 높음
+### [1단계] 검색 엔진 — 난이도 상 · Opus 5 · 노력 높음 — **[완료] 2026-09-17 · 커밋 `723f26f`**
 
-> **이 단계는 새 창에서 시작합니다.** 4절의 문구를 붙여 넣고, 시작 전에 사용자 승인을 받습니다.
+**실제로 한 것** (아래 계획 1~6 모두 구현)
+- `parseQuery(raw)` — 1-2 표 그대로. 따옴표 덩어리는 `-"…"` `title:"…"` 처럼 앞에 붙어도 한 토큰. `tokens[].kind` 는 `tag · year · neg · field · phrase · prefix · fuzzy · plain · and · or` (3단계 거울 층은 `s` 의 끝 기호를 보고 `*`/`~` 를 색칠하면 됨). 빈 조각(`-`만, `title:`만, `""`)은 버림. `queryHasTerms(Q)` 로 "조건이 하나라도 있나" 판정 — `#태그`만·`-제외`만 있어도 검색은 됨(적중 0곳으로 나열).
+- `bitap(text, pat, k)` — Wu-Manber. 이웃한 끝 위치(끼워 넣기·빼기 때문에 생기는)를 한 자리로 합쳐 개수가 부풀지 않게 함. **비둘기집 사전 걸러내기**(pat 을 k+1 토막으로 나눠 하나도 `includes` 안 되면 즉시 빈 배열) 로 오타 검색이 대부분 자료를 글자 단위로 훑지 않음. `fuzzyK(nq)` = 길이 ≤4 → 1, 그 외 2.
+- `cutSpans(hay, spans, center)` — 창 안의 모든 자리 `<mark>`, 겹침은 합침. `cutSpan` 은 남김(docfind).
+- `pgQ(d)` / `d._pgQ` · `sqzPages` LRU 24 (`SQLRU`, `SQLRU_MAX`) · `relinkDoc` 의 `SQC` 초기화 → `SQLRU.delete(d.id)`.
+- `runSearch(Q, opt)` — 1-3 모양 그대로. `opt = { spansFor:Set<id>, sort:"date" }`. **파일명 일치(`title`) 는 조각 하나라도 제목에 있으면 true** (모든 조각이 제목에 있어야 하는 것이 아님 — 2단계 레일 "파일명" 수는 이 기준). `byMonth` 의 키는 오늘 기준 이번 달·지난 달 `YYYY-MM` 과 `prev` (미래 날짜는 이번 달로).
+- `suggestFix(Q)` → `{ q, n } | null`. `editDist` 는 창 고르기용 짧은 문자열 전용.
+- 옛 `searchDocs(q)` → `[{d, inNote, r}]` (`r` = `R.docs` 항목), `snippetOf(d, q, inNote, r)` — `r` 을 주면 다시 검색하지 않고 처음 걸린 쪽 하나만 `sqz` 해서 모든 조각을 `<mark>`. `renderPop` 은 `r` 을 넘기도록 한 줄만 바꿈. 모달 화면은 그대로.
+
+**검증** — Claude in Chrome 확장이 연결되지 않아 **headless Chrome(file://, 빈 프로필)** 로 앱 전체를 열고 끝에 검사 스크립트를 붙인 사본으로 확인함(실제 자료 대신 가짜 자료 3건을 `DOCS` 에 밀어 넣음). 결과: JS 오류 0 · `parseQuery` 예시 모양 일치 · `runSearch("컴플라이언스").tot.docs === searchDocs(...).length` · `컴플라인언스~` 가 컴플라이언스 자료를 찾음 · `suggestFix` → `{q:"컴플라이언스", n:2}` · 옛 모달이 여러 `<mark>` 스니펫·회의록·결과 없음 모두 정상. 성능(가짜 100건 × 60쪽 × 1,500자 = 9 MB, 모든 쪽에 걸리는 최악 검색어): 첫 실행 134 ms(`_pgQ` 생성 포함) → **2번째부터 18 ms**, 드문 낱말 7 ms, 오타 검색(모든 쪽 적중) 1.0 s, `suggestFix` 1.6 s.
+**사용자 실제 자료로는 아직 안 돌려 봄** — 2단계 시작 전에 file:// 로 열어 콘솔에서 `runSearch(parseQuery("컴플라이언스")).tot` 과 `console.time` 을 한 번 찍어 보면 좋음.
+
+**남은 문제 / 다음 단계에 넘기는 메모**
+- 오타 검색(`~`)·`suggestFix` 는 검색어가 거의 모든 쪽에 있을 때 자료가 아주 많으면 1초 넘게 걸릴 수 있음(현실 자료에선 훨씬 작을 것). 느리면 2·3단계에서 `~` 입력 시 debounce 를 늘리거나 `suggestFix` 를 `requestIdleCallback` 으로.
+- 입력 중간 상태(`"` 하나, `-` 하나) — `"` 만 치면 조각이 없어 "결과 없음", `-` 만 치면 글자 `-` 를 찾음. 2단계 드롭다운에서 `queryHasTerms(Q)` 가 false 면 Zero-state 를 보이면 됨.
+- `neg` 는 일반 문자열만(오타 허용 없음). `-title:x` 는 `title:x` 글자를 그대로 제외 조각으로 봄(필드 제외는 미지원).
+- 옛 모달·호환 함수(`searchDocs` `snippetOf` `openPop/closePop/renderPop`, HTML `#searchpop`, CSS 238~262줄)는 2단계에서 삭제.
+
+---- 원래 계획 ----
 
 화면은 건드리지 않고 함수만 만듭니다. 끝나면 콘솔에서 `runSearch(parseQuery("…"))` 로 확인.
 
@@ -307,3 +326,5 @@ whats-the-strategy.html 은 awk 'length($0)<400' 으로 거른 사본으로 읽�
 ## 5. 작업 기록
 
 (각 단계 완료 시 여기에 날짜 · 커밋 · 실제로 달라진 점 · 남은 문제를 적습니다)
+
+- **2026-09-17 · 1단계 · `723f26f`** — 검색 엔진 함수만 추가(화면 변화 없음). `parseQuery` `bitap` `cutSpans` `termHits/termSpans/hitSpans` `pgQ` `sqzPages`(LRU 24) `runSearch` `editDist` `suggestFix`. 옛 모달은 `searchDocs`/`snippetOf` 호환 함수로 그대로 동작. 검증은 headless Chrome + 가짜 자료로만 했고 실제 자료 검증은 2단계 시작 때 콘솔에서 한 번 찍어 볼 것. 자세한 내용은 [1단계] 절.
