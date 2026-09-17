@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | 검색 엔진 — 문법 파서 · 적중 계산 · 정렬 · 오타 허용 | **상** | Opus 5 · 높음 | **[완료]** 2026-09-17 · 커밋 `723f26f` |
 | 2 | 결과 드롭다운 — 모달 제거, 머리글 · 집계 레일 · 자료 블록 · Zero-state · 결과 없음 | 중 | Sonnet 5 · 높음 | **[완료]** 2026-09-17 · 커밋 `156daa2` |
-| 3 | 키보드 · 단축키 · 입력칸 연산자 색 표시 · 문법 도움 패널 | 중 | Sonnet 5 · 중간 | 대기 |
+| 3 | 키보드 · 단축키 · 입력칸 연산자 색 표시 · 문법 도움 패널 | 중 | Sonnet 5 · 중간 | **[완료]** 2026-09-17 · 커밋 `b288c21` |
 | 4 | 딥링크 — 뷰어 하이라이트 층 + 결과 이동 막대(자료 넘나들기) | **상** | Opus 5 · 높음 | 대기 |
 | 5 | 레일 필터 · 커맨드바 교집합 · 최근 검색어/열람 저장 · 좁은 화면 · 설명서 · 옛 코드 정리 | 하~중 | Sonnet 5 · 중간 | 대기 |
 
@@ -273,7 +273,32 @@
 
 검증: 검색어 8종(설계안 예시) 각각 시안 C/E/F 와 견주기. 오른쪽 패널 열림/닫힘·창 폭 1024/1440 에서 드롭다운 왼쪽 선이 검색 셀 왼쪽 선에 붙는지. `+ N곳 더 보기` 펼침 뒤 다른 글자 치면 접히는지. 뒤 화면이 어두워지지 않는지. 스크린샷 첨부.
 
-### [3단계] 키보드 · 연산자 표시 · 문법 도움 — 난이도 중 · Sonnet 5 · 노력 중간
+### [3단계] 키보드 · 연산자 표시 · 문법 도움 — 난이도 중 · Sonnet 5 · 노력 중간 — **[완료] 2026-09-17 · 커밋 `b288c21`**
+
+**실제로 한 것** (아래 계획 1~4 모두 구현, 세부는 계획과 조금씩 다름 — 이유는 각 항목에 적음)
+- **단축키**: "15) 키보드 · 창 크기" 절 전역 `keydown` 안, `isTyping` 정의 직후에 `Ctrl/⌘+K`(어디서든) 와 `/`(`isTyping(e.target)` 아닐 때) → `$("#search").focus(); select()`. `#skbd` 힌트는 이미 2단계에서 `navigator.platform` 기준으로 채워져 있고 CSS(`#searchwrap.focus,#searchwrap.has-text` 면 숨김)도 이미 있어 손대지 않음.
+- **드롭다운 안 이동**: `#search` 에 새 `keydown` 리스너. `sdRows()` = `#sdrop [data-row]` 목록(제목 줄 `.sd-title`, 적중 줄 `.sd-hit`, `+더보기` 줄 `.sd-more`/`.sd-more2`, Zero-state 의 `.sd-zrow`/`.sd-zdoc`, 결과없음의 `.sd-sugg`/`.sd-zrow` 모두 포함). `↑↓` 는 `sdSetCur()` 로 `S.srch.cur` 를 옮기고 `.kbd` 클래스 + `scrollIntoView`. **`Enter` 는 새 함수를 만들지 않고 선택된 줄 요소에서 `row.click()` 을 그대로 불러** 기존 클릭 위임 로직(`#sdrop` 의 `click` 핸들러)을 재사용함 — `openHit`·`sdSetQuery`·`+더보기` 펼치기 로직을 중복 구현하지 않기 위한 판단. `Tab`/`Shift+Tab` 은 `.sd-doc` 목록에서 다음/이전 블록의 `.sd-title` 로 점프(드롭다운이 열려 있으면 자료가 없어도 항상 `preventDefault`, 브라우저 포커스 유출 방지). `← →` 는 `selectionStart/End` 로 커서가 입력 맨 끝/처음일 때만 레일 그룹(전체↔파일명↔본문↔회의록)을 순환.
+  - 시안 표의 "선택 줄 표시는 hover 와 구분" 요구는 `[data-row].kbd{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}` 로 구현 — 줄마다 padding 이 달라(제목 줄·적중 줄·더보기 줄·Zero-state 줄) 매번 `padding-left` 를 맞추는 대신 `inset box-shadow` 로 통일해 레이아웃 흔들림 없이 왼쪽 띠를 흉내냄.
+- **거울 층** `#qmirror`: 계획은 "`#searchwrap` 안 `#search` 바로 앞에 div" 였지만, `#searchwrap` 이 `display:flex` 라 형제 요소로는 `#search` 의 박스(가변 폭)와 정확히 겹칠 수 없었음. 대신 **`#search` 를 `#sfield`(`position:relative`, `flex:1 1 auto`) 로 감싸고 그 안에서 `#qmirror` 를 `position:absolute;inset:0`** 으로 깔아 폭을 100% 공유하게 바꿈(계획 1-1-1 의도는 그대로, 배치 방법만 구체화). `#search{color:transparent;caret-color:var(--ink)}`, 둘 다 `line-height:30px`(테두리 2px 를 뺀 안쪽 높이) + `box-sizing:border-box` 로 맞춰 세로 위치를 최대한 맞춤. `scrollLeft` 는 `input`/`scroll` 이벤트에서 동기화.
+  - 색 클래스는 계획의 `qk-*` 대신 **`qm-*`**(qm = q-mirror) 로 이름 붙임 — 이유는 그냥 습관, 의미는 같음: `qm-pfx`(필드/태그 접두사, `--muted2`), `qm-tag`(태그 값, `--accent-ink`+`--accent-soft` 배경), `qm-neg`(제외, `--muted2`+취소선+`--panel2` 배경), `qm-phrase`(따옴표 구간, `--panel2` 배경+굵게), `qm-suf`(끝 `*`/`~` 한 글자만, `--accent`+굵게), `qm-op`(`+`/`/`, `--muted2`).
+  - `parseQuery(raw).tokens` 는 이미 1단계에서 원문 위치(`a,b`)와 `kind` 를 갖고 있어 그대로 순회. `field` kind(=`title:`/`note:`) 는 원문에서 접두사를 다시 정규식으로 잘라내(`qmFieldSplit`) 접두사만 `qm-pfx`, 나머지는 따옴표/접미사 여부를 한 번 더 봐서 `qm-phrase`/`qm-suf` 로 색칠 — `tok.kind` 가 `field` 로 뭉뚱그려지며 `phrase`/`prefix`/`fuzzy` 구분이 사라지는 1단계 파서의 특성 때문.
+- **문법 도움 패널** `.sd-help`: 계획대로 `#qhelp`(검색칸 오른쪽, 22×22) 와 `#sdrop` 바닥의 `문법 도움 ?`(`#sd-helpbtn`, 이미 2단계에 있던 자리) 둘 다 `S.srch.help` 를 토글. `#sdrop` 의 최상위 구조를 `.sd-head` + `.sd-body`(`.sd-main`{`.sd-row`+`.sd-foot`} + `.sd-help`) 로 한 겹 더 감싸(계획 문서 1-4 트리와 다르게, 2단계 구현은 `.sd-foot` 이 `.sd-row` 형제였음) 도움 패널이 결과 영역 오른쪽에 붙도록 폭을 나눔. `S.srch.help` 면 드롭다운 폭에 `+260`. 8줄 표(`SD_GRAMMAR` 배열)를 버튼으로 찍어 클릭하면 `sdSetQuery(예시)`.
+
+**검증** — 이번에도 Claude in Chrome 확장이 연결되지 않아 (a) 로컬 정적 서버 + 가짜 자료(`DOCS.length=0; DOCS.push(...); DOCS.forEach(indexDoc)`, `window.DOCS=` 는 안 됨 — `let DOCS` 는 전역 렉시컬 변수라 `window.DOCS=` 로는 실제 코드가 보는 값이 안 바뀜, 배열 자체를 비우고 push 해야 함) 로 콘솔에서 직접 확인, (b) headless Chrome(`file://`, 빈 프로필)으로 새 요소(`#qmirror`·`#sfield`·`#qhelp`·`.sd-help`)가 DOM 에 정상적으로 있는지 확인.
+- 거울 층: `#임원회의 "손익보고" -지입 모니터* 컴플라인언스~` → `#`(회색)+`임원회의`(빨강 배경 칩) · `"손익보고"`(회색 배경+굵게) · `-지입`(취소선+회색 배경) · `모니터`+`*`(빨강 굵게) · `컴플라인언스`+`~`(빨강 굵게). `title:`/`note:`/`year:` 필드 접두사와 `+`/`/` 연산자도 각각 올바른 색으로 확인. 스크린샷을 시안 D 와 견주어 배치·색 모두 근접함(아래 첨부 스크린샷 참고).
+- 키보드: `↑↓` 로 `S.srch.cur` 가 제목 줄→적중 줄로 순서대로 이동, `Tab` 으로 다음 자료의 제목 줄로 점프(`preventDefault` 확인), 선택된 줄에서 `Enter` → `openHit` 이 호출되어 `S.sel` 이 그 자료 id 로 바뀜을 확인. `←→` 는 커서가 끝에 있을 때만 레일 그룹을 순환하고, 커서가 글자 중간에 있을 때는 `preventDefault` 없이 그냥 캐럿만 움직임을 확인.
+- 전역 단축키: `Ctrl+K` 는 아무 데서나(가짜 포커스 상태에서도), `/` 는 `isTyping` 이 아닐 때만 검색창을 포커스시키고 `preventDefault` 됨을 확인. 별도 `<textarea>` 에 포커스가 있을 때 `/` 를 누르면 그 글자가 그대로 입력됨(가로채지 않음)을 확인.
+- 문법 도움: `#qhelp` 클릭 → `.sd-help` 나타나고 `#sdrop` 폭이 760→1020 으로 바뀜, 다시 클릭 → 닫힘. 예시 줄(`#임원회의`) 클릭 → 검색창에 그대로 들어가고 거울 색도 즉시 갱신됨을 확인.
+- IME(한글 조합)는 `compositionstart`/`input(isComposing:true)`/`compositionend` 이벤트를 코드로 흉내 내 값·거울·커서가 깨지지 않는 것까지는 확인했으나, **이건 진짜 IME 가 아닌 합성 이벤트이므로 Windows·iPad 실제 한글 입력기로는 아직 확인 못 함.**
+
+**남은 문제 / 다음 단계에 넘기는 메모**
+- **한글 IME 실기 확인이 안 됨** — 이 세션의 브라우저 도구로는 실제 조합 입력을 낼 수 없었음. 다음에 직접 Windows 에서 `file://` 로 열어 조합 중 커서가 안 튀는지, iPad Safari 에서도 가능하면 확인 필요. 문제가 있으면 `#search{color:transparent}` 특유의 조합선(underline) 렌더링 문제일 가능성이 높음.
+- `.sd-hrow`(문법 도움 예시 줄)는 `[data-row]` 키보드 목록에 넣지 않음 — 시안 5절 키보드 표가 도움 패널 안 이동을 규정하지 않아 마우스 전용으로 남김. 필요하면 나중에 추가.
+- `#qhelp` 는 유휴 상태에서도 항상 보이게 했음(시안은 이 단추의 유휴 시 표시 여부를 명시하지 않음) — `#skbd` 처럼 숨기지 않기로 판단(문법 도움 발견성이 떨어질 것을 우려).
+- 거울 층은 `line-height:30px` 로 input 과 맞췄지만 브라우저마다 `<input>` 내부 텍스트의 수직 정렬 알고리즘이 100% 동일하지 않아 폰트·배율에 따라 1px 안팎으로 어긋날 수 있음(맨눈으로는 안 보임). 문제가 보고되면 `line-height` 미세 조정.
+- 4단계(딥링크)에서 `S.hlQ`/하이라이트 층을 새로 만들 때 `parseQuery().tokens` 를 또 쓰므로 거울 층의 토큰 분류 함수(`qmFieldSplit`/`qmSuffixSplit`)를 재사용할 수 있는지 살펴볼 것.
+
+---- 원래 계획 ----
 
 1. **단축키**: 전역 `keydown`(9276줄 근처)에 `Ctrl/⌘+K` 와 `/`(`isTyping` 아닐 때) → `$("#search").focus(); select()`. `#skbd` 는 `navigator.platform` 이 Mac 이면 `⌘K` 아니면 `Ctrl K`. `#searchwrap.focus` 또는 `has-text` 면 숨김.
 2. **드롭다운 안 이동**: `#search` 의 `keydown` 에서 1-5 표대로. 줄 목록은 `renderSdrop()` 이 만든 `[data-row]` 요소 순서(제목 줄·적중 줄·더 보기 줄 포함). `S.srch.cur` 로 `.sel` 표시, `scrollIntoView({block:"nearest"})`. Zero-state 에서는 최근 검색어·최근 문서 줄이 목록.
@@ -351,3 +376,4 @@ whats-the-strategy.html 은 awk 'length($0)<400' 으로 거른 사본으로 읽�
 
 - **2026-09-17 · 1단계 · `723f26f`** — 검색 엔진 함수만 추가(화면 변화 없음). `parseQuery` `bitap` `cutSpans` `termHits/termSpans/hitSpans` `pgQ` `sqzPages`(LRU 24) `runSearch` `editDist` `suggestFix`. 옛 모달은 `searchDocs`/`snippetOf` 호환 함수로 그대로 동작. 검증은 headless Chrome + 가짜 자료로만 했고 실제 자료 검증은 2단계 시작 때 콘솔에서 한 번 찍어 볼 것. 자세한 내용은 [1단계] 절.
 - **2026-09-17 · 2단계 · `156daa2`** — 검색 모달(`#searchpop`) → 결과 드롭다운(`#sdrop`)으로 교체. 머리글·집계 레일·자료 블록·Zero-state·결과 없음·커맨드바 교집합 필터칩 모두 구현, 옛 모달·호환 함수(`searchDocs`/`snippetOf`/`openPop`/`closePop`/`renderPop`) 삭제. `type=search` 의 Esc-지우기 기본 동작 차단, 포커스 유지 중 재클릭 시 안 열리던 버그 수정(계획에 없었지만 검증 중 발견). 키보드 이동·문법 도움 패널·최근 검색어/열람 저장은 아직 없음(3·5단계). 자세한 내용·남은 문제는 [2단계] 절.
+- **2026-09-17 · 3단계 · `b288c21`** — `Ctrl/⌘K`·`/` 단축키, 드롭다운 안 `↑↓`/`Tab`/`Enter`/`←→` 줄 이동(`Enter` 는 선택 줄을 `.click()` 으로 재사용), 입력칸 거울 층(`#qmirror`, `#search` 를 `#sfield` 로 감싸 절대배치)로 연산자 색 표시, 문법 도움 패널(`#qhelp`·`.sd-help`, 8줄 표) 추가. `#sdrop` 내부 구조를 `.sd-body`(`.sd-main`+`.sd-help`)로 한 겹 더 감쌈. 한글 IME 는 합성 이벤트로만 확인했고 실기(Windows·iPad) 확인은 아직 못 함. 자세한 내용·남은 문제는 [3단계] 절.
