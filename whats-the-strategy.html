@@ -66,7 +66,7 @@ button{font:inherit;color:inherit;cursor:pointer;}
 /* 키보드로 옮겨 다닐 때의 표시 — 브라우저 기본 파란 테두리를 쓰지 않습니다 */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 /* 색이 바뀌는 것은 모두 0.12초에 걸쳐 — 움직임은 이것뿐입니다 */
-button,input,select,textarea,.cat,.doc,.fold,.res,.mline,.task,.agitem,.agtog,.mgrow{
+button,input,select,textarea,.cat,.doc,.fold,.sd-doc,.sd-hit,.mline,.task,.agitem,.agtog,.mgrow{
   transition:background-color .12s ease,color .12s ease,border-color .12s ease;}
 input,textarea,select{font:inherit;color:inherit;}
 button[disabled]{opacity:.45;cursor:default;}
@@ -97,13 +97,20 @@ button[disabled]{opacity:.45;cursor:default;}
 #search{flex:1 1 auto;min-width:0;height:32px;padding:0;
   border:none;border-bottom:2px solid var(--line);border-radius:0;background:none;
   font-size:13px;font-weight:500;}
-#search:focus{border-bottom-color:var(--accent);}
 #search::placeholder{color:var(--muted2);}
 #search::-webkit-search-cancel-button{display:none;}
+/* 포커스면 검색 셀 전체가 흰 바탕 + 검은 밑줄로 '검색 모드'를 알립니다 */
+#searchwrap.focus{background:#fff;}
+#searchwrap.focus #search{border-bottom-color:var(--rule);}
+#searchwrap.focus .mag{color:var(--text);}
 #clearsearch{flex:0 0 auto;width:22px;height:22px;padding:0;border:none;border-radius:0;
   background:none;color:var(--muted2);display:none;line-height:1;font-size:13px;}
 #clearsearch:hover{color:var(--accent-ink);}
 #searchwrap.has-text #clearsearch{display:block;}
+/* 유휴 상태(포커스 전 · 글자 없음)에만 보이는 단축키 힌트 */
+#skbd{flex:0 0 auto;display:inline-flex;align-items:center;height:18px;padding:0 5px;
+  border:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted2);white-space:nowrap;}
+#searchwrap.focus #skbd,#searchwrap.has-text #skbd{display:none;}
 /* 저작권 표기 — 검색창 길이는 그대로 두고, 그 오른쪽 남는 공간에 작게 얹습니다 */
 #copyright{position:absolute;right:18px;top:0;height:100%;display:flex;align-items:flex-end;
   padding-bottom:8px;white-space:nowrap;font-size:11px;color:var(--muted2);letter-spacing:.02em;
@@ -237,30 +244,120 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .doc .nopdf{flex:0 0 auto;font-size:9.5px;color:#9b9797;}
 #empty,.emptybox{padding:14px 16px;color:var(--muted);font-size:12px;line-height:1.7;}
 
-/* ---------- 검색 팝업 ---------- */
-#searchpop{position:fixed;inset:0;background:color-mix(in srgb, #201e1d 45%, transparent);display:none;z-index:70;
-  justify-content:center;align-items:flex-start;padding:14px;}
-#searchpop.on{display:flex;}
-#searchpop .pop{background:var(--bg);border:2px solid var(--rule);border-radius:0;width:100%;
-  max-width:640px;margin-top:56px;max-height:min(72vh,640px);display:flex;flex-direction:column;
-  box-shadow:var(--shadow);overflow:hidden;}
+/* ---------- 검색 팝업(회의 Agenda 가 함께 씁니다) ---------- */
 .pophead{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:12px 14px;
   border-bottom:2px solid var(--rule);font-size:13px;}
 .pophead b{font-weight:800;letter-spacing:-.01em;}
 .pophead .cnt{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums;}
 .pophead button.x{margin-left:auto;border:none;background:none;font-size:14px;color:var(--muted);padding:0 2px;}
 .pophead button.x:hover{color:var(--accent-ink);}
-#popbody{flex:1 1 auto;overflow-y:auto;padding:0 14px 14px;-webkit-overflow-scrolling:touch;}
-.res{padding:10px 6px;border-radius:0;cursor:pointer;border-bottom:1px solid var(--hairline);}
-.res:last-child{border-bottom:none;}
-.res:hover{background:var(--panel2);}
-.res .t{font-size:12.5px;font-weight:700;margin-bottom:3px;}
-.res .m{font-size:11.5px;color:var(--muted);display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
-.res .m .dot{color:#d7d3d3;}
-.res .snip{font-size:12px;color:#444141;line-height:1.5;}
-.res .snip mark{background:#ffc4b8;color:inherit;padding:0 1px;border-radius:0;}
-.res .where{font-size:10.5px;color:#7d7979;margin-top:3px;}
-#popempty{padding:34px 12px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;}
+
+/* ---------- 검색 결과 드롭다운 (5a-search-static.html 6a 확정안) ---------- */
+#sdrop{position:fixed;z-index:68;background:var(--bg);border:2px solid var(--rule);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;}
+#sdrop[hidden]{display:none;}
+.sd-head{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 12px;
+  background:var(--panel2);border-bottom:2px solid var(--rule);min-width:0;}
+.sd-head .sd-ic{flex:0 0 auto;display:flex;color:var(--text);}
+.sd-head .sd-ic svg{display:block;}
+.sd-head b{font-weight:800;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sd-cnt{flex:0 0 auto;font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.sd-fchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 7px;border:2px solid var(--accent);
+  background:var(--accent-soft);color:var(--accent-ink);font-size:10.5px;font-weight:800;letter-spacing:.04em;
+  white-space:nowrap;cursor:pointer;}
+.sd-fchip svg{display:block;}
+.sd-sort{flex:0 0 auto;margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 7px;
+  border:1px solid var(--line);background:none;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--muted);
+  cursor:pointer;white-space:nowrap;}
+.sd-sort svg{display:block;}
+.sd-head .sd-sort + .sd-x{margin-left:8px;}
+.sd-head .sd-x:only-of-type{margin-left:auto;}
+.sd-x{flex:0 0 auto;width:20px;height:20px;padding:0;border:none;background:none;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;}
+.sd-x:hover{color:var(--accent-ink);}
+.sd-x svg{display:block;}
+.sd-row{flex:1 1 auto;display:flex;min-height:0;}
+.sd-col{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+/* 집계 레일 — 결과가 있을 때만 나옵니다 */
+.sd-rail{flex:0 0 auto;width:196px;background:var(--panel2);border-right:2px solid var(--rule);
+  padding:10px 0 12px;display:flex;flex-direction:column;overflow-y:auto;}
+.sd-rlbl{padding:0 12px 6px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);}
+.sd-rg{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 15px;cursor:pointer;}
+.sd-rg:hover{background:var(--bg);}
+.sd-rg.on{padding-left:12px;background:var(--accent-soft);border-left:3px solid var(--accent);}
+.sd-rg .em{font-size:12px;}
+.sd-rg .t{flex:1 1 auto;font-size:12px;font-weight:600;}
+.sd-rg.on .t{font-weight:800;color:var(--accent-ink);}
+.sd-rg .n{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
+.sd-rg.on .n{color:var(--accent-ink);}
+.sd-rsep{height:1px;background:var(--line);margin:10px 0;}
+.sd-rbars{display:flex;flex-direction:column;gap:5px;padding:0 12px;}
+.sd-bar{display:flex;align-items:center;gap:7px;cursor:pointer;background:none;border:none;padding:0;width:100%;text-align:left;}
+.sd-bar .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:600;color:var(--text);}
+.sd-bar .track{flex:0 0 auto;width:54px;height:6px;background:var(--line);}
+.sd-bar .track em{display:block;height:6px;background:var(--text);font-style:normal;}
+.sd-bar.on{background:var(--accent-soft);}
+.sd-bar .n{flex:0 0 auto;width:14px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
+.sd-seg{display:flex;padding:0 12px;}
+.sd-seg button{flex:1 1 0;height:22px;border:1px solid var(--line);border-left:none;background:none;color:var(--muted);
+  font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;}
+.sd-seg button:first-child{border-left:1px solid var(--line);}
+.sd-seg button.on{border-color:var(--rule);background:var(--rule);color:var(--bg);}
+/* 자료 블록 */
+.sd-doc{border-bottom:1px solid var(--hairline);}
+.sd-doc.sel{background:var(--accent-soft);border-bottom:2px solid var(--rule);}
+.sd-title{display:flex;align-items:baseline;gap:8px;padding:9px 12px 7px 15px;cursor:pointer;}
+.sd-doc.sel .sd-title{padding-left:12px;border-left:3px solid var(--accent);}
+.sd-title .t{flex:1 1 auto;min-width:0;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sd-title .tag{flex:0 0 auto;display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px solid var(--line);
+  color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.06em;cursor:pointer;background:none;}
+.sd-title .tag.on{border:2px solid var(--accent);color:var(--accent-ink);}
+.sd-meta{display:flex;align-items:center;gap:10px;padding:0 12px 8px 15px;font-size:11.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;}
+.sd-meta .src{font-size:11px;}
+.sd-meta b{font-size:11px;font-weight:800;color:var(--text);}
+.sd-doc.sel .sd-meta,.sd-doc.sel .sd-meta b{color:var(--accent-ink);}
+.sd-hit{display:flex;gap:9px;padding:7px 12px 7px 15px;border-top:1px solid var(--line);cursor:pointer;}
+.sd-hit:hover{background:var(--panel2);}
+.sd-doc.sel .sd-hit{border-top-color:#ffc4b8;}
+.sd-doc.sel .sd-hit:hover{background:#ffc4b8;}
+.sd-p{flex:0 0 auto;width:34px;font-size:11px;font-weight:800;color:var(--accent-ink);line-height:1.5;font-variant-numeric:tabular-nums;}
+.sd-s{flex:1 1 auto;min-width:0;font-size:12px;line-height:1.5;}
+.sd-s mark{background:#ffc4b8;color:inherit;padding:0 1px;border-radius:0;}
+.sd-more{padding:6px 12px 8px 49px;font-size:11px;font-weight:800;color:var(--accent-ink);cursor:pointer;}
+.sd-more2{padding:9px 12px 9px 15px;font-size:11.5px;font-weight:800;color:var(--accent-ink);cursor:pointer;
+  border-bottom:1px solid var(--hairline);}
+.sd-foot{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:7px 12px;border-top:1px solid var(--hairline);background:var(--bg);}
+.sd-foot span{font-size:11px;color:var(--muted2);}
+.sd-help-btn{margin-left:auto;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:none;border:none;padding:0;}
+.sd-help-btn:hover{color:var(--accent-ink);}
+/* Zero-state */
+.sd-zsec{border-bottom:1px solid var(--hairline);}
+.sd-zhead{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--hairline);background:var(--bg);}
+.sd-zhead .lbl{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);}
+.sd-zhead .clr{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;background:none;border:none;padding:0;}
+.sd-zhead .clr:hover{color:var(--accent-ink);}
+.sd-zrow{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--hairline);cursor:pointer;}
+.sd-zrow:hover{background:var(--panel2);}
+.sd-zrow .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:600;}
+.sd-zrow .rm{flex:0 0 auto;background:none;border:none;color:var(--muted2);display:flex;padding:0;}
+.sd-zrow .rm:hover{color:var(--accent-ink);}
+.sd-zdoc{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border-bottom:1px solid var(--hairline);cursor:pointer;}
+.sd-zdoc:hover{background:var(--panel2);}
+.sd-zdoc .t{font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sd-zdoc .m{font-size:11.5px;color:var(--muted);}
+.sd-zhint{padding:7px 12px;font-size:11px;color:var(--muted2);}
+/* 결과 없음 */
+.sd-empty{padding:16px 12px 14px;border-bottom:1px solid var(--hairline);}
+.sd-empty .et{font-size:12.5px;font-weight:700;line-height:1.5;}
+.sd-sugg{display:flex;align-items:center;gap:7px;margin-top:12px;padding:8px 10px;background:var(--accent-soft);
+  border:none;border-left:3px solid var(--accent);cursor:pointer;font:inherit;text-align:left;width:100%;}
+.sd-sugg .pre{font-size:11px;font-weight:700;color:var(--muted);}
+.sd-sugg b{font-size:13px;font-weight:800;color:var(--accent-ink);}
+.sd-sugg .n{font-size:11.5px;color:var(--accent-ink);font-variant-numeric:tabular-nums;}
+.sd-en{margin-top:8px;font-size:11.5px;color:var(--muted);line-height:1.6;}
+.sd-en b{color:var(--text);}
+.sd-en em{color:var(--accent);font-style:normal;}
 
 /* ---------- Agenda 팝업 ---------- */
 #agendapop{position:fixed;inset:0;background:color-mix(in srgb, #201e1d 45%, transparent);display:none;z-index:75;
@@ -1456,7 +1553,6 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   :root{--thumb-w:96px;}
   #stage{padding:8px;}
   .pagenav{width:34px;height:54px;}
-  #searchpop .pop{margin-top:12px;max-height:80vh;}
   .frow{flex-wrap:wrap;}
   .frow .fn{flex:1 0 100%;}
 }
@@ -1473,8 +1569,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
       </svg>
     </span>
-    <input id="search" type="search" placeholder=" File name or Keyword" autocomplete="off">
+    <input id="search" type="search" placeholder="파일명 · 본문 · #태그 · title:" autocomplete="off">
     <button id="clearsearch" title="지우기">✕</button>
+    <kbd id="skbd">⌘K</kbd>
     <span id="copyright">Copyright ⓒ C.Hwang. All rights reserved.</span>
   </div>
   <div id="topright">
@@ -1685,14 +1782,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 
 <div id="backdrop"></div>
 
-<!-- 검색 결과 -->
-<div id="searchpop">
-  <div class="pop" role="dialog" aria-label="검색 결과">
-    <div class="pophead"><b>검색 결과</b><span class="cnt" id="popcount"></span>
-      <button class="x" id="popclose" title="닫기 (Esc)">✕</button></div>
-    <div id="popbody"></div>
-  </div>
-</div>
+<!-- 검색 결과 드롭다운 — 안은 renderSdrop() 이 그립니다 -->
+<div id="sdrop" hidden></div>
 
 <!-- 회의 Agenda -->
 <div id="agendapop">
@@ -2336,6 +2427,19 @@ const yearOf  = d => String(d && d.date || "").slice(0,4);
 const fmtYMW  = d => `${yearOf(d)}년 ${monthOf(d)}월 ${weekOf(d)}주차`;
 /* 26.07 1주차 (좁은 곳에서 씀) */
 const fmtYMWShort = d => `${String(d.date).slice(2,4)}.${String(d.date).slice(5,7)} ${weekOf(d)}주차`;
+/* 검색 레일의 '기간' 세 칸 — 이번 달 · 지난 달 · 이전. 검색(runSearch)과 검색 드롭다운이 함께 씁니다 */
+function monthBucketKeys(){
+  const now = new Date();
+  const ym = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
+  const thisKey = ym(now.getFullYear(), now.getMonth() + 1);
+  const lastKey = now.getMonth() === 0 ? ym(now.getFullYear() - 1, 12) : ym(now.getFullYear(), now.getMonth());
+  return { thisKey, lastKey };
+}
+function monthBucketOf(d){
+  const { thisKey, lastKey } = monthBucketKeys();
+  const k = String(d && d.date || "").slice(0, 7);
+  return k >= thisKey ? thisKey : k === lastKey ? lastKey : "prev";
+}
 const fmtSize = n => n >= 1048576 ? (n/1048576).toFixed(1)+"MB" : Math.max(1,Math.round(n/1024))+"KB";
 /* 2026-08-10 14:05 */
 const fmtWhen = iso => {
@@ -2550,6 +2654,9 @@ const S = {
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
   /* 자료 내 검색 — 지금 열린 자료에서만. raw=친 그대로, q=공백을 걷어 낸 것 */
   find:{ raw:"", q:"", hits:[], i:-1, total:0 },
+  /* 검색 결과 드롭다운(#sdrop) — R 은 지금 검색어의 runSearch() 결과(문자 그대로 바뀔 때만 다시 만듭니다),
+     grp·cat·mon·sort 는 그 위에서 화면만 거르는 레일 상태입니다 */
+  srch:{ open:false, R:null, grp:"all", cat:null, mon:null, sort:"rel", more:8, openBlocks:new Set(), cur:-1, help:false },
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"page",                           /* 기본은 One Page — 처음 열 때 쪽 전체가 한눈에 보이게 */
@@ -3616,10 +3723,6 @@ function runSearch(Q, opt){
     cats = new Set((KV.cats || []).filter(c => { const cq = sqzQ(c); return Q.tags.some(t => cq.startsWith(t)); }));
     if(!cats.size) return R;
   }
-  const now = new Date();
-  const ym = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
-  const thisKey = ym(now.getFullYear(), now.getMonth() + 1);
-  const lastKey = now.getMonth() === 0 ? ym(now.getFullYear() - 1, 12) : ym(now.getFullYear(), now.getMonth());
   const inAny   = f => f === "any";
   const inTitle = f => f === "any" || f === "title";
   const inNote  = f => f === "any" || f === "note";
@@ -3671,8 +3774,7 @@ function runSearch(Q, opt){
     /* ③ 집계 — 모두 적중 수 기준 */
     R.tot.docs++; R.tot.hits += hits; R.tot.title += title ? 1 : 0; R.tot.body += body; R.tot.note += nn;
     R.byCat[d.cat] = (R.byCat[d.cat] || 0) + hits;
-    const k = String(d.date || "").slice(0, 7);
-    const mk = k >= thisKey ? thisKey : k === lastKey ? lastKey : "prev";
+    const mk = monthBucketOf(d);
     R.byMonth[mk] = (R.byMonth[mk] || 0) + hits;
   });
 
@@ -3723,72 +3825,295 @@ function suggestFix(Q){
   return { q, n: runSearch(parseQuery(q)).tot.docs };
 }
 
-/* ---- 옛 모달과의 호환 — 2단계에서 모달과 함께 지웁니다 ---- */
-function searchDocs(q){
-  const Q = parseQuery(q);
-  if(!queryHasTerms(Q)) return [];
-  return runSearch(Q).docs.map(r => ({ d:r.d, inNote: !!r.note, r }));
+/* =========================================================
+   8-2) 검색 결과 드롭다운 (#sdrop) — PLAN-SEARCH.md 1-4·1-1-3·2단계
+   ========================================================= */
+const SD_ICO = {
+  mag:  `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
+  x:    `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  xs:   `<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  chev: `<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`
+};
+/* 검색어 한 번 바뀔 때만 부릅니다 — 어떤 자료가 걸렸는지 먼저 한 번 돌려 본 뒤,
+   그 자료들만(=결국 전부) span 까지 채워 다시 돌립니다. 레일·보기 필터(grp·cat·mon·sort·more)는
+   이 R 을 화면에서만 거르므로 재검색하지 않습니다. */
+function sdCompute(Q){
+  const first = runSearch(Q);
+  if(!first.docs.length) return first;
+  return runSearch(Q, { spansFor:new Set(first.docs.map(r => r.d.id)) });
 }
-/* 자료 한 건의 스니펫 — 처음 걸린 쪽 하나만 sqz() 해서 그 쪽의 모든 자리를 표시합니다 */
-function snippetOf(d, q, inNote, r){
-  const Q = parseQuery(q);
-  if(!r){ r = runSearch(Q, { spansFor:new Set([d.id]) }).docs.find(x => x.d === d) || null; }
-  if(!r) return { html:"", where:"" };
-  const any = f => f === "any", noteOk = f => f === "any" || f === "note";
-  if(r.pages.length){
-    const p = r.pages[0].p, hay = d.pageTexts[p - 1] || "";
-    const spans = r.pages[0].spans.length ? r.pages[0].spans : hitSpans(sqz(hay), Q, any);
-    if(spans.length) return { html: cutSpans(hay, spans), where: `자료 ${p}p` };
-  }
-  if(r.note){
-    const note = noteOf(d), spans = r.note.spans.length ? r.note.spans : hitSpans(sqz(note.text), Q, noteOk);
-    if(spans.length) return { html: cutSpans(note.text, spans), where:"회의록" };
-  }
-  if(r.title) return { html:"", where:"파일명" };
-  return { html:"", where:"" };
+function sdResetFacets(){
+  S.srch.grp = "all"; S.srch.cat = null; S.srch.mon = null;
+  S.srch.more = 8; S.srch.openBlocks = new Set();
+}
+/* 지금 검색어로 R 만 다시 만듭니다(커맨드바 교집합처럼 검색어는 그대로인데
+   대상 자료가 바뀌었을 때 — 레일·필터 선택은 건드리지 않습니다) */
+function sdRecompute(){
+  const q = S.q.trim(), Q = q ? parseQuery(q) : null;
+  S.srch.R = (Q && queryHasTerms(Q)) ? sdCompute(Q) : null;
+}
+function sdSetQuery(q){
+  S.q = q; $("#search").value = q; $("#searchwrap").classList.toggle("has-text", !!q);
+  sdResetFacets();
+  sdRecompute();
 }
 
-function openPop(){ $("#searchpop").classList.add("on"); }
-function closePop(){ $("#searchpop").classList.remove("on"); }
+function openSdrop(){
+  if(S.srch.open) return;
+  S.srch.open = true;
+  $("#sdrop").hidden = false;
+  renderSdrop();
+}
+function closeSdrop(){
+  if(!S.srch.open) return;
+  S.srch.open = false;
+  $("#sdrop").hidden = true;
+}
+function placeSdrop(){
+  const el = $("#sdrop");
+  if(el.hidden) return;
+  const r = $("#searchwrap").getBoundingClientRect();
+  const want = +(el.dataset.w || 640);
+  el.style.left = Math.round(r.left) + "px";
+  el.style.top = "56px";
+  el.style.maxHeight = Math.min(704, window.innerHeight - 56 - 16) + "px";
+  el.style.width = Math.max(280, Math.min(want, window.innerWidth - r.left - 16)) + "px";
+}
 
-function renderPop(){
+/* 자료 목록에서 검색 결과를 화면에 보일 순서로 — 재검색 없이 S.srch.R.docs 를 거르기만 합니다 */
+function sdDocsFor(R){
+  let docs = R.docs;
+  if(S.srch.sort === "date")
+    docs = docs.slice().sort((a, b) => (b.d.date + b.d.addedAt).localeCompare(a.d.date + a.d.addedAt));
+  if(S.srch.cat) docs = docs.filter(r => r.d.cat === S.srch.cat);
+  if(S.srch.mon) docs = docs.filter(r => monthBucketOf(r.d) === S.srch.mon);
+  if(S.srch.grp === "title") docs = docs.filter(r => r.title);
+  else if(S.srch.grp === "body") docs = docs.filter(r => r.pages.length);
+  else if(S.srch.grp === "note") docs = docs.filter(r => r.note);
+  return docs;
+}
+
+function sdFilterChipHtml(){
+  if(!S.offCats.size) return "";
+  const on = (KV.cats || []).filter(c => !S.offCats.has(c));
+  const label = on.length && on.length <= 3 ? on.join(" · ") : `${on.length}종류`;
+  return `<button class="sd-fchip" id="sd-fchip" title="커맨드바 전체 선택">필터: ${esc(label)}${SD_ICO.xs}</button>`;
+}
+function sdHeadHtml(q, R){
+  const label = q ? `<b>‘${esc(q)}’</b>` : `<b>최근 기록</b>`;
+  const cnt = q && R ? `<span class="sd-cnt">${R.docs.length ? `자료 ${R.tot.docs}건 · 적중 ${R.tot.hits}곳` : "0건"}</span>` : "";
+  const sort = (q && R && R.docs.length)
+    ? `<button class="sd-sort" id="sd-sortbtn">${S.srch.sort === "date" ? "최신순" : "관련도순"}${SD_ICO.chev}</button>` : "";
+  return `<div class="sd-head"><span class="sd-ic">${SD_ICO.mag}</span>${label}${cnt}${sdFilterChipHtml()}${sort}`
+    + `<button class="sd-x" id="sd-close" title="닫기 (Esc)">${SD_ICO.x}</button></div>`;
+}
+function sdPeriodHtml(R){
+  const { thisKey, lastKey } = monthBucketKeys();
+  const present = [thisKey, lastKey, "prev"].filter(k => R.byMonth[k]);
+  if(!present.length) return "";
+  const btns = present.map((k, i) => {
+    const label = k === "prev" ? "이전" : k.slice(5, 7);
+    const on = S.srch.mon ? S.srch.mon === k : i === 0;
+    return `<button class="${on ? "on" : ""}" data-mon="${k}">${label} · ${R.byMonth[k]}</button>`;
+  }).join("");
+  return `<div class="sd-rsep"></div><div class="sd-rlbl">기간</div><div class="sd-seg">${btns}</div>`;
+}
+function sdRailHtml(R){
+  const grpRow = (key, emoji, label, n) => `<div class="sd-rg ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">`
+    + `${emoji ? `<span class="em">${emoji}</span>` : ""}<span class="t">${label}</span><span class="n">${n}</span></div>`;
+  const cats = Object.entries(R.byCat).sort((a, b) => b[1] - a[1]);
+  const maxCat = cats.length ? cats[0][1] : 1;
+  const bars = cats.map(([c, n], i) => `<button class="sd-bar ${S.srch.cat === c ? "on" : ""}" data-cat="${esc(c)}">`
+    + `<span class="t">${esc(c)}</span><span class="track"><em style="width:${Math.max(6, Math.round(n / maxCat * 100))}%;${i === 0 ? "background:var(--accent)" : ""}"></em></span>`
+    + `<span class="n">${n}</span></button>`).join("");
+  return `<div class="sd-rail">
+    <div class="sd-rlbl">어디에서 걸렸나</div>
+    ${grpRow("all", "", "전체", R.tot.hits)}${grpRow("title", "📄", "파일명", R.tot.title)}${grpRow("body", "📝", "본문", R.tot.body)}${grpRow("note", "🗒", "회의록", R.tot.note)}
+    <div class="sd-rsep"></div>
+    <div class="sd-rlbl">회의 종류</div>
+    <div class="sd-rbars">${bars}</div>
+    ${sdPeriodHtml(R)}
+  </div>`;
+}
+function sdDocBlockHtml(r){
+  const d = r.d, sel = S.sel === d.id, open = S.srch.openBlocks.has(d.id);
+  const lines = r.pages.map(p => ({ type:"page", p:p.p, spans:p.spans }))
+    .concat(r.note ? [{ type:"note", spans:r.note.spans }] : []);
+  const shown = open ? lines : lines.slice(0, 3);
+  const hitHtml = shown.map(l => {
+    const hay = l.type === "page" ? (d.pageTexts[l.p - 1] || "") : ((noteOf(d) || {}).text || "");
+    const snip = l.spans.length ? cutSpans(hay, l.spans) : esc(hay.slice(0, 90));
+    const label = l.type === "page" ? `${String(l.p).padStart(2, "0")}p` : "회의록";
+    return `<div class="sd-hit" data-p="${l.type === "page" ? l.p : ""}" data-note="${l.type === "note" ? "1" : ""}">`
+      + `<span class="sd-p">${label}</span><span class="sd-s">${snip}</span></div>`;
+  }).join("");
+  const more = lines.length > 3 && !open ? `<div class="sd-more" data-more="${d.id}">+ ${lines.length - 3}곳 더 보기</div>` : "";
+  const meta = `${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p`;
+  const src = r.title ? `<span class="src">📄 파일명 일치</span>` : "";
+  const counts = [r.pages.length ? `본문 ${r.pages.length}곳` : "", r.note ? "회의록 1곳" : ""].filter(Boolean).join(" · ");
+  return `<div class="sd-doc ${sel ? "sel" : ""}" data-id="${d.id}">
+    <div class="sd-title" data-id="${d.id}">
+      <span class="t">${esc(d.title)}</span>
+      <span class="tag ${S.srch.cat === d.cat ? "on" : ""}" data-cat="${esc(d.cat)}">${esc(d.cat)}</span>
+    </div>
+    <div class="sd-meta"><span>${meta}</span>${src}${counts ? `<b>${counts}</b>` : ""}</div>
+    ${hitHtml}${more}
+  </div>`;
+}
+function sdZeroHtml(){
+  const rq = (KV.recentQ || []).slice(0, 5);
+  const rd = (KV.recentDocs || []).map(id => DOCS.find(d => d.id === id)).filter(Boolean).slice(0, 5);
+  let html = "";
+  if(rq.length){
+    html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">🕘 최근 검색어</span><button class="clr" id="sd-clrq">모두 지우기</button></div>`
+      + rq.map(q => `<div class="sd-zrow" data-q="${esc(q)}"><span class="t">${esc(q)}</span><button class="rm" data-rmq="${esc(q)}">${SD_ICO.xs}</button></div>`).join("")
+      + `</div>`;
+  }
+  if(rd.length){
+    html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">📂 최근 열람 문서</span></div>`
+      + rd.map(d => `<div class="sd-zdoc" data-id="${d.id}"><span class="t">${esc(d.title)}</span>`
+        + `<span class="m">${esc(d.cat)} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p</span></div>`).join("")
+      + `</div>`;
+  }
+  html += `<div class="sd-zhint">+ 모두 · / 하나라도 · -제외 · "정확히" · 끝*</div>`
+        + `<div class="sd-zhint">오타~ · #태그 · title:/cat:/year:/note:</div>`;
+  return html;
+}
+function sdEmptyHtml(q, Q){
+  const sug = suggestFix(Q);
+  const suggHtml = sug ? `<button class="sd-sugg" id="sd-sugg" data-q="${esc(sug.q)}"><span class="pre">혹시 →</span><b>${esc(sug.q)}</b><span class="n">(${sug.n}건)</span></button>` : "";
+  const rq = (KV.recentQ || []).slice(0, 3);
+  const rqHtml = rq.length ? `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">🕘 최근 검색어</span></div>`
+    + rq.map(x => `<div class="sd-zrow" data-q="${esc(x)}"><span class="t">${esc(x)}</span></div>`).join("") + `</div>` : "";
+  return `<div class="sd-empty"><div class="et">‘${esc(q)}’ 에 해당하는 자료가 없습니다.</div>${suggHtml}`
+    + `<div class="sd-en">띄어쓰기·순서를 무시하고 찾으려면 <b>${esc(q)}<em>~</em></b> 로 검색하세요.</div></div>${rqHtml}`;
+}
+function sdFootHtml(mode){
+  const hint = mode === "empty" ? "Enter 제안 검색어로 · Esc 닫기"
+    : mode === "results" ? "↑ ↓ 이동 · Enter 열기 · Tab 다음 자료 · Esc 닫기"
+    : "↑ ↓ 이동 · Enter 열기 · Esc 닫기";
+  return `<div class="sd-foot"><span>${hint}</span><button class="sd-help-btn" id="sd-helpbtn">문법 도움 ?</button></div>`;
+}
+function renderSdrop(){
+  const el = $("#sdrop");
   const q = S.q.trim();
-  if(!q){ closePop(); return; }
-  const found = searchDocs(q);
-  $("#popcount").textContent = `‘${q}’ · ${found.length}건`;
-  $("#popbody").innerHTML = found.length
-    ? found.map(({d, inNote, r}) => {
-        const s = snippetOf(d, q, inNote, r);
-        const pageNo = (s.where.match(/자료 (\d+)p/) || [])[1] || "";
-        return `<div class="res" data-id="${d.id}" data-page="${pageNo}">
-          <div class="t">${esc(d.title)}</div>
-          <div class="m"><span>${esc(d.cat)}</span><span class="dot">·</span><span>${fmtYMW(d)}</span>
-            <span class="dot">·</span><span>${d.pages}p</span></div>
-          ${s.html ? `<div class="snip">${s.html}</div>` : ""}
-          ${s.where ? `<div class="where">${esc(s.where)}에서 찾음</div>` : ""}
-        </div>`;
-      }).join("")
-    : `<div id="popempty">‘${esc(q)}’ 에 해당하는 자료가 없습니다.<br>다른 단어로 찾아보세요.</div>`;
-  openPop();
+  const Q = q ? parseQuery(q) : null;
+  let width = 640, railHtml = "", colHtml, headHtml, footHtml;
+  if(!q || !queryHasTerms(Q)){
+    headHtml = sdHeadHtml("", null);
+    colHtml = sdZeroHtml();
+    footHtml = sdFootHtml("zero");
+  } else {
+    const R = S.srch.R;
+    headHtml = sdHeadHtml(q, R);
+    if(!R || !R.docs.length){
+      colHtml = sdEmptyHtml(q, Q);
+      footHtml = sdFootHtml("empty");
+    } else {
+      width = 760;
+      railHtml = sdRailHtml(R);
+      const docs = sdDocsFor(R);
+      if(!docs.length){
+        colHtml = `<div class="sd-empty"><div class="et">이 조건에 맞는 자료가 없습니다.</div></div>`;
+      } else {
+        const shown = docs.slice(0, S.srch.more);
+        colHtml = shown.map(sdDocBlockHtml).join("")
+          + (docs.length > S.srch.more ? `<div class="sd-more2" id="sd-more2">+ 자료 ${docs.length - S.srch.more}건 더 보기</div>` : "");
+      }
+      footHtml = sdFootHtml("results");
+    }
+  }
+  el.innerHTML = headHtml + `<div class="sd-row">${railHtml}<div class="sd-col">${colHtml}</div></div>` + footHtml;
+  el.dataset.w = width;
+  placeSdrop();
 }
 
+/* 자료를 여는 모든 경로가 지나는 한 곳 — 4단계가 여기서 결과 이동 상태(S.nav)를 세팅합니다 */
+async function openHit({ id, p, note }){
+  closeSdrop();
+  await selectDoc(id);
+  if(note){
+    S.rtab = "note"; KV.rtab = S.rtab; saveKV("rtab");
+    if(document.body.classList.contains("right-closed")) toggleSide("right", true);
+    renderRight();
+  } else if(p){
+    goPage(p);
+  }
+}
+
+$("#skbd").textContent = /Mac|iPhone|iPad|iPod/.test(navigator.platform || "") ? "⌘K" : "Ctrl K";
+
+let sdDebounce = null;
 $("#search").addEventListener("input", e => {
   S.q = e.target.value;
   $("#searchwrap").classList.toggle("has-text", !!S.q);
-  renderPop();
+  clearTimeout(sdDebounce);
+  sdDebounce = setTimeout(() => {
+    sdResetFacets();
+    sdRecompute();
+    if(S.srch.open) renderSdrop();
+  }, 120);
 });
-$("#search").addEventListener("focus", () => { if(S.q.trim()) renderPop(); });
+$("#search").addEventListener("focus", () => { $("#searchwrap").classList.add("focus"); openSdrop(); });
+/* 이미 포커스가 있는 채로(예: 방금 결과를 열어 드롭다운만 닫혔을 때) 다시 누르면
+   focus 이벤트가 새로 나지 않으므로 click 에서도 한 번 더 엽니다(열려 있으면 openSdrop 이 그냥 무시) */
+$("#search").addEventListener("click", openSdrop);
+$("#search").addEventListener("blur", () => { $("#searchwrap").classList.remove("focus"); });
 $("#clearsearch").onclick = () => {
-  S.q=""; $("#search").value=""; $("#searchwrap").classList.remove("has-text"); closePop(); $("#search").focus();
+  S.q = ""; $("#search").value = ""; $("#searchwrap").classList.remove("has-text");
+  S.srch.R = null; sdResetFacets();
+  $("#search").focus(); openSdrop(); renderSdrop();
 };
-$("#popclose").onclick = closePop;
-$("#searchpop").addEventListener("click", e => { if(e.target.id === "searchpop") closePop(); });
-$("#popbody").addEventListener("click", async e => {
-  const row = e.target.closest(".res"); if(!row) return;
-  const goPageNo = parseInt(row.dataset.page, 10);
-  closePop();
-  await selectDoc(row.dataset.id);
-  if(goPageNo && S.pdf){ S.page = Math.min(S.pdf.numPages, goPageNo); await renderPage(); }
+window.addEventListener("resize", () => { if(S.srch.open) placeSdrop(); });
+/* 바깥 클릭(mousedown)으로 닫습니다. 드롭다운 안 클릭은 preventDefault 로 입력칸 포커스를 지킵니다 */
+document.addEventListener("mousedown", e => {
+  if(!S.srch.open) return;
+  if(e.target.closest("#sdrop")){ e.preventDefault(); return; }
+  if(e.target.closest("#searchwrap")) return;
+  closeSdrop();
+});
+
+$("#sdrop").addEventListener("click", async e => {
+  const t = e.target;
+  if(t.closest("#sd-close")){ closeSdrop(); return; }
+  if(t.closest("#sd-fchip")){ $("#selall").click(); sdRecompute(); renderSdrop(); return; }
+  if(t.closest("#sd-sortbtn")){ S.srch.sort = S.srch.sort === "date" ? "rel" : "date"; renderSdrop(); return; }
+  const grpRow = t.closest("[data-grp]");
+  if(grpRow){ S.srch.grp = grpRow.dataset.grp; renderSdrop(); return; }
+  const barRow = t.closest(".sd-bar");
+  if(barRow){ const c = barRow.dataset.cat; S.srch.cat = S.srch.cat === c ? null : c; renderSdrop(); return; }
+  const segBtn = t.closest("[data-mon]");
+  if(segBtn){ const k = segBtn.dataset.mon; S.srch.mon = S.srch.mon === k ? null : k; renderSdrop(); return; }
+  const tagChip = t.closest(".sd-title .tag");
+  if(tagChip){ const c = tagChip.dataset.cat; S.srch.cat = S.srch.cat === c ? null : c; renderSdrop(); return; }
+  const moreBtn = t.closest(".sd-more[data-more]");
+  if(moreBtn){ S.srch.openBlocks.add(moreBtn.dataset.more); renderSdrop(); return; }
+  if(t.closest("#sd-more2")){ S.srch.more += 8; renderSdrop(); return; }
+  const hitRow = t.closest(".sd-hit");
+  if(hitRow){
+    const id = hitRow.closest(".sd-doc").dataset.id;
+    if(hitRow.dataset.note) await openHit({ id, note:true });
+    else await openHit({ id, p:+hitRow.dataset.p });
+    return;
+  }
+  const titleRow = t.closest(".sd-title");
+  if(titleRow){
+    const id = titleRow.dataset.id;
+    const r = S.srch.R && S.srch.R.docs.find(x => x.d.id === id);
+    if(r && r.pages.length) await openHit({ id, p:r.pages[0].p });
+    else if(r && r.note) await openHit({ id, note:true });
+    else await openHit({ id });
+    return;
+  }
+  const zdoc = t.closest(".sd-zdoc");
+  if(zdoc){ await openHit({ id:zdoc.dataset.id }); return; }
+  const sugg = t.closest("#sd-sugg");
+  if(sugg){ sdSetQuery(sugg.dataset.q); renderSdrop(); return; }
+  const zrow = t.closest(".sd-zrow");
+  if(zrow && !t.closest("[data-rmq]")){
+    const qv = zrow.dataset.q;
+    if(qv){ sdSetQuery(qv); renderSdrop(); }
+  }
 });
 
 /* =========================================================
@@ -9555,6 +9880,9 @@ $("#tutsearch").addEventListener("keydown", e => {
    ========================================================= */
 document.addEventListener("keydown", e => {
   if(e.key === "Escape"){
+    /* type=search 인 입력칸은 Esc 를 누르면 브라우저가 스스로 글자를 지웁니다 —
+       드롭다운은 닫되 검색어는 남겨 두므로 그 기본 동작을 막습니다 */
+    if(e.target && e.target.id === "search") e.preventDefault();
     if(!$("#dwpop").hidden){ $("#dwpop").hidden = true; return; }
     if(window.drawActive && window.drawActive()){ window.drawExit && window.drawExit(); return; }
     if($("#ainotebg").classList.contains("on")){ if(S.anEdit) anCancelEdit(); else closeAiNote(); }
@@ -9567,7 +9895,7 @@ document.addEventListener("keydown", e => {
     else if($("#tutpop").classList.contains("on")){
       if(!$("#tutresults").hidden) tutHideResults(); else closeTut();
     }
-    else if($("#searchpop").classList.contains("on")) closePop();
+    else if(S.srch.open) closeSdrop();
     else if($("#managebg").classList.contains("on")) closeManage();
     else if($("#alltasksbg").classList.contains("on")) $("#alltasksbg").classList.remove("on");
     else if($("#uploadbg").classList.contains("on")) closeUpload();
