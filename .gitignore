@@ -19,8 +19,12 @@ design_handoff_strategy_viewer/
 # 시험용 파일
 test-ai.html
 
-# 아이콘 원본 — 여기서 icon-180 · icon-512 · icon-maskable-512 · icon-mark 를 뽑습니다
+# 아이콘 원본 — 여기서 icon-180 · icon-512 · icon-maskable-512 를 뽑습니다
 icon.JPG
+App icon.jpg
+
+# 제목 옆 표시(PDF 그림) 원본
+PDF image.jpg
 
 # 동기화 작업 계획 (로컬 작업용)
 PLAN-SYNC.md
