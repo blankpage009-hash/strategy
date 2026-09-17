@@ -94,9 +94,15 @@ button[disabled]{opacity:.45;cursor:default;}
 #searchwrap{flex:1 1 auto;min-width:80px;display:flex;align-items:center;gap:10px;padding:0 16px;position:relative;}
 #searchwrap .mag{flex:0 0 auto;display:flex;align-items:center;color:var(--muted2);}
 #searchwrap .mag svg{display:block;}
-#search{flex:1 1 auto;min-width:0;height:32px;padding:0;
+/* #sfield 는 거울 층(#qmirror)과 실제 입력칸(#search)을 같은 자리에 겹쳐 둡니다.
+   #search 는 글자색을 투명하게 하고(캐럿만 보임), 거울이 그 뒤에서 조각별로 색을 입힙니다. */
+#sfield{flex:1 1 auto;min-width:0;height:32px;position:relative;}
+#qmirror{position:absolute;inset:0;box-sizing:border-box;padding-bottom:2px;
+  overflow:hidden;pointer-events:none;white-space:pre;
+  font-size:13px;font-weight:500;line-height:30px;color:var(--ink);}
+#search{position:relative;width:100%;height:32px;box-sizing:border-box;padding:0;
   border:none;border-bottom:2px solid var(--line);border-radius:0;background:none;
-  font-size:13px;font-weight:500;}
+  font-size:13px;font-weight:500;line-height:30px;color:transparent;caret-color:var(--ink);}
 #search::placeholder{color:var(--muted2);}
 #search::-webkit-search-cancel-button{display:none;}
 /* 포커스면 검색 셀 전체가 흰 바탕 + 검은 밑줄로 '검색 모드'를 알립니다 */
@@ -107,6 +113,18 @@ button[disabled]{opacity:.45;cursor:default;}
   background:none;color:var(--muted2);display:none;line-height:1;font-size:13px;}
 #clearsearch:hover{color:var(--accent-ink);}
 #searchwrap.has-text #clearsearch{display:block;}
+/* 연산자 색 조각(거울 층) */
+.qm-pfx{color:var(--muted2);}
+.qm-tag{color:var(--accent-ink);background:var(--accent-soft);}
+.qm-neg{color:var(--muted2);background:var(--panel2);text-decoration:line-through;}
+.qm-phrase{background:var(--panel2);font-weight:800;}
+.qm-suf{color:var(--accent);font-weight:800;}
+.qm-op{color:var(--muted2);}
+/* 문법 도움 단추 — 검색칸 오른쪽 */
+#qhelp{flex:0 0 auto;width:22px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);font-size:12px;font-weight:800;}
+#qhelp:hover{border-color:var(--accent);color:var(--accent-ink);}
+#qhelp.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);}
 /* 유휴 상태(포커스 전 · 글자 없음)에만 보이는 단축키 힌트 */
 #skbd{flex:0 0 auto;display:inline-flex;align-items:center;height:18px;padding:0 5px;
   border:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted2);white-space:nowrap;}
@@ -276,8 +294,14 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
   display:flex;align-items:center;justify-content:center;}
 .sd-x:hover{color:var(--accent-ink);}
 .sd-x svg{display:block;}
+/* .sd-body 는 결과 영역(.sd-main = .sd-row + .sd-foot)과 문법 도움(.sd-help)을 나란히 둡니다(3단계) */
+.sd-body{flex:1 1 auto;display:flex;min-height:0;}
+.sd-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;min-height:0;}
 .sd-row{flex:1 1 auto;display:flex;min-height:0;}
 .sd-col{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+/* 키보드 선택 줄 — 마우스 hover 와 구분(3단계). 각 줄의 padding 이 저마다 달라 inset box-shadow 로 왼쪽 띠를 흉내냅니다 */
+[data-row].kbd{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);}
+.sd-title[data-row].kbd .t{color:var(--accent-ink);}
 /* 집계 레일 — 결과가 있을 때만 나옵니다 */
 .sd-rail{flex:0 0 auto;width:196px;background:var(--panel2);border-right:2px solid var(--rule);
   padding:10px 0 12px;display:flex;flex-direction:column;overflow-y:auto;}
@@ -358,6 +382,18 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .sd-en{margin-top:8px;font-size:11.5px;color:var(--muted);line-height:1.6;}
 .sd-en b{color:var(--text);}
 .sd-en em{color:var(--accent);font-style:normal;}
+/* 문법 도움 패널(3단계) — 폭 260, 드롭다운 오른쪽에 붙습니다 */
+.sd-help{flex:0 0 auto;width:260px;border-left:2px solid var(--rule);display:flex;flex-direction:column;
+  overflow-y:auto;background:var(--bg);}
+.sd-hhead{flex:0 0 auto;padding:9px 12px;font-size:10px;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted2);background:var(--panel2);border-bottom:2px solid var(--rule);}
+.sd-hrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;padding:7px 12px;
+  border-bottom:1px solid var(--hairline);cursor:pointer;background:none;border-left:none;border-right:none;
+  border-top:none;text-align:left;font:inherit;width:100%;}
+.sd-hrow:hover{background:var(--panel2);}
+.sd-hrow .sym{flex:0 0 38px;font-size:12px;font-weight:800;color:var(--accent);}
+.sd-hrow .mean{font-size:11px;font-weight:700;color:var(--text);}
+.sd-hrow .ex{flex:0 0 100%;padding-left:46px;font-size:11px;color:var(--muted);}
 
 /* ---------- Agenda 팝업 ---------- */
 #agendapop{position:fixed;inset:0;background:color-mix(in srgb, #201e1d 45%, transparent);display:none;z-index:75;
@@ -1569,8 +1605,12 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
       </svg>
     </span>
-    <input id="search" type="search" placeholder="파일명 · 본문 · #태그 · title:" autocomplete="off">
+    <div id="sfield">
+      <div id="qmirror" aria-hidden="true"></div>
+      <input id="search" type="search" placeholder="파일명 · 본문 · #태그 · title:" autocomplete="off">
+    </div>
     <button id="clearsearch" title="지우기">✕</button>
+    <button id="qhelp" title="검색 문법 도움">?</button>
     <kbd id="skbd">⌘K</kbd>
     <span id="copyright">Copyright ⓒ C.Hwang. All rights reserved.</span>
   </div>
@@ -3854,6 +3894,7 @@ function sdRecompute(){
 }
 function sdSetQuery(q){
   S.q = q; $("#search").value = q; $("#searchwrap").classList.toggle("has-text", !!q);
+  renderQMirror();
   sdResetFacets();
   sdRecompute();
 }
@@ -3944,15 +3985,15 @@ function sdDocBlockHtml(r){
     const hay = l.type === "page" ? (d.pageTexts[l.p - 1] || "") : ((noteOf(d) || {}).text || "");
     const snip = l.spans.length ? cutSpans(hay, l.spans) : esc(hay.slice(0, 90));
     const label = l.type === "page" ? `${String(l.p).padStart(2, "0")}p` : "회의록";
-    return `<div class="sd-hit" data-p="${l.type === "page" ? l.p : ""}" data-note="${l.type === "note" ? "1" : ""}">`
+    return `<div class="sd-hit" data-row data-p="${l.type === "page" ? l.p : ""}" data-note="${l.type === "note" ? "1" : ""}">`
       + `<span class="sd-p">${label}</span><span class="sd-s">${snip}</span></div>`;
   }).join("");
-  const more = lines.length > 3 && !open ? `<div class="sd-more" data-more="${d.id}">+ ${lines.length - 3}곳 더 보기</div>` : "";
+  const more = lines.length > 3 && !open ? `<div class="sd-more" data-row data-more="${d.id}">+ ${lines.length - 3}곳 더 보기</div>` : "";
   const meta = `${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p`;
   const src = r.title ? `<span class="src">📄 파일명 일치</span>` : "";
   const counts = [r.pages.length ? `본문 ${r.pages.length}곳` : "", r.note ? "회의록 1곳" : ""].filter(Boolean).join(" · ");
   return `<div class="sd-doc ${sel ? "sel" : ""}" data-id="${d.id}">
-    <div class="sd-title" data-id="${d.id}">
+    <div class="sd-title" data-row data-id="${d.id}">
       <span class="t">${esc(d.title)}</span>
       <span class="tag ${S.srch.cat === d.cat ? "on" : ""}" data-cat="${esc(d.cat)}">${esc(d.cat)}</span>
     </div>
@@ -3966,12 +4007,12 @@ function sdZeroHtml(){
   let html = "";
   if(rq.length){
     html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">🕘 최근 검색어</span><button class="clr" id="sd-clrq">모두 지우기</button></div>`
-      + rq.map(q => `<div class="sd-zrow" data-q="${esc(q)}"><span class="t">${esc(q)}</span><button class="rm" data-rmq="${esc(q)}">${SD_ICO.xs}</button></div>`).join("")
+      + rq.map(q => `<div class="sd-zrow" data-row data-q="${esc(q)}"><span class="t">${esc(q)}</span><button class="rm" data-rmq="${esc(q)}">${SD_ICO.xs}</button></div>`).join("")
       + `</div>`;
   }
   if(rd.length){
     html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">📂 최근 열람 문서</span></div>`
-      + rd.map(d => `<div class="sd-zdoc" data-id="${d.id}"><span class="t">${esc(d.title)}</span>`
+      + rd.map(d => `<div class="sd-zdoc" data-row data-id="${d.id}"><span class="t">${esc(d.title)}</span>`
         + `<span class="m">${esc(d.cat)} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p</span></div>`).join("")
       + `</div>`;
   }
@@ -3981,10 +4022,10 @@ function sdZeroHtml(){
 }
 function sdEmptyHtml(q, Q){
   const sug = suggestFix(Q);
-  const suggHtml = sug ? `<button class="sd-sugg" id="sd-sugg" data-q="${esc(sug.q)}"><span class="pre">혹시 →</span><b>${esc(sug.q)}</b><span class="n">(${sug.n}건)</span></button>` : "";
+  const suggHtml = sug ? `<button class="sd-sugg" id="sd-sugg" data-row data-q="${esc(sug.q)}"><span class="pre">혹시 →</span><b>${esc(sug.q)}</b><span class="n">(${sug.n}건)</span></button>` : "";
   const rq = (KV.recentQ || []).slice(0, 3);
   const rqHtml = rq.length ? `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">🕘 최근 검색어</span></div>`
-    + rq.map(x => `<div class="sd-zrow" data-q="${esc(x)}"><span class="t">${esc(x)}</span></div>`).join("") + `</div>` : "";
+    + rq.map(x => `<div class="sd-zrow" data-row data-q="${esc(x)}"><span class="t">${esc(x)}</span></div>`).join("") + `</div>` : "";
   return `<div class="sd-empty"><div class="et">‘${esc(q)}’ 에 해당하는 자료가 없습니다.</div>${suggHtml}`
     + `<div class="sd-en">띄어쓰기·순서를 무시하고 찾으려면 <b>${esc(q)}<em>~</em></b> 로 검색하세요.</div></div>${rqHtml}`;
 }
@@ -3994,8 +4035,36 @@ function sdFootHtml(mode){
     : "↑ ↓ 이동 · Enter 열기 · Esc 닫기";
   return `<div class="sd-foot"><span>${hint}</span><button class="sd-help-btn" id="sd-helpbtn">문법 도움 ?</button></div>`;
 }
+/* 문법 도움 패널(3단계) — 시안 D 8줄 표. 예시를 누르면 검색창에 그대로 들어갑니다 */
+const SD_GRAMMAR = [
+  { sym:"+", mean:"모두 포함", ex:"임원회의 + 컴플라이언스" },
+  { sym:"/", mean:"하나라도", ex:"직영 / 위탁" },
+  { sym:"-", mean:"제외", ex:"유휴차량 -지입" },
+  { sym:'" "', mean:"정확히(붙여서)", ex:'"차량 방치"' },
+  { sym:"*", mean:"앞부분만 맞아도(붙이지 않아도 됩니다)", ex:"모니터*" },
+  { sym:"~", mean:"오타 허용", ex:"컴플라이언스~" },
+  { sym:"#", mean:"회의 태그", ex:"#임원회의" },
+  { sym:"field:", mean:"title:/cat:/year:/note:", ex:"title:손익보고" }
+];
+function sdHelpHtml(){
+  const rows = SD_GRAMMAR.map(g => `<button class="sd-hrow" data-ex="${esc(g.ex)}">`
+    + `<span class="sym">${esc(g.sym)}</span><span class="mean">${esc(g.mean)}</span><span class="ex">${esc(g.ex)}</span></button>`).join("");
+  return `<div class="sd-help"><div class="sd-hhead">검색 문법</div>${rows}</div>`;
+}
+/* 키보드로 오갈 수 있는 줄 — renderSdrop() 이 찍어 둔 [data-row] 요소들을 화면 순서 그대로 */
+function sdRows(){ return Array.from($("#sdrop").querySelectorAll("[data-row]")); }
+function sdSetCur(i){
+  const rows = sdRows();
+  rows.forEach(r => r.classList.remove("kbd"));
+  if(!rows.length){ S.srch.cur = -1; return; }
+  S.srch.cur = Math.max(0, Math.min(i, rows.length - 1));
+  const row = rows[S.srch.cur];
+  row.classList.add("kbd");
+  row.scrollIntoView({ block:"nearest" });
+}
 function renderSdrop(){
   const el = $("#sdrop");
+  S.srch.cur = -1;
   const q = S.q.trim();
   const Q = q ? parseQuery(q) : null;
   let width = 640, railHtml = "", colHtml, headHtml, footHtml;
@@ -4018,13 +4087,17 @@ function renderSdrop(){
       } else {
         const shown = docs.slice(0, S.srch.more);
         colHtml = shown.map(sdDocBlockHtml).join("")
-          + (docs.length > S.srch.more ? `<div class="sd-more2" id="sd-more2">+ 자료 ${docs.length - S.srch.more}건 더 보기</div>` : "");
+          + (docs.length > S.srch.more ? `<div class="sd-more2" data-row id="sd-more2">+ 자료 ${docs.length - S.srch.more}건 더 보기</div>` : "");
       }
       footHtml = sdFootHtml("results");
     }
   }
-  el.innerHTML = headHtml + `<div class="sd-row">${railHtml}<div class="sd-col">${colHtml}</div></div>` + footHtml;
+  const helpHtml = S.srch.help ? sdHelpHtml() : "";
+  if(S.srch.help) width += 260;
+  el.innerHTML = headHtml
+    + `<div class="sd-body"><div class="sd-main"><div class="sd-row">${railHtml}<div class="sd-col">${colHtml}</div></div>${footHtml}</div>${helpHtml}</div>`;
   el.dataset.w = width;
+  $("#qhelp").classList.toggle("on", S.srch.help);
   placeSdrop();
 }
 
@@ -4043,10 +4116,61 @@ async function openHit({ id, p, note }){
 
 $("#skbd").textContent = /Mac|iPhone|iPad|iPod/.test(navigator.platform || "") ? "⌘K" : "Ctrl K";
 
+/* =========================================================
+   8-2-1) 입력칸 거울 층(#qmirror) — PLAN-SEARCH.md 1-1-1·3단계
+   IME 조합을 깨뜨리지 않도록 <input> 은 그대로 두고(글자색만 투명),
+   parseQuery().tokens 의 원문 위치(a,b)를 그대로 써서 조각별로 색만 입힙니다.
+   ========================================================= */
+function qmFieldSplit(s){
+  const m = s.match(/^(#|cat:|title:|note:|year:)/i);
+  return m ? { pfx:m[0], rest:s.slice(m[0].length) } : { pfx:"", rest:s };
+}
+function qmSuffixSplit(s){
+  return (s.length > 1 && (s.endsWith("*") || s.endsWith("~")))
+    ? { body:s.slice(0, -1), suf:s.slice(-1) } : { body:s, suf:"" };
+}
+function qmTokenHtml(tok){
+  const s = tok.s;
+  if(tok.kind === "and" || tok.kind === "or") return `<span class="qm-op">${esc(s)}</span>`;
+  if(tok.kind === "neg") return `<span class="qm-neg">${esc(s)}</span>`;
+  if(tok.kind === "phrase") return `<span class="qm-phrase">${esc(s)}</span>`;
+  if(tok.kind === "tag"){
+    const { pfx, rest } = qmFieldSplit(s);
+    return `<span class="qm-pfx">${esc(pfx)}</span><span class="qm-tag">${esc(rest)}</span>`;
+  }
+  if(tok.kind === "year" || tok.kind === "field"){
+    const { pfx, rest } = qmFieldSplit(s);
+    let restHtml;
+    if(rest[0] === '"') restHtml = `<span class="qm-phrase">${esc(rest)}</span>`;
+    else { const { body, suf } = qmSuffixSplit(rest); restHtml = suf ? `${esc(body)}<span class="qm-suf">${esc(suf)}</span>` : esc(rest); }
+    return `<span class="qm-pfx">${esc(pfx)}</span>${restHtml}`;
+  }
+  if(tok.kind === "prefix" || tok.kind === "fuzzy"){
+    const { body, suf } = qmSuffixSplit(s);
+    return `${esc(body)}<span class="qm-suf">${esc(suf)}</span>`;
+  }
+  return esc(s);
+}
+function renderQMirror(){
+  const el = $("#qmirror"), raw = S.q || "";
+  if(!raw){ el.innerHTML = ""; return; }
+  const Q = parseQuery(raw);
+  let out = "", pos = 0;
+  Q.tokens.forEach(tok => {
+    if(tok.a > pos) out += esc(raw.slice(pos, tok.a));
+    out += qmTokenHtml(tok);
+    pos = tok.b;
+  });
+  if(pos < raw.length) out += esc(raw.slice(pos));
+  el.innerHTML = out;
+  el.scrollLeft = $("#search").scrollLeft;
+}
+
 let sdDebounce = null;
 $("#search").addEventListener("input", e => {
   S.q = e.target.value;
   $("#searchwrap").classList.toggle("has-text", !!S.q);
+  renderQMirror();
   clearTimeout(sdDebounce);
   sdDebounce = setTimeout(() => {
     sdResetFacets();
@@ -4054,16 +4178,69 @@ $("#search").addEventListener("input", e => {
     if(S.srch.open) renderSdrop();
   }, 120);
 });
+$("#search").addEventListener("scroll", () => { $("#qmirror").scrollLeft = $("#search").scrollLeft; });
 $("#search").addEventListener("focus", () => { $("#searchwrap").classList.add("focus"); openSdrop(); });
 /* 이미 포커스가 있는 채로(예: 방금 결과를 열어 드롭다운만 닫혔을 때) 다시 누르면
    focus 이벤트가 새로 나지 않으므로 click 에서도 한 번 더 엽니다(열려 있으면 openSdrop 이 그냥 무시) */
 $("#search").addEventListener("click", openSdrop);
 $("#search").addEventListener("blur", () => { $("#searchwrap").classList.remove("focus"); });
+/* 드롭다운 안 줄 이동(3단계) — ↑↓ 는 제목·적중 줄을 한 흐름으로, Tab 은 다음/이전 자료 블록,
+   ← → 는 커서가 입력 끝/처음일 때만 레일 그룹을 옮깁니다. Enter 는 선택 줄을 그대로 클릭한 것처럼 */
+$("#search").addEventListener("keydown", e => {
+  if(!S.srch.open) return;
+  if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+    e.preventDefault();
+    const rows = sdRows();
+    if(!rows.length) return;
+    const dir = e.key === "ArrowDown" ? 1 : -1;
+    sdSetCur(S.srch.cur < 0 ? (dir > 0 ? 0 : rows.length - 1) : S.srch.cur + dir);
+    return;
+  }
+  if(e.key === "Tab"){
+    e.preventDefault();
+    const docEls = Array.from($("#sdrop").querySelectorAll(".sd-doc"));
+    if(!docEls.length) return;
+    const rows = sdRows();
+    const curDoc = S.srch.cur >= 0 ? rows[S.srch.cur].closest(".sd-doc") : null;
+    let di = curDoc ? docEls.indexOf(curDoc) : -1;
+    di = e.shiftKey ? (di <= 0 ? docEls.length - 1 : di - 1) : (di >= docEls.length - 1 ? 0 : di + 1);
+    const title = docEls[di].querySelector(".sd-title[data-row]");
+    sdSetCur(rows.indexOf(title));
+    return;
+  }
+  if(e.key === "Enter"){
+    const rows = sdRows();
+    const row = S.srch.cur >= 0 ? rows[S.srch.cur] : null;
+    if(row){ e.preventDefault(); row.click(); }
+    return;
+  }
+  if(e.key === "ArrowLeft" || e.key === "ArrowRight"){
+    const inp = e.target;
+    const atStart = inp.selectionStart === 0 && inp.selectionEnd === 0;
+    const atEnd = inp.selectionStart === inp.value.length && inp.selectionEnd === inp.value.length;
+    if((e.key === "ArrowLeft" && atStart) || (e.key === "ArrowRight" && atEnd)){
+      if(S.srch.R && S.srch.R.docs.length){
+        e.preventDefault();
+        const order = ["all", "title", "body", "note"];
+        let gi = order.indexOf(S.srch.grp);
+        gi = e.key === "ArrowRight" ? (gi + 1) % order.length : (gi - 1 + order.length) % order.length;
+        S.srch.grp = order[gi];
+        renderSdrop();
+      }
+    }
+  }
+});
 $("#clearsearch").onclick = () => {
   S.q = ""; $("#search").value = ""; $("#searchwrap").classList.remove("has-text");
+  renderQMirror();
   S.srch.R = null; sdResetFacets();
   $("#search").focus(); openSdrop(); renderSdrop();
 };
+$("#qhelp").addEventListener("click", () => {
+  S.srch.help = !S.srch.help;
+  if(S.srch.open) renderSdrop();
+  else { $("#search").focus(); openSdrop(); }
+});
 window.addEventListener("resize", () => { if(S.srch.open) placeSdrop(); });
 /* 바깥 클릭(mousedown)으로 닫습니다. 드롭다운 안 클릭은 preventDefault 로 입력칸 포커스를 지킵니다 */
 document.addEventListener("mousedown", e => {
@@ -4109,6 +4286,9 @@ $("#sdrop").addEventListener("click", async e => {
   if(zdoc){ await openHit({ id:zdoc.dataset.id }); return; }
   const sugg = t.closest("#sd-sugg");
   if(sugg){ sdSetQuery(sugg.dataset.q); renderSdrop(); return; }
+  if(t.closest("#sd-helpbtn")){ S.srch.help = !S.srch.help; renderSdrop(); return; }
+  const hrow = t.closest(".sd-hrow");
+  if(hrow){ sdSetQuery(hrow.dataset.ex); renderSdrop(); $("#search").focus(); return; }
   const zrow = t.closest(".sd-zrow");
   if(zrow && !t.closest("[data-rmq]")){
     const qv = zrow.dataset.q;
@@ -9905,6 +10085,13 @@ document.addEventListener("keydown", e => {
   }
   /* 글을 적는 중이면 (입력창·글상자에 커서가 있으면) 방향키는 글 안에서만 움직입니다 */
   const isTyping = el => !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || "") || el.isContentEditable);
+  /* 검색창 단축키(3단계) — Ctrl/⌘+K 는 어디서든, "/" 는 글 적는 중이 아닐 때만 */
+  if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "k" || e.key === "K")){
+    e.preventDefault(); $("#search").focus(); $("#search").select(); return;
+  }
+  if(e.key === "/" && !isTyping(e.target)){
+    e.preventDefault(); $("#search").focus(); $("#search").select(); return;
+  }
   if(isTyping(e.target) || isTyping(document.activeElement) || !S.pdf) return;
   if(e.key === "ArrowLeft"  || e.key === "PageUp")   { goPage(S.page - 1); e.preventDefault(); }
   if(e.key === "ArrowRight" || e.key === "PageDown") { goPage(S.page + 1); e.preventDefault(); }
