@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's the Strategy? — 설치 · 사용 안내</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ---------- AI NOTE 흰 시트의 결을 그대로 씁니다 — 라운드 없음 · 선은 2px 검정 / 1px 실선 두 단계 ---------- */
+:root{
+  --bg:#f3f2f2; --panel2:#eae9e9; --line:#d7d3d3;
+  --hairline:color-mix(in srgb, #201e1d 40%, transparent);
+  --rule:#201e1d; --text:#201e1d; --muted:#605d5d; --muted2:#7d7979;
+  --accent:#ec3013; --accent-ink:#ae1800; --accent-soft:#ffe0d9;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;background:var(--panel2);color:var(--text);
+  font-family:"Archivo","Pretendard","Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+b{font-weight:800;}
+.stage{padding:24px;}
+.sheet{background:#fff;width:210mm;min-height:297mm;margin:0 auto;padding:12mm 15mm 10mm;
+  box-shadow:0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);font-size:11px;line-height:1.55;}
+
+/* 머리 */
+.kick{font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-ink);}
+h1{margin:4px 0 0;font-size:27px;font-weight:800;letter-spacing:-.02em;line-height:1.08;}
+h1 small{display:block;margin-top:3px;font-size:12px;font-weight:600;letter-spacing:0;color:var(--muted);}
+.drule{height:2px;background:var(--rule);margin-top:10px;}
+.meta4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--hairline);}
+.meta4 .c{padding:7px 10px;border-left:1px solid var(--hairline);min-width:0;}
+.meta4 .c:first-child{border-left:none;padding-left:0;}
+.meta4 .mk{font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);}
+.meta4 .v{margin-top:2px;font-size:11px;font-weight:700;}
+
+/* 구획 머리 — 01 · 제목 · 2px 선 */
+.sec{display:flex;align-items:center;gap:8px;margin-top:12px;}
+.sec .no{flex:0 0 auto;font-size:11px;font-weight:800;color:var(--accent);}
+.sec h2{margin:0;font-size:14px;font-weight:800;letter-spacing:-.01em;}
+.sec .fill{flex:1 1 auto;height:2px;background:var(--rule);}
+.sec .cnt{flex:0 0 auto;font-size:9px;font-weight:600;color:var(--muted);}
+
+/* 번호 단계 */
+ol.steps{list-style:none;margin:8px 0 0;padding:0;counter-reset:s;}
+ol.steps li{position:relative;padding:0 0 0 24px;margin-top:5px;counter-increment:s;}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:17px;height:17px;
+  display:flex;align-items:center;justify-content:center;background:var(--rule);color:#fff;
+  font-size:9.5px;font-weight:800;}
+.k{display:inline-block;padding:0 4px;border:1px solid var(--rule);font-size:10px;font-weight:800;line-height:1.5;vertical-align:1px;white-space:nowrap;}
+code{font-family:inherit;font-weight:800;}
+
+/* 두 칸 */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
+
+/* 알아두기 상자 */
+.note{margin-top:8px;padding:6px 9px;border:2px solid var(--line);border-left:2px solid var(--accent);background:var(--bg);
+  font-size:10.5px;line-height:1.5;}
+.note.warn{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);}
+.note.warn b{color:var(--accent-ink);}
+
+/* 표 */
+table{width:100%;margin-top:8px;border-collapse:collapse;}
+th{padding:0 6px 4px;border-bottom:2px solid var(--rule);text-align:left;font-size:8.5px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+td{padding:4px 6px;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.45;}
+th:first-child,td:first-child{padding-left:0;}
+td.f{width:92px;font-weight:800;white-space:nowrap;}
+td.w{width:118px;color:var(--muted);font-size:10.5px;}
+
+/* 주의 — 태그 목록 */
+ul.warn{list-style:none;margin:8px 0 0;padding:0;}
+ul.warn li{display:flex;gap:8px;margin-top:5px;}
+ul.warn .tag{flex:0 0 auto;height:16px;min-width:32px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;
+  margin-top:1px;font-size:8.5px;font-weight:800;letter-spacing:.06em;background:var(--rule);color:#fff;}
+ul.warn .tag.hot{background:var(--accent);}
+ul.warn .tx{flex:1 1 auto;min-width:0;}
+
+/* 무단 배포 금지 */
+.ban{margin-top:8px;border:2px solid var(--rule);display:flex;}
+.ban .lb{flex:0 0 auto;padding:8px 12px;background:var(--rule);color:#fff;font-size:11px;font-weight:800;letter-spacing:.12em;
+  writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;}
+.ban .bd{flex:1 1 auto;padding:8px 12px;font-size:11px;line-height:1.6;}
+.ban .bd b{box-shadow:inset 0 -6px 0 var(--accent-soft);}
+
+/* 바닥 */
+.foot{margin-top:10px;padding-top:7px;border-top:2px solid var(--rule);display:flex;justify-content:space-between;gap:12px;
+  font-size:10px;color:var(--muted);}
+.foot b{color:var(--rule);}
+
+@page{size:A4;margin:0;}
+@media print{
+  html,body{background:#fff;}
+  .stage{padding:0;}
+  .sheet{box-shadow:none;margin:0;width:210mm;min-height:0;height:297mm;overflow:hidden;}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="sheet">
+
+  <div class="kick">Installation &amp; Quick Guide</div>
+  <h1>What's the Strategy?<small>설치 · 사용 안내 — 한 장으로 끝. 자세한 것은 앱 안의 <span class="k">?</span> 사용 설명서에서 찾아 보세요.</small></h1>
+  <div class="drule"></div>
+  <div class="meta4">
+    <div class="c"><div class="mk">배포 형태</div><div class="v">압축 파일 1개 + 백업 파일 1개</div></div>
+    <div class="c"><div class="mk">설치 · 서버</div><div class="v">설치 없음 · 인터넷 없이 동작</div></div>
+    <div class="c"><div class="mk">권장 브라우저</div><div class="v">Chrome · Edge (PC) / Safari (iPad)</div></div>
+    <div class="c"><div class="mk">자세한 설명</div><div class="v">상단바 ? → 사용 설명서 (검색 가능)</div></div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="sec"><span class="no">01</span><h2>설치</h2><span class="fill"></span><span class="cnt">1분</span></div>
+      <ol class="steps">
+        <li>압축 파일을 풀어 <b>폴더째로</b> 둡니다. 폴더 안에 <code>whats-the-strategy-v1.0.html</code> 과 <code>lib</code> 폴더가 <b>함께</b> 있어야 합니다.</li>
+        <li><code>whats-the-strategy-v1.0.html</code> 을 <b>더블클릭</b>하면 브라우저에서 바로 열립니다. 이것이 전부입니다.</li>
+        <li>자주 쓴다면 열린 화면을 <b>즐겨찾기</b>에 넣어 두세요. 늘 같은 PC · 같은 브라우저로 여세요.</li>
+      </ol>
+      <div class="note">html 파일만 따로 옮기거나 <code>lib</code> 폴더를 지우면 PDF 가 열리지 않습니다. 폴더 이름은 바꿔도 됩니다.</div>
+    </div>
+    <div>
+      <div class="sec"><span class="no">02</span><h2>동봉된 백업 불러오기</h2><span class="fill"></span><span class="cnt">처음 한 번</span></div>
+      <ol class="steps">
+        <li>상단바 맨 오른쪽 <span class="k">설정</span> → <b>백업</b> → <span class="k">불러오기</span></li>
+        <li>동봉된 백업 파일(<code>.zip</code> 또는 <code>.json</code>)을 고릅니다.</li>
+        <li>"백업을 불러올까요?" 창에서 <b>확인</b>. 자료 목록 · 회의록 · 요약 · 할 일이 채워집니다.</li>
+      </ol>
+      <div class="note"><code>.zip</code> 은 PDF 원본이 들어 있어 <b>몇 분</b> 걸릴 수 있습니다. 끝날 때까지 창을 닫지 마세요. 같은 자료가 이미 있으면 덮어씁니다.</div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="no">03</span><h2>주요 기능</h2><span class="fill"></span><span class="cnt">7 항목</span></div>
+  <table>
+    <thead><tr><th>기능</th><th>어디에</th><th>무엇을</th></tr></thead>
+    <tbody>
+      <tr><td class="f">자료 올리기</td><td class="w">왼쪽 MATERIALS → <b>Upload</b></td><td>PDF 를 끌어다 놓고 <b>등록 시작</b>. 여러 개 한 번에. 파일 이름으로 회의 종류 · 날짜가 자동 지정됩니다.</td></tr>
+      <tr><td class="f">찾기</td><td class="w">상단 검색창 · Filter 막대</td><td>모든 자료의 <b>본문까지</b> 검색. Filter 칩으로 회의 종류별로 걸러 봅니다 (<b>Select All</b> 로 전부 켜기).</td></tr>
+      <tr><td class="f">보기 · 그리기</td><td class="w">가운데 뷰어</td><td>쪽 넘김 ← → · 확대 · 전체화면. 펜 · 형광펜으로 자료 위에 바로 표시 (iPad 는 애플펜슬).</td></tr>
+      <tr><td class="f">다섯 탭</td><td class="w">오른쪽 칸</td><td><b>SUMMARY</b> 요약 · <b>NOTE</b> 회의록 · <b>TASKS</b> 할 일 · <b>SCRIPT</b> 쪽별 스크립트 · <b>MEMO</b>. <b>적는 즉시 저장</b> — 저장 단추가 없습니다.</td></tr>
+      <tr><td class="f">AI NOTE</td><td class="w">NOTE 탭 → <b>Generate AI NOTE</b></td><td>받아 적은 회의록을 AI 가 <b>정식 회의록 한 장</b>으로 정리. EDIT · COPY · EXPORT(PDF). 제미나이 API 키가 필요합니다 (설정 → AI NOTE).</td></tr>
+      <tr><td class="f">AI 요약</td><td class="w">SUMMARY 탭 → <b>Generate AI Summary</b></td><td>지금 펼친 쪽만 AI 가 <b>핵심 내용 · 주요 수치 및 현황 · 비고</b> 세 갈래로 요약. 쪽마다 따로 만들고, ‹ › 로 쪽을 넘기며 봅니다. 같은 제미나이 API 키를 씁니다.</td></tr>
+      <tr><td class="f">회의 Agenda</td><td class="w">상단바 달력 단추</td><td>주차별 안건 표. 적어 두면 AI NOTE 가 참고합니다.</td></tr>
+      <tr><td class="f">백업</td><td class="w">설정 → 백업</td><td><b>데이터만 (.json)</b> 가볍게 자주 / <b>원본 + 데이터 (.zip)</b> 기기 옮길 때. 불러오기는 둘 다 받습니다.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec"><span class="no">04</span><h2>주의 사항</h2><span class="fill"></span><span class="cnt">꼭 읽기</span></div>
+  <ul class="warn">
+    <li><span class="tag hot">저장</span><span class="tx">자료는 <b>이 PC 의 브라우저 안</b>에만 저장됩니다. 인터넷 · 서버에 올라가지 않으며, <b>다른 PC · 다른 브라우저에서는 보이지 않습니다.</b></span></li>
+    <li><span class="tag hot">삭제</span><span class="tx">브라우저의 <b>인터넷 사용 기록 삭제 → 쿠키 및 사이트 데이터</b> 를 지우면 자료도 함께 지워질 수 있습니다. <b>설정 → 저장 공간 → 저장 보호 요청</b> 을 한 번 눌러 두세요.</span></li>
+    <li><span class="tag hot">백업</span><span class="tx">그래서 <b>정기 백업</b>이 필수입니다 — 설정 → 백업 → <b>데이터만 (.json)</b>. <b>전체 지우기</b>는 되돌릴 수 없습니다.</span></li>
+    <li><span class="tag">AI</span><span class="tx">인터넷을 쓰는 것은 <b>AI NOTE 뿐</b>입니다. API 키는 <b>각자 발급</b>(aistudio.google.com → Get API key)해 넣고, 키는 백업에 들어가지 않습니다.</span></li>
+    <li><span class="tag">iPad</span><span class="tx">설정 → <b>이 기기에 PDF 원본 저장 → 글자와 요약만</b> 을 권장합니다. 원본은 PC 에서 보세요.</span></li>
+  </ul>
+
+  <div class="sec"><span class="no">05</span><h2>무단 배포 금지</h2><span class="fill"></span></div>
+  <div class="ban">
+    <div class="lb">INTERNAL</div>
+    <div class="bd">
+      이 프로그램과 동봉된 백업 파일은 <b>팀 내부용</b>입니다. 백업 파일에는 회의 자료 · 회의록 · 할 일이 <b>그대로</b> 담겨 있습니다.<br>
+      외부 전달 · 복제 · 재배포 · 개인 클라우드 업로드를 <b>금지</b>합니다. 추가로 필요한 사람이 있으면 배포 담당자에게 요청하세요.
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>막히면 상단바 <span class="k">?</span> → <b>사용 설명서</b> — 목차 · 검색 · <b>3분 따라하기</b> 가 있습니다.</span>
+    <span>What's the Strategy? · 2026-09</span>
+  </div>
+
+</div>
+</div>
+</body>
+</html>
