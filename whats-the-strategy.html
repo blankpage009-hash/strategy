@@ -1624,6 +1624,24 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .pagenav{width:34px;height:54px;}
   .frow{flex-wrap:wrap;}
   .frow .fn{flex:1 0 100%;}
+  /* 검색 드롭다운 — 좁은 화면(5단계). 화면을 꽉 채우고, 레일은 접어 그룹 칩 줄만 가로로 보입니다 */
+  #sdrop{left:0 !important;width:100vw !important;top:56px;bottom:0;max-height:none !important;}
+  .sd-help{display:none;}
+  .sd-row{flex-direction:column;min-height:0;}
+  .sd-rail{width:100%;flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;
+    padding:6px 8px;border-right:none;border-bottom:2px solid var(--rule);white-space:nowrap;}
+  .sd-rlbl,.sd-rsep,.sd-rbars,.sd-seg{display:none;}
+  .sd-rg{flex:0 0 auto;padding:5px 10px;}
+  .sd-rg.on{padding-left:10px;}
+  .sd-s{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+  /* 결과 이동 막대 — 화면 아래 고정 */
+  #hitbar:not([hidden]){position:fixed;left:0;right:0;bottom:0;z-index:68;height:44px;
+    background:var(--ink);color:var(--bg);border-bottom:none;}
+  #hitbar .hbtns button{background:var(--ink);border-color:#605d5d;color:var(--bg);}
+  #hitbar .hmeta{border-left-color:#605d5d;color:#9b9797;}
+  #hitbar .hpos em{color:#9b9797;}
+  /* 검색창에 포커스가 있는 동안은 입력칸이 가득 차도록 오른쪽 단추들을 숨깁니다 */
+  #searchwrap.focus ~ #topright{display:none;}
 }
 </style>
 </head>
@@ -2656,7 +2674,9 @@ const KV_DEFAULT = {
      syncSalt 는 crypto.json 의 salt 를 기기에 캐시해 둔 것으로, 인터넷 없이도 앱 시작 때 열쇠를 다시 유도하기 위한 것입니다. */
   syncOwner:"", syncRepo:"", syncToken:"", syncPass:"", syncSalt:"", syncOn:false,
   /* 저장소가 실수로 공개로 바뀌었는지 하루 한 번만 확인하기 위한 날짜("YYYY-MM-DD") */
-  syncPrivChecked:""
+  syncPrivChecked:"",
+  /* 최근 검색어·최근 열람 자료 — 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
+  recentQ:[], recentDocs:[]
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -2729,6 +2749,18 @@ function indexDoc(d){
 function pgQ(d){
   if(!d._allSq) indexDoc(d);
   return d._pgQ || (d._pgQ = (d.pageTexts || []).map(sqzQ));
+}
+/* 검색 첫 입력이 느리지 않도록, 앱을 켠 뒤 자료마다 pgQ(d) 를 조금씩 미리 만들어 둡니다(5단계).
+   _pgQ 는 자료별로 한 번만 만들면 되고(LRU 없음, sqzPages 의 SQLRU 와는 다름) 검색 도중 다시 만들 필요가 없습니다.
+   requestIdleCallback 은 백그라운드 탭·일부 브라우저에서 아예 안 불릴 수 있어 setTimeout 으로 짧게 나눠 돌립니다. */
+function prewarmPgQ(){
+  let i = 0;
+  const step = () => {
+    const t0 = performance.now();
+    while(i < DOCS.length && performance.now() - t0 < 8){ pgQ(DOCS[i]); i++; }
+    if(i < DOCS.length) setTimeout(step, 16);
+  };
+  setTimeout(step, 300);   /* 시작 직후 화면 그리기와 겹치지 않도록 살짝 늦춰 시작 */
 }
 
 /* 자료 하나의 쪽별 색인(원문 자리 지도 포함) — 자료 내 검색·검색 결과 스니펫에서 씁니다.
@@ -3865,12 +3897,13 @@ function runSearch(Q, opt){
     let body = 0;
     if(Q.groups.some(g => g.alts.some(alt => inAny(alt.field)))){
       const pq = pgQ(d);
-      const sqp = withSpans ? sqzPages(d) : null;
+      /* span 이 필요해도 sqzPages(d) 로 자료 전체 쪽을 한꺼번에 만들지 않습니다 — 적중한 쪽만
+         그 자리에서 sqz() 합니다(5단계, 자료 여러 건이 걸릴 때 안 걸린 쪽까지 만드는 비용을 없앰) */
       for(let i = 0; i < pq.length; i++){
         let n = 0;
         Q.groups.forEach(g => g.alts.forEach(alt => { if(inAny(alt.field)) n += termHits(pq[i], alt); }));
         if(!n) continue;
-        pages.push({ p:i + 1, n, spans: withSpans ? hitSpans(sqp[i], Q, inAny) : [] });
+        pages.push({ p:i + 1, n, spans: withSpans ? hitSpans(sqz(d.pageTexts[i]), Q, inAny) : [] });
         body += n;
       }
     }
@@ -4064,7 +4097,9 @@ function sdDocBlockHtml(r){
       + `<span class="sd-p">${label}</span><span class="sd-s">${snip}</span></div>`;
   }).join("");
   const more = lines.length > 3 && !open ? `<div class="sd-more" data-row data-more="${d.id}">+ ${lines.length - 3}곳 더 보기</div>` : "";
-  const meta = `${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p`;
+  const meta = isNarrow()                                    /* 좁은 화면은 연도 대신 회의 종류로 축약(5단계) */
+    ? `${esc(d.cat)} · ${String(monthOf(d)).padStart(2, "0")} W${weekOf(d)} · ${d.pages}p`
+    : `${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p`;
   const src = r.title ? `<span class="src">📄 파일명 일치</span>` : "";
   const counts = [r.pages.length ? `본문 ${r.pages.length}곳` : "", r.note ? "회의록 1곳" : ""].filter(Boolean).join(" · ");
   return `<div class="sd-doc ${sel ? "sel" : ""}" data-id="${d.id}">
@@ -4176,11 +4211,23 @@ function renderSdrop(){
   placeSdrop();
 }
 
+/* 최근 검색어·최근 열람 자료 — 기기별(KV_DEFAULT.recentQ/recentDocs), 5단계 */
+function pushRecentQ(raw){
+  const q = String(raw || "").trim(); if(!q) return;
+  KV.recentQ = [q, ...(KV.recentQ || []).filter(x => x !== q)].slice(0, 10);
+  saveKV("recentQ");
+}
+function pushRecentDoc(id){
+  KV.recentDocs = [id, ...(KV.recentDocs || []).filter(x => x !== id)].slice(0, 10);
+  saveKV("recentDocs");
+}
+
 /* 자료를 여는 모든 경로가 지나는 한 곳 — 4단계가 여기서 결과 이동 상태(S.nav)를 세팅합니다 */
 async function openHit({ id, p, note }){
   closeSdrop();
   const Q = (p || note) && S.srch.R ? S.srch.R.q : null;
   if(Q){
+    pushRecentQ(Q.raw);
     S.hlQ = Q;                                   /* 뷰어 하이라이트는 본문·회의록 어느 쪽을 열어도 같은 검색어로 */
     if(p){ S.nav = navBuild(Q, id, p); closeDfPop(); }
   }
@@ -4339,7 +4386,7 @@ document.addEventListener("mousedown", e => {
 $("#sdrop").addEventListener("click", async e => {
   const t = e.target;
   if(t.closest("#sd-close")){ closeSdrop(); return; }
-  if(t.closest("#sd-fchip")){ $("#selall").click(); sdRecompute(); renderSdrop(); return; }
+  if(t.closest("#sd-fchip")){ $("#selall").click(); return; }
   if(t.closest("#sd-sortbtn")){ S.srch.sort = S.srch.sort === "date" ? "rel" : "date"; renderSdrop(); return; }
   const grpRow = t.closest("[data-grp]");
   if(grpRow){ S.srch.grp = grpRow.dataset.grp; renderSdrop(); return; }
@@ -4375,8 +4422,11 @@ $("#sdrop").addEventListener("click", async e => {
   if(t.closest("#sd-helpbtn")){ S.srch.help = !S.srch.help; renderSdrop(); return; }
   const hrow = t.closest(".sd-hrow");
   if(hrow){ sdSetQuery(hrow.dataset.ex); renderSdrop(); $("#search").focus(); return; }
+  const rmq = t.closest("[data-rmq]");
+  if(rmq){ KV.recentQ = (KV.recentQ || []).filter(x => x !== rmq.dataset.rmq); saveKV("recentQ"); renderSdrop(); return; }
+  if(t.closest("#sd-clrq")){ KV.recentQ = []; saveKV("recentQ"); renderSdrop(); return; }
   const zrow = t.closest(".sd-zrow");
-  if(zrow && !t.closest("[data-rmq]")){
+  if(zrow){
     const qv = zrow.dataset.q;
     if(qv){ sdSetQuery(qv); renderSdrop(); }
   }
@@ -4927,20 +4977,23 @@ $("#selall").addEventListener("click", () => {
   S.offCats.clear();
   KV.offcats = []; saveKV("offcats");
   renderCats(); renderTree();
+  if(S.srch.open){ sdRecompute(); renderSdrop(); }
 });
 $("#deselall").addEventListener("click", () => {
   S.offCats = new Set(KV.cats);
   KV.offcats = Array.from(S.offCats); saveKV("offcats");
   renderCats(); renderTree();
+  if(S.srch.open){ sdRecompute(); renderSdrop(); }
 });
 
-/* 칩을 누르면 그 종류를 켜고 끕니다 */
+/* 칩을 누르면 그 종류를 켜고 끕니다 — 드롭다운이 열려 있으면 커맨드바 교집합을 다시 셉니다(5단계) */
 $("#cats").addEventListener("click", e => {
   const row = e.target.closest(".cat"); if(!row) return;
   const c = row.dataset.cat;
   S.offCats.has(c) ? S.offCats.delete(c) : S.offCats.add(c);
   KV.offcats = Array.from(S.offCats); saveKV("offcats");
   renderCats(); renderTree();
+  if(S.srch.open){ sdRecompute(); renderSdrop(); }
 });
 
 function deleteCat(c){
@@ -5248,6 +5301,7 @@ async function selectDoc(id){
   if(typeof clearDocFind === "function") clearDocFind();   /* 자료가 바뀌면 자료 내 검색은 초기화 */
   renderHitbar();                                           /* 결과 이동 막대는 남기되, 목록 밖 자료면 '– / N' (4단계) */
   KV.sel = id; saveKV("sel");                                /* 다음에 열 때 이 자료로 돌아옵니다 */
+  pushRecentDoc(id);                                         /* 최근 열람 문서 (Zero-state, 5단계) */
   S.editA = S.editB = S.editS = S.editM = false;              /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
@@ -9949,22 +10003,24 @@ const TUT = [
     { h:"네 가지 찾기", type:"table", head:["방법","찾는 범위","이럴 때"], rows:[
       ["<b>Filter 막대</b> 의 회의 종류 칩","목록에 보일 회의 종류","임원회의 것만 보고 싶을 때"],
       ["왼쪽 <b>MATERIALS</b> 목록","연 · 월 · 주차 폴더","언제 회의였는지 알 때"],
-      ["상단바 <b>검색창</b>","자료 이름 + PDF 본문 + 회의록 전체","어느 자료였는지 기억나지 않을 때"],
+      ["상단바 <b>검색창</b>","자료 이름 + PDF 본문 + 회의록 — 그룹별로, 몇 쪽에서 걸렸는지","어느 자료였는지 기억나지 않을 때"],
       ["뷰어 툴바의 <b>이 자료에서 찾기</b>","지금 열어 둔 자료 안에서만","이 문서 몇 쪽에 있었는지 찾을 때"]
     ]},
     { h:"어디에", type:"where", items:[
-      { ic:"search", html:"상단바 가운데 — <b>File name or Keyword</b>" },
+      { ic:"search", html:"상단바 가운데 — 검색창 (<b class='k'>Ctrl K</b>/<b class='k'>⌘K</b> 또는 <b class='k'>/</b> 로 바로 이동)" },
       { ic:"search", html:"뷰어 툴바 오른쪽 — <b>이 자료에서 찾기</b>" }
     ]},
     { h:"하는 법", type:"steps", items:[
       "<b>Filter 막대</b> 의 칩을 눌러 켜고 끕니다. <b class='k'>Select All</b> · <b class='k'>Deselect All</b> 로 한 번에 켜고 끌 수도 있습니다.",
-      "상단바 검색창에 낱말을 치면 결과가 아래로 펼쳐집니다. 어느 자료 <b>몇 쪽</b>에서 걸렸는지 함께 나오고, 누르면 그 자료가 열립니다.",
+      "상단바 검색창에 낱말을 치면 자료 이름 · 본문 · 회의록에서 걸린 곳이 아래로 펼쳐집니다. <b>↑ ↓</b> 로 줄을 옮기고 <b>Enter</b> 로 열거나, 그냥 눌러도 됩니다. 오른쪽 <b class='k'>?</b> 단추(문법 도움)에서 <b>-제외</b>·<b>\"정확히\"</b>·<b>#태그</b> 같은 문법을 볼 수 있습니다.",
       "자료를 열어 둔 채 <b>이 자료에서 찾기</b> 에 낱말을 치면 몇 쪽에 있는지 세어 줍니다. <b>Enter</b> 로 다음, <b>Shift+Enter</b> 로 이전 쪽으로 넘어갑니다."
     ]},
     { h:"알아두기", type:"note", html:
       "검색은 <b>띄어쓰기를 무시</b>합니다. PDF에서 뽑은 글자는 낱말 사이 공백이 제멋대로라서, <b>공동영업</b> 이라고 쳐도 <b>공동 영업</b> 이 걸리게 해 두었습니다." },
     { h:"", type:"note", html:
-      "Filter 막대가 거슬리면 <b>맨 오른쪽 ∧</b> 단추로 접어 둘 수 있습니다. 접어도 켜 둔 회의 종류는 그대로 유지되고, <b>∨</b> 로 다시 폅니다." }
+      "Filter 막대가 거슬리면 <b>맨 오른쪽 ∧</b> 단추로 접어 둘 수 있습니다. 접어도 켜 둔 회의 종류는 그대로 유지되고, <b>∨</b> 로 다시 폅니다." },
+    { h:"검색 문법", type:"table", head:["기호","뜻","예"],
+      rows: SD_GRAMMAR.map(g => [`<b>${esc(g.sym)}</b>`, esc(g.mean), esc(g.ex)]) }
   ]
 },
 {
@@ -10414,6 +10470,7 @@ function registerSW(){
   await loadKV();
   syncDeriveKeyIfNeeded();   /* 암호문구가 있으면 조용히(막지 않고) 열쇠를 다시 유도해 둡니다 */
   await loadAll();
+  prewarmPgQ();              /* 검색 첫 입력이 느리지 않도록 한가할 때 미리 (5단계) */
 
   /* 예전 기본 모델은 새로 발급한 키로는 쓸 수 없게 막혔습니다. 조용히 바꿔 줍니다. */
   if(!KV.aiModel || /^gemini-2\.0|^gemini-2\.5-flash$|^gemini-3\.5-flash$/.test(KV.aiModel)){
