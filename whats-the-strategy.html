@@ -99,10 +99,10 @@ button[disabled]{opacity:.45;cursor:default;}
 #sfield{flex:1 1 auto;min-width:0;height:32px;position:relative;}
 #qmirror{position:absolute;inset:0;box-sizing:border-box;padding-bottom:2px;
   overflow:hidden;pointer-events:none;white-space:pre;
-  font-size:13px;font-weight:500;line-height:30px;color:var(--ink);}
+  font-size:13px;font-weight:500;line-height:30px;color:var(--text);}
 #search{position:relative;width:100%;height:32px;box-sizing:border-box;padding:0;
   border:none;border-bottom:2px solid var(--line);border-radius:0;background:none;
-  font-size:13px;font-weight:500;line-height:30px;color:transparent;caret-color:var(--ink);}
+  font-size:13px;font-weight:500;line-height:30px;color:transparent;caret-color:var(--text);}
 #search::placeholder{color:var(--muted2);}
 #search::-webkit-search-cancel-button{display:none;}
 /* 포커스면 검색 셀 전체가 흰 바탕 + 검은 밑줄로 '검색 모드'를 알립니다 */
@@ -125,10 +125,6 @@ button[disabled]{opacity:.45;cursor:default;}
   border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);font-size:12px;font-weight:800;}
 #qhelp:hover{border-color:var(--accent);color:var(--accent-ink);}
 #qhelp.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);}
-/* 유휴 상태(포커스 전 · 글자 없음)에만 보이는 단축키 힌트 */
-#skbd{flex:0 0 auto;display:inline-flex;align-items:center;height:18px;padding:0 5px;
-  border:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted2);white-space:nowrap;}
-#searchwrap.focus #skbd,#searchwrap.has-text #skbd{display:none;}
 /* 저작권 표기 — 검색창 길이는 그대로 두고, 그 오른쪽 남는 공간에 작게 얹습니다 */
 #copyright{position:absolute;right:18px;top:0;height:100%;display:flex;align-items:flex-end;
   padding-bottom:8px;white-space:nowrap;font-size:11px;color:var(--muted2);letter-spacing:.02em;
@@ -322,11 +318,13 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .sd-bar .track em{display:block;height:6px;background:var(--text);font-style:normal;}
 .sd-bar.on{background:var(--accent-soft);}
 .sd-bar .n{flex:0 0 auto;width:14px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
-.sd-seg{display:flex;padding:0 12px;}
-.sd-seg button{flex:1 1 0;height:22px;border:1px solid var(--line);border-left:none;background:none;color:var(--muted);
-  font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;}
-.sd-seg button:first-child{border-left:1px solid var(--line);}
-.sd-seg button.on{border-color:var(--rule);background:var(--rule);color:var(--bg);}
+.sd-pcol{display:flex;flex-direction:column;gap:5px;padding:0 12px;}
+.sd-prow{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  width:100%;height:22px;border:1px solid var(--line);background:none;color:var(--muted);
+  padding:0 8px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer;}
+.sd-prow .t{text-align:left;}
+.sd-prow .n{text-align:right;}
+.sd-prow.on{border-color:var(--rule);background:var(--rule);color:var(--bg);}
 /* 자료 블록 */
 .sd-doc{border-bottom:1px solid var(--hairline);}
 .sd-doc.sel{background:var(--accent-soft);border-bottom:2px solid var(--rule);}
@@ -1630,7 +1628,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   .sd-row{flex-direction:column;min-height:0;}
   .sd-rail{width:100%;flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;
     padding:6px 8px;border-right:none;border-bottom:2px solid var(--rule);white-space:nowrap;}
-  .sd-rlbl,.sd-rsep,.sd-rbars,.sd-seg{display:none;}
+  .sd-rlbl,.sd-rsep,.sd-rbars,.sd-pcol{display:none;}
   .sd-rg{flex:0 0 auto;padding:5px 10px;}
   .sd-rg.on{padding-left:10px;}
   .sd-s{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
@@ -1662,7 +1660,6 @@ body.full .thumb.sum::after{background:#f3f2f2;}
     </div>
     <button id="clearsearch" title="지우기">✕</button>
     <button id="qhelp" title="검색 문법 도움">?</button>
-    <kbd id="skbd">⌘K</kbd>
     <span id="copyright">Copyright ⓒ C.Hwang. All rights reserved.</span>
   </div>
   <div id="topright">
@@ -2541,18 +2538,27 @@ const yearOf  = d => String(d && d.date || "").slice(0,4);
 const fmtYMW  = d => `${yearOf(d)}년 ${monthOf(d)}월 ${weekOf(d)}주차`;
 /* 26.07 1주차 (좁은 곳에서 씀) */
 const fmtYMWShort = d => `${String(d.date).slice(2,4)}.${String(d.date).slice(5,7)} ${weekOf(d)}주차`;
-/* 검색 레일의 '기간' 세 칸 — 이번 달 · 지난 달 · 이전. 검색(runSearch)과 검색 드롭다운이 함께 씁니다 */
-function monthBucketKeys(){
+/* 검색 레일의 '기간' 세 칸 — MTD(이번 달) · YTD(올해) · MAX(전체). 검색(runSearch)과 검색 드롭다운이 함께 씁니다.
+   세 칸은 누적 범위입니다: MTD ⊂ YTD ⊂ MAX. */
+function periodKeys(){
   const now = new Date();
-  const ym = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
-  const thisKey = ym(now.getFullYear(), now.getMonth() + 1);
-  const lastKey = now.getMonth() === 0 ? ym(now.getFullYear() - 1, 12) : ym(now.getFullYear(), now.getMonth());
-  return { thisKey, lastKey };
+  return { ym: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`, y: String(now.getFullYear()) };
 }
-function monthBucketOf(d){
-  const { thisKey, lastKey } = monthBucketKeys();
-  const k = String(d && d.date || "").slice(0, 7);
-  return k >= thisKey ? thisKey : k === lastKey ? lastKey : "prev";
+/* 자료 하나가 어느 배타적 구간에 드는지 — 집계용(칸끼리 겹치지 않게 나눔) */
+function periodBucketOf(d){
+  const { ym, y } = periodKeys();
+  const k = String(d && d.date || "");
+  if(k.slice(0, 7) === ym) return "mtd";
+  if(k.slice(0, 4) === y) return "ytdOnly";
+  return "other";
+}
+/* 기간 버튼을 눌렀을 때 걸러 쓰는 판정 — 버튼 자체는 누적 범위 */
+function inPeriod(d, key){
+  const { ym, y } = periodKeys();
+  const k = String(d && d.date || "");
+  if(key === "mtd") return k.slice(0, 7) === ym;
+  if(key === "ytd") return k.slice(0, 4) === y;
+  return true; /* max */
 }
 const fmtSize = n => n >= 1048576 ? (n/1048576).toFixed(1)+"MB" : Math.max(1,Math.round(n/1024))+"KB";
 /* 2026-08-10 14:05 */
@@ -2793,7 +2799,7 @@ const S = {
   find:{ raw:"", q:"", hits:[], i:-1, total:0 },
   /* 검색 결과 드롭다운(#sdrop) — R 은 지금 검색어의 runSearch() 결과(문자 그대로 바뀔 때만 다시 만듭니다),
      grp·cat·mon·sort 는 그 위에서 화면만 거르는 레일 상태입니다 */
-  srch:{ open:false, R:null, grp:"all", cat:null, mon:null, sort:"rel", more:8, openBlocks:new Set(), cur:-1, help:false },
+  srch:{ open:false, R:null, grp:"all", cat:null, mon:null, sort:"date", more:8, openBlocks:new Set(), cur:-1, help:false },
   /* 딥링크(4단계) — nav 는 결과 이동 막대(#hitbar)의 상태 { q:Q, list:[{id,p}], i }(i=-1 이면 '– / N'),
      hlQ 는 뷰어 하이라이트 층(#hl-layer)에 칠할 검색어(parseQuery 결과). 막대 ✕ 로 둘 다 지웁니다 */
   nav:null, hlQ:null,
@@ -3860,7 +3866,7 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
 function runSearch(Q, opt){
   opt = opt || {};
   const spansFor = opt.spansFor || null;
-  const R = { q:Q, docs:[], tot:{ docs:0, hits:0, title:0, body:0, note:0 }, byCat:{}, byMonth:{} };
+  const R = { q:Q, docs:[], tot:{ docs:0, hits:0, title:0, body:0, note:0 }, byCat:{}, byPeriod:{} };
   if(!queryHasTerms(Q)) return R;
 
   /* #태그 — 회의 종류 이름이 태그로 시작하면 모두 (OR). 맞는 종류가 없으면 결과 0 */
@@ -3921,8 +3927,8 @@ function runSearch(Q, opt){
     /* ③ 집계 — 모두 적중 수 기준 */
     R.tot.docs++; R.tot.hits += hits; R.tot.title += title ? 1 : 0; R.tot.body += body; R.tot.note += nn;
     R.byCat[d.cat] = (R.byCat[d.cat] || 0) + hits;
-    const mk = monthBucketOf(d);
-    R.byMonth[mk] = (R.byMonth[mk] || 0) + hits;
+    const pk = periodBucketOf(d);
+    R.byPeriod[pk] = (R.byPeriod[pk] || 0) + hits;
   });
 
   const byDate = (a, b) => (b.d.date + b.d.addedAt).localeCompare(a.d.date + a.d.addedAt);
@@ -4035,7 +4041,7 @@ function sdDocsFor(R){
   if(S.srch.sort === "date")
     docs = docs.slice().sort((a, b) => (b.d.date + b.d.addedAt).localeCompare(a.d.date + a.d.addedAt));
   if(S.srch.cat) docs = docs.filter(r => r.d.cat === S.srch.cat);
-  if(S.srch.mon) docs = docs.filter(r => monthBucketOf(r.d) === S.srch.mon);
+  if(S.srch.mon) docs = docs.filter(r => inPeriod(r.d, S.srch.mon));
   if(S.srch.grp === "title") docs = docs.filter(r => r.title);
   else if(S.srch.grp === "body") docs = docs.filter(r => r.pages.length);
   else if(S.srch.grp === "note") docs = docs.filter(r => r.note);
@@ -4057,15 +4063,21 @@ function sdHeadHtml(q, R){
     + `<button class="sd-x" id="sd-close" title="닫기 (Esc)">${SD_ICO.x}</button></div>`;
 }
 function sdPeriodHtml(R){
-  const { thisKey, lastKey } = monthBucketKeys();
-  const present = [thisKey, lastKey, "prev"].filter(k => R.byMonth[k]);
+  const bp = R.byPeriod || {};
+  const mtd = bp.mtd || 0;
+  const ytd = mtd + (bp.ytdOnly || 0);
+  const max = ytd + (bp.other || 0);
+  const present = [
+    { k:"mtd", label:"MTD", n:mtd },
+    { k:"ytd", label:"YTD", n:ytd },
+    { k:"max", label:"MAX", n:max }
+  ].filter(x => x.n > 0);
   if(!present.length) return "";
-  const btns = present.map((k, i) => {
-    const label = k === "prev" ? "이전" : k.slice(5, 7);
-    const on = S.srch.mon ? S.srch.mon === k : i === 0;
-    return `<button class="${on ? "on" : ""}" data-mon="${k}">${label} · ${R.byMonth[k]}</button>`;
+  const rows = present.map(x => {
+    const on = S.srch.mon ? S.srch.mon === x.k : x.k === "max";
+    return `<button class="sd-prow ${on ? "on" : ""}" data-mon="${x.k}"><span class="t">${x.label}</span><span class="n">${x.n.toLocaleString()}건</span></button>`;
   }).join("");
-  return `<div class="sd-rsep"></div><div class="sd-rlbl">기간</div><div class="sd-seg">${btns}</div>`;
+  return `<div class="sd-rsep"></div><div class="sd-rlbl">기간</div><div class="sd-pcol">${rows}</div>`;
 }
 function sdRailHtml(R){
   const grpRow = (key, emoji, label, n) => `<div class="sd-rg ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">`
@@ -4242,8 +4254,6 @@ async function openHit({ id, p, note }){
   }
   renderHitbar();
 }
-
-$("#skbd").textContent = /Mac|iPhone|iPad|iPod/.test(navigator.platform || "") ? "⌘K" : "Ctrl K";
 
 /* =========================================================
    8-2-1) 입력칸 거울 층(#qmirror) — PLAN-SEARCH.md 1-1-1·3단계
