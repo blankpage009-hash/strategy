@@ -1656,7 +1656,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
     </span>
     <div id="sfield">
       <div id="qmirror" aria-hidden="true"></div>
-      <input id="search" type="search" placeholder="파일명 · 본문 · #태그 · title:" autocomplete="off">
+      <input id="search" type="search" placeholder="File name, Keyword, #Tag" autocomplete="off">
     </div>
     <button id="clearsearch" title="지우기">✕</button>
     <button id="qhelp" title="검색 문법 도움">?</button>
@@ -2394,14 +2394,16 @@ function cutSpans(hay, spans, center){
 }
 
 /* ---- 검색 문법 --------------------------------------------------
-   공백 = 모두 포함(AND)  ·  홀로 선 / = 하나라도(OR)  ·  -말 = 제외
+   공백 = 모두 포함(AND)  ·  / = 하나라도(OR)  ·  - = 제외
    "붙어서" = 정확히  ·  말* = 앞부분(동작은 일반 낱말과 같음)  ·  말~ = 오타 허용
-   #태그 · cat: = 회의 종류  ·  title: 제목만  ·  note: 회의록만  ·  year: 연도
+   #태그 · cat: = 회의 종류  ·  year: 연도
+   +·-·/ 는 앞뒤 띄어쓰기와 상관없이 같게 동작(쿠팡+케미칼 = 쿠팡 + 케미칼 = 쿠팡+ 케미칼 = 쿠팡 +케미칼).
+   단, 따옴표 안이나 #·cat:·year: 뒤에 붙은 +·-·/ 는 연산자로 보지 않고 글자 그대로 봄.
    결과 모양은 PLAN-SEARCH.md 1-2 절.                                         */
 function parseQuery(raw){
   raw = String(raw == null ? "" : raw);
   const Q = { raw, tags:[], year:null, neg:[], groups:[], tokens:[] };
-  /* ① 토큰 — 공백으로 나누되 따옴표 안은 한 덩어리로 (앞에 -·title: 가 붙어도 됩니다) */
+  /* ① 토큰 — 공백으로 나누되 따옴표 안은 한 덩어리로 (앞에 -· 가 붙어도 됩니다) */
   const toks = [];
   let i = 0;
   while(i < raw.length){
@@ -2414,39 +2416,80 @@ function parseQuery(raw){
     toks.push({ s:raw.slice(a, i), a, b:i });
   }
   /* ② 뜻 매기기 */
-  let pendOr = false;
+  let pendOr = false, pendNeg = false;
   const strip = s => s.replace(/^"|"$/g, "");
-  toks.forEach(t => {
-    let s = t.s, kind = "plain", field = "any";
-    const tok = { s, kind, a:t.a, b:t.b };
+  /* 낱말 한 조각(구·앞부분·오타허용·보통) — pendNeg 이면 제외 조각으로, pendOr 면 앞 그룹에 붙임 */
+  function pushWord(s, a, b){
+    const tok = { s, kind:"plain", a, b };
     Q.tokens.push(tok);
-    if(s === "+"){ tok.kind = "and"; return; }
-    if(s === "/"){ tok.kind = "or"; pendOr = true; return; }
-    if(s[0] === "#" || s.toLowerCase().startsWith("cat:")){
-      const v = sqzQ(strip(s.slice(s[0] === "#" ? 1 : 4)));
-      tok.kind = "tag"; if(v) Q.tags.push(v); return;
+    if(pendNeg){
+      pendNeg = false;
+      const v = sqzQ(strip(s).replace(/[*~]$/, ""));
+      tok.kind = "neg"; if(v) Q.neg.push({ nq:v });
+      return;
     }
-    if(s.toLowerCase().startsWith("year:")){
-      const v = (s.slice(5).match(/\d{4}/) || [])[0];
-      tok.kind = "year"; if(v) Q.year = v; return;
-    }
-    if(s[0] === "-" && s.length > 1){
-      const v = sqzQ(strip(s.slice(1)).replace(/[*~]$/, ""));
-      tok.kind = "neg"; if(v) Q.neg.push({ nq:v }); return;
-    }
-    const low = s.toLowerCase();
-    if(low.startsWith("title:")){ field = "title"; s = s.slice(6); tok.kind = "field"; }
-    else if(low.startsWith("note:")){ field = "note"; s = s.slice(5); tok.kind = "field"; }
-    if(s[0] === '"'){ kind = "phrase"; s = strip(s); }
-    else if(s.length > 1 && s.endsWith("*")){ kind = "prefix"; s = s.slice(0, -1); }
-    else if(s.length > 1 && s.endsWith("~")){ kind = "fuzzy";  s = s.slice(0, -1); }
-    const nq = sqzQ(s);
-    if(tok.kind !== "field") tok.kind = kind;
-    if(!nq) return;
-    const alt = { nq, kind, field };
+    let kind = "plain", ss = s;
+    if(ss.length > 1 && ss.endsWith("*")){ kind = "prefix"; ss = ss.slice(0, -1); }
+    else if(ss.length > 1 && ss.endsWith("~")){ kind = "fuzzy"; ss = ss.slice(0, -1); }
+    tok.kind = kind;
+    const nq = sqzQ(ss);
+    if(!nq){ pendOr = false; return; }
+    const alt = { nq, kind };
     if(pendOr && Q.groups.length) Q.groups[Q.groups.length - 1].alts.push(alt);
     else Q.groups.push({ alts:[alt] });
     pendOr = false;
+  }
+  /* 따옴표·태그·연도가 없는 조각은 +·-·/ 를 붙어 있어도 연산자로 쪼갭니다 */
+  function splitChunk(t){
+    const s = t.s;
+    let start = 0;
+    for(let k = 0; k <= s.length; k++){
+      const c = s[k];
+      const isOp = c === "+" || c === "-" || c === "/";
+      if(isOp || k === s.length){
+        if(k > start) pushWord(s.slice(start, k), t.a + start, t.a + k);
+        if(isOp){
+          Q.tokens.push({ s:c, kind: c === "/" ? "or" : c === "+" ? "and" : "neg", a:t.a + k, b:t.a + k + 1 });
+          if(c === "/") pendOr = true;
+          else if(c === "-") pendNeg = true;
+        }
+        start = k + 1;
+      }
+    }
+  }
+  toks.forEach(t => {
+    const s = t.s;
+    if(s === "+"){ Q.tokens.push({ s, kind:"and", a:t.a, b:t.b }); return; }
+    if(s === "/"){ Q.tokens.push({ s, kind:"or", a:t.a, b:t.b }); pendOr = true; return; }
+    const low = s.toLowerCase();
+    if(s[0] === "#" || low.startsWith("cat:")){
+      const v = sqzQ(strip(s.slice(s[0] === "#" ? 1 : 4)));
+      Q.tokens.push({ s, kind:"tag", a:t.a, b:t.b }); if(v) Q.tags.push(v); return;
+    }
+    if(low.startsWith("year:")){
+      const v = (s.slice(5).match(/\d{4}/) || [])[0];
+      Q.tokens.push({ s, kind:"year", a:t.a, b:t.b }); if(v) Q.year = v; return;
+    }
+    if(s.indexOf('"') >= 0){
+      /* 따옴표가 든 조각은 +·-·/ 로 쪼개지 않고 통째로(-"…" 제외, "…" 정확히, 그 밖엔 그대로) */
+      let ss = s, kind = "plain";
+      const tok = { s:ss, kind, a:t.a, b:t.b };
+      Q.tokens.push(tok);
+      if(ss[0] === "-" && ss.length > 1){
+        const v = sqzQ(strip(ss.slice(1)).replace(/[*~]$/, ""));
+        tok.kind = "neg"; if(v) Q.neg.push({ nq:v }); return;
+      }
+      if(ss[0] === '"'){ kind = "phrase"; ss = strip(ss); }
+      const nq = sqzQ(ss);
+      tok.kind = kind;
+      if(!nq) return;
+      const alt = { nq, kind };
+      if(pendOr && Q.groups.length) Q.groups[Q.groups.length - 1].alts.push(alt);
+      else Q.groups.push({ alts:[alt] });
+      pendOr = false;
+      return;
+    }
+    splitChunk(t);
   });
   return Q;
 }
@@ -2511,10 +2554,9 @@ function termSpans(sq, alt, limit){
     .map(e => [ sq.map[Math.max(0, e - m + 1)], sq.map[e] + 1 ]);
 }
 /* 검색어의 모든 조각(제외 빼고)이 한 덩어리에서 걸린 자리 — 시작순 */
-function hitSpans(sq, Q, fieldOk){
+function hitSpans(sq, Q){
   const out = [];
   Q.groups.forEach(g => g.alts.forEach(alt => {
-    if(!fieldOk(alt.field)) return;
     termSpans(sq, alt, 200).forEach(s => out.push(s));
   }));
   return out.sort((x, y) => x[0] - y[0]);
@@ -3875,9 +3917,6 @@ function runSearch(Q, opt){
     cats = new Set((KV.cats || []).filter(c => { const cq = sqzQ(c); return Q.tags.some(t => cq.startsWith(t)); }));
     if(!cats.size) return R;
   }
-  const inAny   = f => f === "any";
-  const inTitle = f => f === "any" || f === "title";
-  const inNote  = f => f === "any" || f === "note";
   const has = (str, alt) => alt.kind === "fuzzy" ? bitap(str, alt.nq, fuzzyK(alt.nq)).length > 0 : str.includes(alt.nq);
 
   activeDocs().forEach(d => {
@@ -3890,34 +3929,31 @@ function runSearch(Q, opt){
 
     /* ① 걸러내기 */
     if(Q.neg.some(n => d._allSq.includes(n.nq) || noteQ.includes(n.nq))) return;
-    const ok = Q.groups.every(g => g.alts.some(alt =>
-      alt.field === "title" ? has(titleQ, alt)
-    : alt.field === "note"  ? has(noteQ, alt)
-    : has(d._allSq, alt) || has(noteQ, alt)));
+    const ok = Q.groups.every(g => g.alts.some(alt => has(d._allSq, alt) || has(noteQ, alt)));
     if(!ok) return;
 
     /* ② 적중 세기 */
     const withSpans = !!(spansFor && spansFor.has(d.id));
-    const title = Q.groups.some(g => g.alts.some(alt => inTitle(alt.field) && has(titleQ, alt)));
+    const title = Q.groups.some(g => g.alts.some(alt => has(titleQ, alt)));
     const pages = [];
     let body = 0;
-    if(Q.groups.some(g => g.alts.some(alt => inAny(alt.field)))){
+    {
       const pq = pgQ(d);
       /* span 이 필요해도 sqzPages(d) 로 자료 전체 쪽을 한꺼번에 만들지 않습니다 — 적중한 쪽만
          그 자리에서 sqz() 합니다(5단계, 자료 여러 건이 걸릴 때 안 걸린 쪽까지 만드는 비용을 없앰) */
       for(let i = 0; i < pq.length; i++){
         let n = 0;
-        Q.groups.forEach(g => g.alts.forEach(alt => { if(inAny(alt.field)) n += termHits(pq[i], alt); }));
+        Q.groups.forEach(g => g.alts.forEach(alt => { n += termHits(pq[i], alt); }));
         if(!n) continue;
-        pages.push({ p:i + 1, n, spans: withSpans ? hitSpans(sqz(d.pageTexts[i]), Q, inAny) : [] });
+        pages.push({ p:i + 1, n, spans: withSpans ? hitSpans(sqz(d.pageTexts[i]), Q) : [] });
         body += n;
       }
     }
     let noteHit = null;
     if(noteQ){
       let n = 0;
-      Q.groups.forEach(g => g.alts.forEach(alt => { if(inNote(alt.field)) n += termHits(noteQ, alt); }));
-      if(n) noteHit = { n, spans: withSpans ? hitSpans(sqz(noteText), Q, inNote) : [] };
+      Q.groups.forEach(g => g.alts.forEach(alt => { n += termHits(noteQ, alt); }));
+      if(n) noteHit = { n, spans: withSpans ? hitSpans(sqz(noteText), Q) : [] };
     }
     const nn = noteHit ? noteHit.n : 0;
     const hits  = (title ? 1 : 0) + body + nn;
@@ -3954,7 +3990,7 @@ function editDist(a, b){
 function suggestFix(Q){
   if(!Q || Q.groups.length !== 1 || Q.groups[0].alts.length !== 1) return null;
   const alt = Q.groups[0].alts[0];
-  if(alt.field !== "any" || alt.kind === "fuzzy" || alt.nq.length < 3) return null;
+  if(alt.kind === "fuzzy" || alt.nq.length < 3) return null;
   const pat = alt.nq.slice(0, 31), m = pat.length, k = fuzzyK(pat);
   const cnt = new Map();
   activeDocs().slice(0, 300).forEach(d => {
@@ -4138,8 +4174,9 @@ function sdZeroHtml(){
         + `<span class="m">${esc(d.cat)} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p</span></div>`).join("")
       + `</div>`;
   }
-  html += `<div class="sd-zhint">+ 모두 · / 하나라도 · -제외 · "정확히" · 끝*</div>`
-        + `<div class="sd-zhint">오타~ · #태그 · title:/cat:/year:/note:</div>`;
+  html += `<div class="sd-zhint" style="display:flex;align-items:center">`
+        + `<span>AND : +&nbsp;&nbsp;&nbsp;&nbsp;OR : /&nbsp;&nbsp;&nbsp;&nbsp;제외 : -&nbsp;&nbsp;&nbsp;&nbsp;정확히 : “ ”&nbsp;&nbsp;&nbsp;&nbsp;오타 포함 : ~&nbsp;&nbsp;&nbsp;&nbsp;태그 : #</span>`
+        + `<button class="sd-help-btn" id="sd-helpbtn">문법 도움 ?</button></div>`;
   return html;
 }
 function sdEmptyHtml(q, Q){
@@ -4152,6 +4189,7 @@ function sdEmptyHtml(q, Q){
     + `<div class="sd-en">띄어쓰기·순서를 무시하고 찾으려면 <b>${esc(q)}<em>~</em></b> 로 검색하세요.</div></div>${rqHtml}`;
 }
 function sdFootHtml(mode){
+  if(mode === "zero") return "";
   const hint = mode === "empty" ? "Enter 제안 검색어로 · Esc 닫기"
     : mode === "results" ? "↑ ↓ 이동 · Enter 열기 · Tab 다음 자료 · Esc 닫기"
     : "↑ ↓ 이동 · Enter 열기 · Esc 닫기";
@@ -4163,10 +4201,8 @@ const SD_GRAMMAR = [
   { sym:"/", mean:"하나라도", ex:"직영 / 위탁" },
   { sym:"-", mean:"제외", ex:"유휴차량 -지입" },
   { sym:'" "', mean:"정확히(붙여서)", ex:'"차량 방치"' },
-  { sym:"*", mean:"앞부분만 맞아도(붙이지 않아도 됩니다)", ex:"모니터*" },
   { sym:"~", mean:"오타 허용", ex:"컴플라이언스~" },
-  { sym:"#", mean:"회의 태그", ex:"#임원회의" },
-  { sym:"field:", mean:"title:/cat:/year:/note:", ex:"title:손익보고" }
+  { sym:"#", mean:"회의 태그", ex:"#임원회의" }
 ];
 function sdHelpHtml(){
   const rows = SD_GRAMMAR.map(g => `<button class="sd-hrow" data-ex="${esc(g.ex)}">`
@@ -4261,7 +4297,7 @@ async function openHit({ id, p, note }){
    parseQuery().tokens 의 원문 위치(a,b)를 그대로 써서 조각별로 색만 입힙니다.
    ========================================================= */
 function qmFieldSplit(s){
-  const m = s.match(/^(#|cat:|title:|note:|year:)/i);
+  const m = s.match(/^(#|cat:|year:)/i);
   return m ? { pfx:m[0], rest:s.slice(m[0].length) } : { pfx:"", rest:s };
 }
 function qmSuffixSplit(s){
@@ -4277,7 +4313,7 @@ function qmTokenHtml(tok){
     const { pfx, rest } = qmFieldSplit(s);
     return `<span class="qm-pfx">${esc(pfx)}</span><span class="qm-tag">${esc(rest)}</span>`;
   }
-  if(tok.kind === "year" || tok.kind === "field"){
+  if(tok.kind === "year"){
     const { pfx, rest } = qmFieldSplit(s);
     let restHtml;
     if(rest[0] === '"') restHtml = `<span class="qm-phrase">${esc(rest)}</span>`;
