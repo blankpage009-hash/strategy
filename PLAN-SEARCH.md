@@ -22,7 +22,7 @@
 | 1 | 검색 엔진 — 문법 파서 · 적중 계산 · 정렬 · 오타 허용 | **상** | Opus 5 · 높음 | **[완료]** 2026-09-17 · 커밋 `723f26f` |
 | 2 | 결과 드롭다운 — 모달 제거, 머리글 · 집계 레일 · 자료 블록 · Zero-state · 결과 없음 | 중 | Sonnet 5 · 높음 | **[완료]** 2026-09-17 · 커밋 `156daa2` |
 | 3 | 키보드 · 단축키 · 입력칸 연산자 색 표시 · 문법 도움 패널 | 중 | Sonnet 5 · 중간 | **[완료]** 2026-09-17 · 커밋 `b288c21` |
-| 4 | 딥링크 — 뷰어 하이라이트 층 + 결과 이동 막대(자료 넘나들기) | **상** | Opus 5 · 높음 | 대기 |
+| 4 | 딥링크 — 뷰어 하이라이트 층 + 결과 이동 막대(자료 넘나들기) | **상** | Opus 5 · 높음 | **[완료]** 2026-09-18 · 커밋 `6bc47be` |
 | 5 | 레일 필터 · 커맨드바 교집합 · 최근 검색어/열람 저장 · 좁은 화면 · 설명서 · 옛 코드 정리 | 하~중 | Sonnet 5 · 중간 | 대기 |
 
 난이도 근거
@@ -53,9 +53,9 @@
 | 띄어쓰기 무시 부품 | `sqz(s)→{t,map}` `sqzQ(q)` `findSpans(sq,needle,limit)` `cutSpan(hay,from,to)` (2138~2176줄) | 그대로 재사용. `cutSpan` 은 `docfind` 가 씀 |
 | **검색 문법 부품 (1단계)** | `cutSpans(hay,spans,center)` 2178 · `parseQuery(raw)` 2199 · `queryHasTerms(Q)` · `fuzzyK(nq)` · `bitap(text,pat,k)` 2259 · `termHits(str,alt)` · `termSpans(sq,alt,limit)` · `hitSpans(sq,Q,fieldOk)` 2312 | 모두 `cutSpan` 바로 아래. `hitSpans` 는 검색어의 모든 조각 자리를 시작순으로 |
 | 색인 | `indexDoc(d)` (2510줄): `d._allSq = sqzQ(title + SEP + pages.join(SEP))` + `d._pgQ = null`. **`pgQ(d)`** (2520줄) 가 쪽별 문자열을 게으르게 만듦. `sqzPages(d)` 는 **LRU 24개**(`SQLRU` Map, 2527줄) | 자료를 다시 끼우는 `relinkDoc` 은 `SQLRU.delete(d.id)` |
-| 자료 내 검색 | "8-3)" 절 3519~3690줄: `#docfind` `S.find` `runDocFind` `gotoDocFindHit` `#dfpop` | 건드리지 않음. 결과 이동 막대(4단계)는 별개 요소 |
+| 자료 내 검색 | "8-3)" 절: `#docfind` `S.find` `runDocFind` `gotoDocFindHit` `#dfpop` | 건드리지 않음. 결과 이동 막대 `#hitbar`(4단계, "8-4)" 절)는 별개 요소 — 막대가 열려 있으면 `#dfpop` 은 `top:72px` |
 | 회의 종류 칩 | `renderCats()` 2426줄, 클릭 토글 3900줄, `S.offCats` / `KV.offcats` | `activeDocs()` 가 이미 꺼진 종류를 뺍니다 → 검색은 이미 커맨드바와 교집합 |
-| 자료 열기 | `selectDoc(id)` 4208줄 → `loadPdfFor` → `renderPage()` 2600줄 (canvas 만, **텍스트 층 없음**) `goPage(n)` 4262줄 | 하이라이트 층은 새로 만듭니다 (4단계) |
+| 자료 열기 | `selectDoc(id)` → `loadPdfFor` → `renderPage()` (canvas + **`#hl-layer` 하이라이트 층**, `paintHl`) `goPage(n)` | 4단계 완료. `renderPage()` 끝에서 `S.hlQ` 가 있으면 `paintHl(page, vp, seq)` |
 | 전역 Esc 사슬 | 9276~9296줄 (`else if($("#searchpop")…) closePop();`) | 드롭다운·결과 막대로 바꿔 끼움 |
 | 전역 상태 | `S` 2384줄, `KV_DEFAULT` 2283줄, `SYNC_KV_KEYS` 8045줄 | 최근 검색어·열람은 기기별(동기화 제외) |
 | 설명서 | `TUT` 배열 8855줄, 3절 "네 가지 찾기" 8917~8930줄 | 5단계에서 갱신 |
@@ -308,7 +308,37 @@
 
 검증: 마우스 없이 `/` → 글자 → ↓↓ → Enter 로 자료가 열리는지. Tab 이 브라우저 포커스를 빼앗지 않는지. 거울 층 스크린샷(시안 D 와 비교).
 
-### [4단계] 딥링크 — 하이라이트 층 + 결과 이동 막대 — 난이도 상 · Opus 5 · 노력 높음
+### [4단계] 딥링크 — 하이라이트 층 + 결과 이동 막대 — 난이도 상 · Opus 5 · 노력 높음 — **[완료] 2026-09-18 · 커밋 `6bc47be`**
+
+**실제로 한 것** (아래 계획 1~4 모두 구현. 코드는 새 절 "8-4) 딥링크" — `#sdrop` 클릭 핸들러 바로 뒤, "8-3) 자료 내 검색" 바로 앞)
+- **HTML**: `#canvaswrap` 안 `<div id="hl-layer" aria-hidden>` 을 `#pdfcanvas` 와 `#drawlayer-hi` 사이에. `#hitbar` 는 `#viewbar` 닫힌 직후·`#dfpop` 앞(`.hic` 🔍 · `.hq#hit-q` · `.hpos#hit-pos` · `.hmeta#hit-meta` · `.hbtns` = `#hit-prev` `#hit-next.l0` `#hit-x.bare`, Lucide chevron).
+- **CSS**: `#hl-layer{position:absolute;z-index:1;pointer-events:none;mix-blend-mode:multiply;overflow:hidden}` `.hl{background:#ffc4b8}` `.hl.cur{box-shadow:inset 0 -2px var(--accent)}`. `#hitbar` 는 시안 `.nstrip` 치수 그대로(높이 28 · gap 10 · padding 0 12 · `--panel2` · 아래 1px `--hairline`), `body.full #hitbar` 는 `#docfind` 처럼 `#2d2b2b`/`#605d5d`/`#9b9797`. **`#hitbar:not([hidden]) ~ #dfpop{top:72px}`** — 막대가 있을 때 자료 내 검색 팝업이 막대를 덮지 않게(계획에 없던 것, 검증 중 발견).
+- **상태**: `S.nav = null | { q:Q, list:[{id,p}], i }`, `S.hlQ = null | Q`. `openHit({id,p})` 가 `S.srch.R.q` 로 둘 다 세팅하고 `closeDfPop()`. 회의록 줄(`note:true`)은 `S.hlQ` 만 세팅(막대 없음, 계획 1-1-6). Zero-state 최근 문서(`openHit({id})`)는 둘 다 건드리지 않음.
+- **`navBuild(Q,id,p)`** — 계획은 "`R.docs` 순서"였지만 **드롭다운에 보이는 순서(`sdDocsFor(R)` = 정렬·레일 필터 반영)** 로 펼치고, 방금 연 (id,p) 가 거기 없을 때만(예: 레일이 '파일명' 그룹인데 제목 줄을 눌러 첫 적중 쪽을 연 때) `R.docs` 전체로 되돌림. 사용자가 보고 클릭한 목록과 ◀▶ 순서가 같아야 자연스럽다는 판단.
+- **`navSync()`** — `renderHitbar()` 마다 지금 (S.sel, S.page) 가 목록에 있으면 `i` 를 그 자리로, 다른 자료를 보고 있으면 `i=-1`(`– / N`). 그래서 계획의 "`selectDoc()` 안에서 `S.nav.i=-1`" 은 따로 두지 않고 `selectDoc()` 첫머리와 `updateBars()`(= `renderPage()` finally·`closeDoc()`) 에서 `renderHitbar()` 만 부름. 같은 자료 안에서 쪽만 넘기면 `i` 는 마지막 위치를 유지(계획 그대로).
+- **`stepNav(dir)`** — `i>=0` 이면 `i±1`, 끝에서 멈춤(단추 `disabled`). **`i=-1` 이면 지금 자료의 다음/이전 적중 쪽부터, 없으면 목록 처음/끝**(계획에 없던 규칙 — `– / N` 상태에서 ▶ 를 눌렀을 때 어디로 갈지 정해야 했음). 다른 자료면 `await selectDoc(id)` 뒤 `goPage(p)`. 넘어가는 사이 막대가 닫혔으면(`S.nav !== nav`) 중단.
+- **`paintHl(page, vp, seq)`** — `renderPage()` 의 `await S.renderTask.promise` 뒤 `seq === S.renderSeq && S.hlQ` 일 때. `getTextContent()` 결과는 `HLC`(마지막 한 쪽) 에 캐시해 확대·축소 때 다시 뽑지 않음. 조각 `str` 을 공백으로 이어 붙여 시작 오프셋 표를 만들고 `hitSpans(sqz(joined), Q, f => f==="any")` 로 span → 조각 + 글자 범위로 되돌림(한 span 이 여러 조각에 걸치면 조각마다 하나씩). 사각형은 `pdfjsLib.Util.transform(vp.transform, it.transform)` 으로 기준선 좌표를 얻고 **높이 = `hypot(tx[2],tx[3])`(글꼴 크기), 기준선 위 0.8h·아래 0.2h**, 폭 = `it.width*vp.scale` 을 글자 수 비례로 나눔. 회전 조각(각도 ≥ 0.01rad)은 4모서리 바운딩 박스로 통째로. `.cur` 는 `S.nav.list` 에 (S.sel,S.page) 가 있을 때 첫 span. 글자 없는 쪽은 span 0 → 층 비움(오류 없음).
+- **`renderPage()`** 는 canvas 크기를 정한 직후 `#hl-layer` 의 `style.width/height` 를 같은 값으로 맞추고 `innerHTML=""`(옛 쪽 하이라이트가 새 쪽 위에 잠깐 남지 않게). `loadPdfFor()` 첫머리에서 `hlClear()`. `drawSync()` 는 건드리지 않음(계획은 거기서도 맞추라 했지만 canvas 크기는 `renderPage()` 만 바꾸므로 불필요).
+- **키보드**: `#search` `keydown` 맨 앞에 "드롭다운 닫힘 + `S.nav` + Enter → `stepNav(±1)`" 분기. `#hitbar` 자체 `keydown` 에서 Enter/Shift+Enter(단추의 Enter-클릭은 `preventDefault` 로 막아 두 번 안 움직임). 전역 Esc 사슬은 **`full` 해제 다음**에 `else if(S.nav) closeNav();` — 전체화면에서는 Esc 가 먼저 전체화면을 닫아야 하므로(단추 title 이 "Esc to exit"), 계획의 "드롭다운 닫혀 있으면 막대 닫기"보다 한 단계 뒤로 둠. 막대 ✕ = `closeNav()` = `S.nav=S.hlQ=null; renderHitbar(); hlClear()`.
+- **회의록 적중 `noteReveal(Q)`**: note 탭을 그린 뒤 `#sumB` 의 `textContent` 에서 `hitSpans` 로 첫 자리를 찾아 TreeWalker 로 텍스트 노드·오프셋을 되짚어 `Range` 를 만들고, 잠겨 있을 때(`!S.editB`) 만 선택(selection) 으로 보이게 한 뒤 스크롤되는 상자(`overflow-y:auto` 인 가장 가까운 조상 = `#sumB` 자신) 가운데로 굴림. `<b>`/`<u>` 안 글자도 잡힘.
+
+**검증** — Claude in Chrome 확장은 이번에도 연결되지 않았고 내장 Browser pane 은 `file://` 을 못 열어서 (a) 로컬 정적 서버(`static`) + **JS 로 만든 가짜 PDF 두 개**(Helvetica · 3쪽/4쪽 · 회전 45° 조각 포함) 를 `dbPutQuiet("files", {id, blob})` 로 IndexedDB 에 넣고 `DOCS.length=0; DOCS.push(...)` 로 자료를 밀어 넣어 화면에서 확인, (b) headless Chrome(`file://`, 빈 프로필)으로 `#hitbar`·`#hl-layer` 가 DOM 에 있고 JS 오류가 없는지 확인. 테스트 뒤 `files` 의 가짜 레코드는 지움.
+- 적중 줄(`fakeA` 2p) 클릭 → 드롭다운 닫힘 · 2쪽 열림 · 하이라이트 5개(제목 "Compliance" `.cur` 밑선, 본문 2곳, 회전 조각 바운딩 박스, 30pt "COMPLIANCE") 모두 글자 위에 정확히 얹힘(스크린샷 확인, 160% 확대 뒤에도 그대로). 막대 `‘compliance’ 1 / 4 · 임원회의 · 2026 · 08 · W3 · 2p`.
+- ▶ ×4: 2/4(같은 자료 3p) → 3/4(**다른 자료** `fakeB` 2p, 왼쪽 목록 `.doc.sel` 이 따라옴) → 4/4(4p, ▶ `disabled`). ◀ ×2 로 되돌아와 `fakeA` 3p(2/4, 하이라이트 2·`.cur` 1). 넘어가는 도중 빠르게 다시 눌러도 `navSync` 덕에 끝 상태가 일관됨.
+- 왼쪽 목록에서 다른 자료 클릭 → `– / 4`; 그 상태에서 검색창 Enter(드롭다운 닫힘) → 그 자료의 다음 적중 쪽으로. 막대 단추에 포커스 두고 Enter/Shift+Enter → ±1. Esc: 드롭다운 열려 있으면 드롭다운만, 다 닫혀 있으면 막대 닫힘(`S.nav`·`S.hlQ` null, 층 비움).
+- 전체화면(`body.full`)에서 막대가 어두운 색으로 그려짐(스크린샷). `#dfpop` 은 막대 있을 때 `top:72px`, 없을 때 `44px`. `#hl-layer` `pointer-events:none`·`z-index:1`(펜 판 `#drawlayer` z-index 2 아래) 확인.
+- 글자 없는 쪽: `items:[]` 인 가짜 page 로 `paintHl` 호출 → 오류 없이 층 비움.
+- 회의록: `KV.sums.fakeA.b` 에 40줄(32줄에 `<b>compliance</b>`)을 넣고 회의록 줄 클릭 → note 탭 · 선택 문자열 `"compliance"` · `#sumB.scrollTop` 321/814(가운데) 확인.
+
+**남은 문제 / 다음 단계에 넘기는 메모**
+- **검색의 '회의록'과 오른쪽 회의록 탭이 다른 데이터를 본다** — `runSearch` 는 `noteOf(d)` = `NOTES`(IndexedDB `notes`, 열쇠 `cat|date`; 지금은 백업 복원·종류 이름 바꾸기 외에는 아무 경로도 쓰지 않는 옛 스토어)를 뒤지지만, note 탭 글상자 `#sumB` 는 `KV.sums[d.id].b`(사용자가 적는 회의록). 그래서 `NOTES` 가 있는 옛 자료에서는 회의록 적중이 나와도 `noteReveal` 이 `#sumB` 에서 그 글자를 못 찾아 스크롤이 안 되고, 반대로 `#sumB` 에 적은 회의록은 검색에 안 걸린다. **5단계(또는 별도 결정)에서 `runSearch` 의 회의록 대상을 `KV.sums[d.id].b`(+`NOTES` 겸용)로 바꿀지 사용자와 정할 것.** `noteReveal` 은 화면에 보이는 `#sumB` 기준으로 짰으므로 대상만 바뀌면 그대로 동작.
+- 하이라이트 세로 위치는 글꼴 어센트를 0.8h 로 고정 근사 — 어센트가 큰 한글 글꼴(예: 맑은 고딕)에서는 위쪽이 1~2px 짧아 보일 수 있음. 실제 한글 PDF(파워포인트 변환본)로 확인하고 필요하면 0.8 → 0.85. 글자 범위도 조각 폭을 글자 수 비례로 나눈 근사라 프로포셔널 글꼴에서 ±1글자 어긋날 수 있음(계획 허용치 안).
+- `HLC` 캐시는 마지막 한 쪽만 — 쪽을 왕복하면 `getTextContent()` 를 다시 부름(가벼움). 문제 되면 `SQLRU` 처럼 Map 으로.
+- 막대의 `3 / 12` 는 **쪽 단위**(자료 안 적중 쪽 수의 합)이고 드롭다운 머리글의 '적중 M곳'(조각 단위)과 기준이 다름. 시안 G 도 쪽 단위라 그대로 두되, 사용자가 헷갈려 하면 막대에 `쪽` 글자를 붙일 것.
+- 좁은 화면(≤860px)의 `#hitbar` 하단 고정 44px 배치는 5단계 3항에 그대로 남아 있음. `.hq`·`.hmeta` 에 `min-width:0;text-overflow:ellipsis` 를 넣어 두어 좁아도 단추가 밀려 나가지는 않음.
+- 실기(Windows `file://`·iPad) 로는 여전히 확인 못 함 — 특히 iPad 에서 `mix-blend-mode:multiply` 층이 있는 채로 확대·펜 그리기 성능.
+
+---- 원래 계획 ----
 
 1. **HTML**: `#canvaswrap` 안 `<div id="hl-layer" aria-hidden="true"></div>` (canvas 들 뒤, `drawlayer` 앞). `#viewbar` 닫힌 직후 `<div id="hitbar" hidden>` (머리글 부품: `.hq` `.hpos` `.hmeta` `.hbtns` ◀ ▶ ✕ — Lucide chevron, 시안 `.nstrip` 치수).
 2. **CSS**: `#hl-layer{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:multiply}` `#hl-layer .hl{position:absolute;background:#ffc4b8}` `.hl.cur{box-shadow:inset 0 -2px var(--accent)}` ; `#hitbar` 시안 `.nstrip` 그대로 + `body.full #hitbar` 어두운 색.
@@ -376,4 +406,5 @@ whats-the-strategy.html 은 awk 'length($0)<400' 으로 거른 사본으로 읽�
 
 - **2026-09-17 · 1단계 · `723f26f`** — 검색 엔진 함수만 추가(화면 변화 없음). `parseQuery` `bitap` `cutSpans` `termHits/termSpans/hitSpans` `pgQ` `sqzPages`(LRU 24) `runSearch` `editDist` `suggestFix`. 옛 모달은 `searchDocs`/`snippetOf` 호환 함수로 그대로 동작. 검증은 headless Chrome + 가짜 자료로만 했고 실제 자료 검증은 2단계 시작 때 콘솔에서 한 번 찍어 볼 것. 자세한 내용은 [1단계] 절.
 - **2026-09-17 · 2단계 · `156daa2`** — 검색 모달(`#searchpop`) → 결과 드롭다운(`#sdrop`)으로 교체. 머리글·집계 레일·자료 블록·Zero-state·결과 없음·커맨드바 교집합 필터칩 모두 구현, 옛 모달·호환 함수(`searchDocs`/`snippetOf`/`openPop`/`closePop`/`renderPop`) 삭제. `type=search` 의 Esc-지우기 기본 동작 차단, 포커스 유지 중 재클릭 시 안 열리던 버그 수정(계획에 없었지만 검증 중 발견). 키보드 이동·문법 도움 패널·최근 검색어/열람 저장은 아직 없음(3·5단계). 자세한 내용·남은 문제는 [2단계] 절.
+- **2026-09-18 · 4단계 · `6bc47be`** — 딥링크. `#hl-layer`(pdf.js `getTextContent` 좌표 → 화면 사각형, `.cur` 밑선, 회전 조각은 바운딩 박스) + `#hitbar`(◀ ▶ ✕ · Enter/Shift+Enter · 자료 넘나들기 · 왼쪽 목록으로 다른 자료 고르면 `– / N` · `body.full` 어두운 색). `S.nav`/`S.hlQ`, `navBuild`(드롭다운 보이는 순서 기준)·`navSync`·`stepNav`·`renderHitbar`·`closeNav`·`paintHl`·`noteReveal`. Esc 사슬은 전체화면 해제 다음에 막대 닫기. **발견한 문제**: 검색의 '회의록'(`NOTES` 옛 스토어)과 note 탭(`KV.sums[id].b`)이 다른 데이터 → 5단계에서 검색 대상을 정해야 함. 자세한 내용·남은 문제는 [4단계] 절.
 - **2026-09-17 · 3단계 · `b288c21`** — `Ctrl/⌘K`·`/` 단축키, 드롭다운 안 `↑↓`/`Tab`/`Enter`/`←→` 줄 이동(`Enter` 는 선택 줄을 `.click()` 으로 재사용), 입력칸 거울 층(`#qmirror`, `#search` 를 `#sfield` 로 감싸 절대배치)로 연산자 색 표시, 문법 도움 패널(`#qhelp`·`.sd-help`, 8줄 표) 추가. `#sdrop` 내부 구조를 `.sd-body`(`.sd-main`+`.sd-help`)로 한 겹 더 감쌈. 한글 IME 는 합성 이벤트로만 확인했고 실기(Windows·iPad) 확인은 아직 못 함. 자세한 내용·남은 문제는 [3단계] 절.
