@@ -2375,14 +2375,48 @@ function sqz(s){
 /* 찾는 말 — 공백을 걷어 낸 소문자 */
 const sqzQ = q => String(q == null ? "" : q).replace(/[\s\u200b-\u200d]+/g, "").toLowerCase();
 
+/* 로마자·숫자로만 된 조각(예: in, Lock)은 낱말 경계를 지켜서 찾습니다 —
+   안 그러면 'in' 이 Marketing 안에서, 'lock' 이 unlock·block 안에서도 걸려
+   여러 조각을 AND 로 묶은 뜻이 흐려집니다(예: 쿠팡+Lock in). 한글은 PDF에서
+   뽑을 때 낱말 안에 공백이 제멋대로 끼어들어 경계를 믿을 수 없으므로 그대로 둡니다. */
+const LATIN_ALNUM = /^[a-z0-9]+$/;
+const isBoundaryChar = c => !c || !/[a-z0-9]/.test(c);
+/* 문자열 하나에서 조각이 걸린 자리들 — [시작, 끝) 의 배열 */
+function findHits(str, needle){
+  const out = [];
+  if(!needle || !str) return out;
+  const bounded = LATIN_ALNUM.test(needle);
+  let from = 0, j;
+  while((j = str.indexOf(needle, from)) >= 0){
+    const end = j + needle.length;
+    if(bounded && !(isBoundaryChar(str[j - 1]) && isBoundaryChar(str[end]))){
+      from = j + 1;
+      continue;
+    }
+    out.push([j, end]);
+    from = end;
+  }
+  return out;
+}
+const hasHit = (str, needle) => {
+  if(!needle || !str) return false;
+  if(!LATIN_ALNUM.test(needle)) return str.includes(needle);
+  let from = 0, j;
+  while((j = str.indexOf(needle, from)) >= 0){
+    const end = j + needle.length;
+    if(isBoundaryChar(str[j - 1]) && isBoundaryChar(str[end])) return true;
+    from = j + 1;
+  }
+  return false;
+};
+
 /* 한 쪽(또는 한 덩어리)에서 찾은 자리들 — 원문 기준 [시작, 끝] 로 돌려줍니다 */
 function findSpans(sq, needle, limit){
   const out = [];
   if(!needle || !sq.t) return out;
-  let from = 0, j;
-  while((j = sq.t.indexOf(needle, from)) >= 0){
-    out.push([ sq.map[j], sq.map[j + needle.length - 1] + 1 ]);
-    from = j + needle.length;
+  const hits = findHits(sq.t, needle);
+  for(const [j, end] of hits){
+    out.push([ sq.map[j], sq.map[end - 1] + 1 ]);
     if(limit && out.length >= limit) break;
   }
   return out;
@@ -2561,9 +2595,7 @@ function bitap(text, pat, k){
 function termHits(str, alt){
   if(!str || !alt.nq) return 0;
   if(alt.kind === "fuzzy") return bitap(str, alt.nq, fuzzyK(alt.nq)).length;
-  let n = 0, i = 0;
-  while((i = str.indexOf(alt.nq, i)) >= 0){ n++; i += alt.nq.length; }
-  return n;
+  return findHits(str, alt.nq).length;
 }
 /* 조각 하나의 원문 자리들 — sqz() 결과 위에서 */
 function termSpans(sq, alt, limit){
@@ -3959,8 +3991,13 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
 
    runSearch(Q, opt) → R   (모양은 PLAN-SEARCH.md 1-3 절)
      · 대상 = activeDocs() (커맨드바에서 끈 종류는 저절로 빠짐) ∩ #태그 · year:
-     · 1차: 자료 걸러내기 — 모든 조각이 (대안 중 하나라도) 제목+본문 또는 회의록에 있고, 제외 조각은 하나도 없어야
-     · 2차: 걸러진 자료만 쪽별로 몇 번 걸렸는지 셈. 원문 자리(spans)는 opt.spansFor 에 든 자료만
+     · 1차: 자료 걸러내기(싸게) — 모든 조각이 (대안 중 하나라도) 자료 어딘가(제목+본문 또는 회의록)에는
+       있어야 하고, 제외 조각은 하나도 없어야. 아직 후보일 뿐 — '아토믹스+쿠팡'처럼 AND 로 묶은 조각들이
+       서로 다른 쪽에 흩어져 있어도 여기는 통과함(값싸게 미리 거르는 용도)
+     · 2차: 후보 자료만 — AND 로 묶인 조각은 같은 자리(쪽 하나 / 회의록 / 제목) 안에 다 같이 있어야
+       그 자리를 적중으로 침. 한 쪽엔 아토믹스만, 다른 쪽엔 쿠팡만 있으면 그 자료는 최종 결과에서 빠짐
+       (제목·쪽·회의록 어디에도 다 같이 걸린 자리가 없으면 자료째 제외)
+     · 원문 자리(spans)는 opt.spansFor 에 든 자료만
      · 점수 = 파일명 ×5 + 회의록 ×2 + 본문 ×1. 같으면 최신 자료 먼저. opt.sort:"date" 면 최신순 */
 function runSearch(Q, opt){
   opt = opt || {};
@@ -3974,7 +4011,7 @@ function runSearch(Q, opt){
     cats = new Set((KV.cats || []).filter(c => { const cq = sqzQ(c); return Q.tags.some(t => cq.startsWith(t)); }));
     if(!cats.size) return R;
   }
-  const has = (str, alt) => alt.kind === "fuzzy" ? bitap(str, alt.nq, fuzzyK(alt.nq)).length > 0 : str.includes(alt.nq);
+  const has = (str, alt) => alt.kind === "fuzzy" ? bitap(str, alt.nq, fuzzyK(alt.nq)).length > 0 : hasHit(str, alt.nq);
 
   activeDocs().forEach(d => {
     if(cats && !cats.has(d.cat)) return;
@@ -3984,14 +4021,18 @@ function runSearch(Q, opt){
     const noteQ    = sqzQ(noteText);
     const titleQ = sqzQ(d.title);
 
-    /* ① 걸러내기 */
-    if(Q.neg.some(n => d._allSq.includes(n.nq) || noteQ.includes(n.nq))) return;
-    const ok = Q.groups.every(g => g.alts.some(alt => has(d._allSq, alt) || has(noteQ, alt)));
-    if(!ok) return;
+    /* ① 걸러내기(싸게) — 아직 후보. AND 조각이 서로 다른 자리에 흩어져 있어도 여기는 통과 */
+    if(Q.neg.some(n => hasHit(d._allSq, n.nq) || hasHit(noteQ, n.nq))) return;
+    const maybe = Q.groups.every(g => g.alts.some(alt => has(d._allSq, alt) || has(noteQ, alt)));
+    if(!maybe) return;
 
-    /* ② 적중 세기 */
+    /* ② 적중 세기 — AND 로 묶인 조각은 같은 자리(쪽 하나 / 회의록 / 제목) 안에 다 같이 있어야 함.
+       #태그·year: 만 있고 조각이 하나도 없으면(hasGroups=false) 자료는 그대로 걸리되 자리별 적중은
+       (전과 같이) 없음으로 둡니다 — 없는 조각들에 다 걸렸다고 보지 않음 */
     const withSpans = !!(spansFor && spansFor.has(d.id));
-    const title = Q.groups.some(g => g.alts.some(alt => has(titleQ, alt)));
+    const hasGroups = Q.groups.length > 0;
+    const allHere = (str) => hasGroups && Q.groups.every(g => g.alts.some(alt => termHits(str, alt) > 0));
+    const title = allHere(titleQ);
     const pages = [];
     let body = 0;
     {
@@ -3999,19 +4040,20 @@ function runSearch(Q, opt){
       /* span 이 필요해도 sqzPages(d) 로 자료 전체 쪽을 한꺼번에 만들지 않습니다 — 적중한 쪽만
          그 자리에서 sqz() 합니다(5단계, 자료 여러 건이 걸릴 때 안 걸린 쪽까지 만드는 비용을 없앰) */
       for(let i = 0; i < pq.length; i++){
+        if(!allHere(pq[i])) continue;
         let n = 0;
         Q.groups.forEach(g => g.alts.forEach(alt => { n += termHits(pq[i], alt); }));
-        if(!n) continue;
         pages.push({ p:i + 1, n, spans: withSpans ? hitSpans(sqz(d.pageTexts[i]), Q) : [] });
         body += n;
       }
     }
     let noteHit = null;
-    if(noteQ){
+    if(noteQ && allHere(noteQ)){
       let n = 0;
       Q.groups.forEach(g => g.alts.forEach(alt => { n += termHits(noteQ, alt); }));
-      if(n) noteHit = { n, spans: withSpans ? hitSpans(sqz(noteText), Q) : [] };
+      noteHit = { n, spans: withSpans ? hitSpans(sqz(noteText), Q) : [] };
     }
+    if(hasGroups && !title && !pages.length && !noteHit) return;   /* AND 조각이 흩어져만 있고 한 자리엔 다 같이 없으면 자료째 제외 */
     const nn = noteHit ? noteHit.n : 0;
     const hits  = (title ? 1 : 0) + body + nn;
     const score = (title ? 5 : 0) + nn * 2 + body;
