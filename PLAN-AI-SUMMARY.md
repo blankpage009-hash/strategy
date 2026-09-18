@@ -312,3 +312,134 @@ if(sp){ scGo(S.page + (sp.dataset.sup === "next" ? 1 : -1)); return; }
 | 2 | 완료 | 2026-09-18 | `aiSumBlock(d, pageNo)` 활성화(상태줄·Generate/Regenerate·lock·bad), `paneSum` 을 p별 상자(`sumP`, 읽기 전용)+`.scpage` ‹ › 로 교체(옛 ex/asText/sumTools 선언은 남김, `mode` 는 `"text"` 고정), `body.dataset.page`·`syncScriptPane` 을 sum 탭까지 확장(`rtabOf` 로 정규화), `[data-aisum]` 클릭 위임(이미 있으면 confirm 후 덮어쓰기, ‹ › 는 기존 `data-scp` 재사용), 설정 hint 문구 수정. esprima 로 구문 확인만 했고 실제 클릭 확인은 사용자 대기 |
 | 3 | 완료 | 2026-09-18 | `paneSum` 의 `.aihead` 에 `lockBtn("P", scHas(pgText), S.editP)` 추가, `sumBox("sumP", …)` 를 `S.editP` 로 편집 가능하게 바꾸고 편집 중 tip 문구 추가. `S` 초기값에 `editP:false`. `SUMBOX` 에 `"sumP"` 추가(Ctrl+B/U·Enter·붙여넣기 처리 자동 적용). `#rbody` input 핸들러에 `sumP` 분기(다른 자료 id로 쓰지 않고 `KV.sums[id].pg[page]` 에 `editedByUser:true` 로 저장). `data-lock` 클릭 핸들러의 `which`/`focusSum` 매핑에 `"P"→"editP"` 추가(`focusSum = "sum"+k` 로 단순화, 기존 A/B/S/M 도 동일 동작). `editA/B/S/M=false` 로 한꺼번에 잠그는 5곳(탭 전환·자료 선택·자료 닫기·자료 삭제·동기화로 자료 사라짐) 모두에 `S.editP=false` 추가. `syncRenderSoon` 의 `editing()` 에 `S.editP` 추가. `aiSumBlock` 의 stat 줄(`· 수정함`)은 1단계에서 이미 구현돼 있어 손대지 않음. `syncScriptPane` 은 쪽 번호가 바뀔 때만 다시 그리므로(입력 중엔 쪽이 안 바뀜) 추가 가드 없이도 편집 중 값이 사라지지 않음(확인만 하고 코드 변경 없음). 실제 클릭·Edit·완료 왕복 확인은 사용자 대기 |
 | 4 | 완료 | 2026-09-18 | 오류 경로(`aiErrMsg`)·원본 없는 자료(글자만, `src` 표기)·글자·원본 모두 없는 p 는 이미 1단계 `makeAiSum` 에서 처리돼 있음을 코드로 재확인(추가 수정 없음). 백업 export/import 는 `meta.kv.sums`·`SYNC_KV_KEYS` 에 이미 포함(재확인만). 자료 삭제 시 `delete KV.sums[id]`(6421행)로 `pg` 도 통째 삭제됨을 확인. `설치-사용-안내.html` 에 "AI 요약 — SUMMARY 탭 → Generate AI Summary" 행 추가. 메모리 `ai-summary-rework.md` 갱신. 커밋 예정 |
+
+---
+
+## 6. Turn 7 — 7a 「요약 결과 창」 디자인 적용 (2026-09-18 계획)
+
+### 6-0. 먼저 알 것 (이 절만 읽고 시작합니다)
+
+- **디자인 원본**: `design_handoff_strategy_viewer/reference/Dashboard Redesign.html` (2026-09-18 사용자가 Claude Design 에서 내려받아 넣음, 약 985KB).
+  7a 아트보드는 이 파일 안 JSON 문자열(바이트 오프셋 약 797,548, `<div id=\"7a\"`)에 이스케이프돼 들어 있습니다.
+  같은 폴더의 `Dashboard Redesign.dc.html` 은 **9/17 옛 캔버스(1a~4a만)** 라 7a 가 없습니다. claude_design MCP·내장 브라우저 로그인·Chrome 확장은 이 환경에서 안 되니 다시 시도하지 마세요.
+  7a 만 풀어 보려면: 파이썬으로 파일을 읽어 `<div id=\"7a\"` 부터 다음 `<div id=\"` 직전까지 자른 뒤 `/`→`/`, `\"`→`"`, `\n`→줄바꿈으로 되돌리면 됩니다 (약 8.9KB).
+- **7a 가 그리는 것** (오른쪽 패널 Summary 탭의 결과 영역만, 폭 420):
+  1. 머리띠 — 배경 `#eae9e9`, 아래 2px 검은 선. 왼쪽 `AI SUMMARY`(11.5px/800/.14em 대문자) + 상태줄 `9p · 생성 09.18 16:38 · gemini-3.5-flash`(11.5px/600 muted). 오른쪽 **Regenerate** 빨간 채움 단추(12px/800, 7px 12px).
+  2. 쪽 줄 — 배경 `#f3f2f2`, 아래 1px `#d7d3d3`. `‹` `9p`(12.5px/800) `/ 49p`(11.5px/600 muted) `›` 20×20 단추 + 오른쪽 **Edit** 테두리 단추(1px 검정, 11.5px/700, 3px 9px).
+  3. 본문 — 세 카테고리 블록. 각 블록 머리는 **18×18 검은 사각형 안 흰 숫자**(11px/800) + 제목(12.5px/800/.06em). 블록 사이 2px 검은 선.
+     - ① 핵심 내용 — 문단 13px/1.72. 핵심 구절은 `<b>` 또는 **연한 빨강 배경(`#ffe0d9`) + 700** 하이라이트.
+     - ② 주요 수치 및 현황 — 블록 배경 `#eae9e9`. 행마다 `grid 78px | 1fr`, 위아래 1px `#d7d3d3`, 패딩 9px 0. 왼칸 라벨(11.5px/800 muted/.04em), 오른칸 12.5px/1.62 tabular-nums. 가장 중요한 수치는 `#ffc4b8` 배경 + 800.
+     - ③ 비고 — 행마다 `grid 7px | 1fr`, 7×7 **빨간 사각 불릿**(`#ec3013`, margin-top 6px), 글 12.5px/1.62.
+- **지금 앱과의 대응** (이미 있는 것은 손대지 않습니다):
+  - 머리띠 ≈ `aiSumBlock()` 의 `.annote`(1111~1129행 CSS). 이미 같은 구조·색. Regenerate 단추도 이미 빨간 채움(`.genmini`).
+  - 쪽 줄 ≈ `paneSum` 의 `h4.aihead` + `.scpage`(‹ p / n ›) + `lockBtn("P")`(Edit/완료). 이미 같은 구조.
+  - **본문만 새로 만듭니다.** 지금은 `sumBox("sumP", …)` 한 상자에 순수 글자로 보여 줍니다 → 읽기 모드에서는 7a 카드로, Edit 모드에서는 지금 상자 그대로.
+- **저장 형식은 바꾸지 않습니다 (결정)**. `KV.sums[id].pg[p].text` 는 `aiSumToText()` 가 만든 규칙적인 글(`<b>1. 핵심 내용</b>` 제목줄 / `ㆍ ` 불릿 / `   - ` 하위)이라 **거꾸로 읽어 구조를 되살릴 수 있습니다**(`aiSumFromText`). 그래서 옛 기록·다른 기기에서 동기화로 온 기록·사용자가 Edit 로 고친 기록이 모두 같은 카드로 보입니다. 구조를 못 읽는 글(제목줄이 하나도 없음)만 지금 상자로 되돌아갑니다.
+  (대안이었던 `pg[p].data = o` 병행 저장은 편집 후 text 와 data 가 어긋나는 문제가 있어 채택하지 않았습니다.)
+- **색은 토큰으로**: `#ffe0d9`→`--accent-soft`, `#ec3013`→`--accent`, `#201e1d`→`--rule`/`--text`, `#605d5d`→`--muted`, `#d7d3d3`→`--line`, `#eae9e9`→`--panel2`. `#ffc4b8` 은 토큰이 없어(`.aibusy` 에 날것으로 있음) `--accent-soft2:#ffc4b8` 를 `:root` 에 추가합니다. **border-radius·인라인 style 금지.**
+- 7a 의 바깥 틀(`width:420px; border:2px; box-shadow`)은 아트보드 액자일 뿐이니 옮기지 않습니다. 오른쪽 패널(`--right-w`)이 곧 틀입니다.
+- `.lock`(키 없음) / `.bad`(오류) 는 7a 에 안 그려져 있지만 그대로 둡니다.
+
+### 6-1. 단계
+
+| # | 단계 | 난이도 | 추천 모델 / 노력 | 눈에 보이는 변화 |
+|---|---|---|---|---|
+| 1 | CSS — 7a 본문 카드 스타일 블록(`.aisum …`) + `--accent-soft2` 토큰 | 하~중 | **Sonnet 5 / 중간** | 없음 (아직 쓰는 곳이 없음) |
+| 2 | JS — 프롬프트·파서에 `label` 필드 추가 + 저장 글을 되읽는 `aiSumFromText(text)` + 카드 HTML `aiSumCard(o)` | 중~상 | **Opus 5 / 높음** | 없음 (콘솔에서 확인) |
+| 3 | JS — `paneSum` 연결: 읽기 = 카드, Edit = 지금 상자, 빈 p 안내, 생성 중 표시, 세로 채움·스크롤 | 중 | **Opus 5 / 높음** | Summary 탭이 7a 모양으로 |
+| 4 | (보류 — 1~3단계 뒤 카드를 보고 결정) 강조 — 프롬프트에 핵심 구절 `**…**`(굵게)·최중요 수치 `==…==`(하이라이트) 표시를 부탁하고 `<b>`/`<u>` 로 저장, 카드에서 `<u>` 를 하이라이트로 | 상 | **Opus 5 / 높음** | 카드에 빨간 하이라이트 |
+| 5 | 점검·정리 — 옛 기록·동기화 기록·Edit 왕복, `설치-사용-안내.html`, 커밋, 이 문서·메모리 갱신 | 하 | **Sonnet 5 / 중간** | — |
+
+### 6-2. 단계별 상세
+
+**1단계 — CSS (Sonnet 5 / 중간)**
+- `:root` 에 `--accent-soft2:#ffc4b8;  /* 가장 중요한 수치 하이라이트 */` 추가 (45행 `--accent-soft` 아래).
+- `.annote` 블록(1129행) 바로 아래에 새 블록:
+  ```
+  /* ---------- Summary 탭 — p별 AI 요약 카드 (디자인 7a) ---------- */
+  .aisum{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);background:var(--bg);font-size:13px;}
+  .aisum .blk{display:flex;flex-direction:column;gap:8px;padding:14px 14px 16px;border-top:2px solid var(--rule);}
+  .aisum .blk:first-child{border-top:0;}
+  .aisum .blk.fig{background:var(--panel2);gap:10px;}
+  .aisum .bh{display:flex;align-items:center;gap:8px;}
+  .aisum .bh .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--rule);color:#fff;font-size:11px;font-weight:800;}
+  .aisum .bh .t{font-size:12.5px;font-weight:800;letter-spacing:.06em;color:var(--text);}
+  .aisum .core{font-size:13px;line-height:1.72;color:var(--text);text-wrap:pretty;}
+  .aisum .core + .core{margin-top:4px;}
+  .aisum .rows{display:flex;flex-direction:column;}
+  .aisum .row{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+  .aisum .row:last-child{border-bottom:1px solid var(--line);}
+  .aisum .row.nolbl{grid-template-columns:minmax(0,1fr);}
+  .aisum .row .lb{font-size:11.5px;font-weight:800;color:var(--muted);letter-spacing:.04em;}
+  .aisum .row .tx{font-size:12.5px;line-height:1.62;font-variant-numeric:tabular-nums;text-wrap:pretty;}
+  .aisum .row .sub{display:block;padding-left:10px;color:var(--muted);}
+  .aisum .notes{display:flex;flex-direction:column;gap:7px;}
+  .aisum .note{display:grid;grid-template-columns:7px minmax(0,1fr);gap:9px;align-items:start;}
+  .aisum .note .sq{width:7px;height:7px;margin-top:6px;background:var(--accent);}
+  .aisum .note .tx{font-size:12.5px;line-height:1.62;font-variant-numeric:tabular-nums;text-wrap:pretty;}
+  .aisum .none{font-size:12.5px;color:var(--muted2);}
+  .aisum b{font-weight:800;}
+  .aisum u{text-decoration:none;background:var(--accent-soft);font-weight:700;}
+  .aisum .row u{background:var(--accent-soft2);font-weight:800;}
+  .aisum.empty{display:flex;align-items:center;justify-content:center;text-align:center;padding:24px 16px;color:var(--muted);font-size:12.5px;line-height:1.7;background:var(--panel2);}
+  ```
+- `#rbody[data-tab="sum"][data-mode="text"] .sum.fill` 규칙(1022행)과 같은 세로 채움이 `.aisum` 에도 걸리도록 위 첫 줄에 `flex:1 1 auto;min-height:0;overflow:auto` 를 넣었습니다(`.sect.grow` 가 column flex 라 그대로 먹습니다). **확인법**: 아직 쓰는 곳이 없으니 화면 변화 없음. 브라우저에서 파일이 그대로 열리는지만 봅니다.
+
+**2단계 — label 필드 · 되읽기 · 카드 (Opus 5 / 높음)**
+- **2-a. `label` 필드 (사용자 결정 2026-09-18: "AI에게 label 필드 요구")**
+  - `AS_SHAPE` 의 figures 를 `{ "label":"묶음 이름(2~8자)", "text":"주요 수치·현황 한 줄", "sub":["하위 항목 한 줄"] }` 로.
+  - `aiSumPrompt` 카테고리 규칙 2) 에 한 줄 추가: "label 은 그 줄이 무엇에 관한 것인지 2~8자로(예: 6월 누계 · 국내 실증 · 유통3팀). text 에는 label 을 되풀이하지 않는다. 마땅한 이름이 없으면 label 을 빈 문자열로 둔다."
+  - `aiSumParse` figures 매핑에 `label: line(r && r.label).slice(0, 14)` 추가 (문자열 한 줄만 준 옛 모양도 `label:""` 로 받음).
+  - `aiSumToText` 는 label 이 있으면 `ㆍ 라벨: 내용`, 없으면 `ㆍ 내용` 으로 씁니다. → **저장 형식은 그대로 순수 글**이고, 이미 예시들이 쓰던 "묶음 이름: 세부" 꼴과 같아서 오늘 이전 기록도 같은 규칙으로 되읽힙니다.
+  - `AS_EXAMPLES` 는 이미 콜론 앞에 묶음 이름이 있으니 그대로 두되, 예시 A 위에 "(콜론 앞이 label 입니다)" 한 줄만 덧붙입니다.
+- **2-b. 되읽기·카드** — `aiSumToText()` 바로 아래에 둡니다.
+- `aiSumFromText(text)`: `normalizeSumHtml` 로 고른 뒤 줄 단위로 읽습니다.
+  - `<b>N. 제목</b>` (또는 `N. 제목` 맨몸) 줄 → 현재 카테고리 전환(1→core, 2→figures, 3→notes). 제목 글자는 "핵심"/"수치"/"비고" 포함 여부로도 인식.
+  - `ㆍ ` 또는 `* `·`- `·`• ` 로 시작하는 줄 → 그 카테고리의 새 항목. `(해당 없음)` 은 버림.
+  - 공백 3칸 + `- ` (또는 앞에 공백 2칸 이상) 로 시작하는 줄 → 직전 figures 항목의 `sub` 로. core/notes 에서는 새 항목으로.
+  - 기호 없는 줄 → 직전 항목에 이어 붙임(줄바꿈이 끊긴 편집을 살림).
+  - 제목줄을 하나도 못 찾으면 `null` (→ 3단계에서 지금 상자로).
+- `aiSumCard(o)`: `.aisum` HTML 문자열. 안전 규칙은 `toEditableHtml` 과 같이 **`<b>`·`<u>` 만 살리고 나머지 글자는 `esc`** (`split(/(<\/?[bu]>)/i)`).
+  - figures 라벨: 되읽은 줄을 첫 번째 `:` 또는 `：` 에서 나눠 앞이 **14자 이하**면 `label`(→ `.lb`), 아니면 label 없음(→ `.row.nolbl` 통째). 2-a 덕분에 새 기록은 항상 이 꼴로 저장되고, 옛 기록도 대부분 맞습니다. `sub` 는 같은 `.tx` 칸 안에 `<span class="sub">- …</span>` 줄로.
+  - 비어 있는 카테고리는 `.none` "해당 없음".
+- **확인법**: 콘솔에서 `aiSumFromText(KV.sums[S.sel].pg[S.page].text)` 가 `{core,figures,notes}` 를 돌려주고, `aiSumParse` 로 만든 `o` 를 `aiSumToText` → `aiSumFromText` 로 왕복하면 같은 내용인지. `aiSumCard(o)` 문자열에 `<script` 같은 게 새지 않는지(esc).
+
+**3단계 — paneSum 연결 (Opus 5 / 높음)** — `paneSum` (약 3734행)
+- `S.editP` 가 아니면: `const o = pgText ? aiSumFromText(pgText) : null;`
+  - `o` 있음 → `aiSumCard(o)`
+  - `pgText` 있는데 `o` 없음(구조를 못 읽음) → 지금처럼 `sumBox("sumP", pgText, false, …)`
+  - `pgText` 없음 → `<div class="aisum empty">Generate AI Summary 를 누르면<br>${curPg}p 의 요약이 여기에 채워집니다</div>` (생성 중이면 `S.asStep` 문구)
+- `S.editP` 면: 지금 그대로 `sumBox("sumP", pgText, true, …)` + `.tip`. (Edit 중엔 카드가 아니라 글상자 — 7a 의 Edit 단추가 이걸 뜻합니다.)
+- `data-lock` 핸들러의 `focusSum = "sumP"` 는 Edit 를 누른 뒤 다시 그려야 상자가 생기므로 그대로 동작(렌더 후 `$("#sumP")` 찾음). 확인만.
+- `.aihead` 는 손대지 않음. 다만 7a 처럼 쪽 줄 아래 1px 선이 필요하면 `.sect > h4.aihead` 가 아니라 `#rbody[data-tab="sum"] h4.aihead{padding-bottom:6px;border-bottom:1px solid var(--line);}` 한 줄만.
+- **확인법(file://)**: 요약 있는 p → 3블록 카드, 숫자 사각형·라벨 칸·빨간 불릿. 긴 요약이 패널 안에서 스크롤. p 넘기면 카드가 바뀜. Edit → 글상자, 고치고 완료 → 고친 글이 카드에 반영. 요약 없는 p → 안내. 키 없음 → `.lock` 그대로.
+
+**4단계 — 강조 (선택, Opus 5 / 높음)**
+- `aiSumPrompt` 카테고리 규칙 뒤에 "--- 강조 규칙 ---": 각 줄에서 결론을 이루는 핵심 구절 **하나**를 `**…**` 로, figures 에서 이 쪽에서 가장 중요한 수치 **한 곳**만 `==…==` 로. 남용 금지(줄당 최대 1개).
+- `aiSumParse.line()` 은 그대로 두고, `aiSumToText()` 에서 `**x**`→`<b>x</b>`, `==x==`→`<u>x</u>` 로 바꿉니다(정규식, 짝이 안 맞으면 기호만 지움). 저장 형식(`<b>`/`<u>`)은 그대로라 상자·동기화 영향 없음.
+- 카드 CSS 의 `.aisum u` 가 하이라이트로 그립니다(1단계에 이미 포함). Edit 상자에서는 밑줄로 보입니다(기존 `Ctrl+U`).
+- `AS_EXAMPLES` 예시 A 한 곳에만 `**`·`==` 를 넣어 본보기를 보입니다. 밀도(줄 수)는 건드리지 않습니다(290458b 결정 유지).
+- **확인법**: 실제 제미나이 호출 1회(사용자). 강조가 줄당 1개를 넘거나 없으면 규칙 문구 조정.
+
+**5단계 — 점검·정리 (Sonnet 5 / 중간)**
+- 오늘 이전에 만든 옛 `pg` 기록이 카드로 보이는지 / 동기화로 받은 기록도 같은지.
+- Edit 로 제목줄을 지워 버린 글이 상자로 되돌아가는지(깨지지 않는지).
+- `설치-사용-안내.html` 의 AI 요약 행 문구를 "3개 카테고리 카드" 로.
+- 커밋 메시지 예: `Summary 탭 AI 요약 결과를 7a 디자인 카드로 — 3 카테고리(숫자 사각형·라벨 칸·빨간 불릿), 저장 글을 되읽는 aiSumFromText, Edit 는 기존 글상자 유지`
+- 이 문서 6-4 표와 메모리 `ai-summary-rework.md` 갱신.
+
+### 6-3. 결정 기록 (2026-09-18 사용자 승인)
+
+1. ② 주요 수치 표의 라벨 칸 — **AI에게 `label` 필드를 요구**한다 (2-a). 저장은 `ㆍ 라벨: 내용` 순수 글 그대로.
+2. 4단계(강조·하이라이트) — **1~3단계 뒤 카드를 보고 결정**. 그때까지 프롬프트의 강조 규칙은 넣지 않는다.
+3. 1단계는 **새 창(Sonnet 5 / 중간)** 에서 시작한다. 새 창 첫 지시: "PLAN-AI-SUMMARY.md 6절을 읽고 1단계 실행".
+
+### 6-4. 진행 기록
+
+| 단계 | 상태 | 날짜 | 메모 |
+|---|---|---|---|
+| 1 | 완료 | 2026-09-18 | `:root` 에 `--accent-soft2:#ffc4b8` 추가(45행 아래), `.annote` 블록 바로 뒤(1129행)에 `.aisum` 카드 CSS 통째로 추가. 아직 쓰는 곳이 없어 화면 변화 없음. file:// 로 여는 실제 확인은 사용자 대기(브라우저 도구로는 이 경로를 열 수 없음) |
+| 2 | 완료 | 2026-09-18 | `AS_SHAPE` figures 에 `label` 추가, 프롬프트 규칙 2)에 label 문구 2줄, `AS_EXAMPLES` 맨 위에 "(콜론 앞이 label)" 한 줄. `aiSumParse` figures 에 `label`(14자 제한) 추가하고 필터를 `text || label` 로 넓힘(라벨만 있고 하위 항목이 달린 묶음 줄이 사라지지 않게. 라벨·내용 둘 다 없이 하위만 있는 줄은 버림). `aiSumToText` 는 `ㆍ 라벨: 내용`(내용이 비면 `ㆍ 라벨:`) 로 씀. 새로 `aiSumFromText(text)`(제목줄→카테고리, 기호줄→항목, 공백 2칸+기호→figures 하위, 기호 없는 줄→직전 항목에 이어 붙임, 첫 콜론 앞 14자 이하→label, `(해당 없음)` 버림, 제목줄 없으면 null. 제목줄은 번호·굵게만으로는 안 되고 핵심/수치/현황/비고 낱말이 꼭 있어야 함 — "3.9억 원 …" 같은 소수 시작 본문 줄을 제목으로 오해하지 않게) · `aiSumSafe`(`<b>`/`<u>` 만 살리고 esc) · `aiSumCard(o)`(1단계 CSS 클래스 그대로: `.blk/.blk.fig/.bh .n .t/.core/.rows .row(.nolbl) .lb .tx .sub/.notes .note .sq/.none`). 라벨 나누기는 카드가 아니라 `aiSumFromText` 에서 해서 `aiSumParse` 결과와 같은 모양(`{core,figures:[{label,text,sub}],notes}`)으로 맞춤. 확인: 함수들을 뽑아 localhost 시험 페이지에서 실행 — `aiSumParse→aiSumToText→aiSumFromText` 왕복 동일, 라벨 없는 옛 기록·`<div>` 로 편집된 글·제목줄 없는 글(null)·`<script>` 이스케이프·소수로 시작하는 이어진 줄·하위만 있는 묶음 모두 통과. `paneSum` 은 손대지 않음(3단계) |
+| 3 | 완료 | 2026-09-18 | `paneSum` 결과 영역을 네 갈래로: Edit 중 → `sumBox("sumP", …, true)` 글상자(+tip 그대로) / 요약 있고 `aiSumFromText` 가 구조를 읽음 → `aiSumCard()` 카드 / 요약은 있는데 구조를 못 읽음(제목줄 지운 글) → 읽기 전용 `sumBox` / 요약 없음 → `.aisum.empty` 안내(생성 중이면 `S.asStep`+…). 생성 중이라도 이미 요약이 있으면 옛 카드를 그대로 두고 진행 단계는 위 상태줄만 보여 줌(주석으로 적어 둠). `mode` 는 `"text"` 고정 그대로(`.aisum` 의 `flex:1 1 auto;min-height:0;overflow:auto` 가 `.sect.grow` 안에서 세로 채움·스크롤을 맡음). `h4.aihead` 는 손대지 않고 CSS 한 줄 `#rbody[data-tab="sum"] h4.aihead{padding-bottom:6px;border-bottom:1px solid var(--line);}` 만 추가(7a 쪽 줄 아래 선). `makeAiSum` 성공 시 `S.editP=false` 한 줄 추가 — Edit 중에 Regenerate 해도 새 카드가 바로 보이게. 확인: esprima 구문 통과. 함수·CSS 를 뽑은 localhost 시험 페이지(420px 틀)에서 다섯 갈래 모두 확인 — 카드 3블록·라벨 칸 2·하위 항목·`<u>` 하이라이트·`<script>` 이스케이프, 제목줄 없는 글 → 글상자, 빈 p → 안내, 생성 중 → "AI가 읽는 중…", Edit → contenteditable 상자+완료 단추. 긴 카드는 틀 안에서 스크롤(clientHeight 383 < scrollHeight 546). 실제 앱(file://)에서의 클릭 확인은 사용자 대기 |
+| 4 | 완료 | 2026-09-18 | 사용자가 카드를 본 뒤 진행 결정. `aiSumPrompt` 카테고리 규칙 뒤에 `--- 강조 규칙 ---` 3줄(줄당 `**…**` 최대 1개·3~25자·줄 전체 금지 / 쪽 전체에서 `==…==` 딱 1개, figures 의 text·sub 안 / label 에는 표시 금지·남용 금지). `AS_EXAMPLES` 머리말에 표시 설명 한 줄, 예시 A 에만 `**` 3곳·`==` 1곳. 새 `aiSumMark(t)`(`**x**`→`<b>x</b>`, `==x==`→`<u>x</u>`, 속 빈 표시·짝 안 맞는 기호는 지움, 중첩도 됨)·`aiSumUnmark(t)`(기호만 제거). `aiSumToText` 가 core/figures.text/sub/notes 에 `aiSumMark`, label 에는 `aiSumUnmark` 를 적용 — 라벨에 `<b>` 가 들어가면 `aiSumFromText` 의 "콜론 앞 14자" 판별이 깨져 라벨 칸이 사라지므로(advisor 지적). `aiSumParse` 의 label 도 `aiSumUnmark` 뒤에 14자 자름. `aiSumFromText` 의 figures 라벨 나누기에 조건 하나 추가 — 콜론 앞 14자 안의 `<b>`·`<u>` 여닫음이 맞을 때만 라벨로 봄(`balanced`). "<b>7월: 402억</b>" 처럼 강조 구절 안에 콜론이 있으면 전엔 `<b>7월` / `402억</b>` 로 찢겨 태그가 깨졌음(advisor 2차 지적). Edit 상자에서 라벨만 굵게 한 `<b>7월 누계</b>: …` 은 그대로 라벨. CSS(`.aisum u`·`.aisum .row u`·`--accent-soft2`)는 1단계에 이미 있어 손대지 않음. 저장 형식은 그대로 `<b>`/`<u>` 라 상자·동기화 영향 없음. 확인: esprima 구문 통과. localhost 시험 페이지(test-ai.html, gitignore)에서 짝 맞음/안 맞음/빈 표시/중첩/라벨 표시/굵은 항목 줄이 제목줄로 안 읽힘/`<script>` 이스케이프/`parse→toText→fromText` 왕복 라벨 유지 모두 통과, 카드에서 `<b>` 800·`<u>` 배경 #ffc4b8 확인. **실제 제미나이 호출 1회로 강조 밀도(줄당 1개·쪽당 == 1개)를 보는 것은 사용자 확인 대기 — 넘치거나 없으면 강조 규칙 문구만 조정.** 커밋은 5단계에서 |
+| 5 | 완료 | 2026-09-18 | 옛 `pg` 기록·동기화로 받은 기록도 새 기록과 같은 텍스트 형식(`<b>N. 제목</b>` + `ㆍ`/`   - `)이라 `aiSumFromText` 가 그대로 구조를 읽어 카드로 보임을 코드로 재확인(3단계에서 이미 처리, 추가 수정 없음) — `paneSum`(3792~3811행) 주석에 네 갈래 분기가 명시돼 있고, 제목줄을 지운 글(구조를 못 읽는 글)만 읽기 전용 상자로 되돌아감. [설치-사용-안내.html](설치-사용-안내.html) AI 요약 행을 "세 카테고리 카드"·"EDIT 로 고칠 수 있고" 로 수정. 이 문서 갱신, 메모리 `ai-summary-rework.md` 갱신. 커밋 예정 |
