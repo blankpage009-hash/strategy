@@ -305,7 +305,8 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .sd-rg{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 15px;cursor:pointer;}
 .sd-rg:hover{background:var(--bg);}
 .sd-rg.on{padding-left:12px;background:var(--accent-soft);border-left:3px solid var(--accent);}
-.sd-rg .em{font-size:12px;}
+.sd-rg .ic{display:flex;align-items:center;color:var(--muted);}
+.sd-rg.on .ic{color:var(--accent-ink);}
 .sd-rg .t{flex:1 1 auto;font-size:12px;font-weight:600;}
 .sd-rg.on .t{font-weight:800;color:var(--accent-ink);}
 .sd-rg .n{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
@@ -4021,7 +4022,10 @@ const SD_ICO = {
   mag:  `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
   x:    `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
   xs:   `<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
-  chev: `<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`
+  chev: `<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
+  file: `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`,
+  body: `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 12H3M17 18H3M21 6H3"/></svg>`,
+  note: `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
 };
 /* 검색어 한 번 바뀔 때만 부릅니다 — 어떤 자료가 걸렸는지 먼저 한 번 돌려 본 뒤,
    그 자료들만(=결국 전부) span 까지 채워 다시 돌립니다. 레일·보기 필터(grp·cat·mon·sort·more)는
@@ -4116,8 +4120,8 @@ function sdPeriodHtml(R){
   return `<div class="sd-rsep"></div><div class="sd-rlbl">기간</div><div class="sd-pcol">${rows}</div>`;
 }
 function sdRailHtml(R){
-  const grpRow = (key, emoji, label, n) => `<div class="sd-rg ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">`
-    + `${emoji ? `<span class="em">${emoji}</span>` : ""}<span class="t">${label}</span><span class="n">${n}</span></div>`;
+  const grpRow = (key, icon, label, n) => `<div class="sd-rg ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">`
+    + `${icon ? `<span class="ic">${icon}</span>` : ""}<span class="t">${label}</span><span class="n">${n}</span></div>`;
   const cats = Object.entries(R.byCat).sort((a, b) => b[1] - a[1]);
   const maxCat = cats.length ? cats[0][1] : 1;
   const bars = cats.map(([c, n], i) => `<button class="sd-bar ${S.srch.cat === c ? "on" : ""}" data-cat="${esc(c)}">`
@@ -4125,7 +4129,7 @@ function sdRailHtml(R){
     + `<span class="n">${n}</span></button>`).join("");
   return `<div class="sd-rail">
     <div class="sd-rlbl">어디에서 걸렸나</div>
-    ${grpRow("all", "", "전체", R.tot.hits)}${grpRow("title", "📄", "파일명", R.tot.title)}${grpRow("body", "📝", "본문", R.tot.body)}${grpRow("note", "🗒", "회의록", R.tot.note)}
+    ${grpRow("all", "", "전체", R.tot.hits)}${grpRow("title", SD_ICO.file, "파일명", R.tot.title)}${grpRow("body", SD_ICO.body, "본문", R.tot.body)}${grpRow("note", SD_ICO.note, "회의록", R.tot.note)}
     <div class="sd-rsep"></div>
     <div class="sd-rlbl">회의 종류</div>
     <div class="sd-rbars">${bars}</div>
@@ -4134,8 +4138,10 @@ function sdRailHtml(R){
 }
 function sdDocBlockHtml(r){
   const d = r.d, sel = S.sel === d.id, open = S.srch.openBlocks.has(d.id);
-  const lines = r.pages.map(p => ({ type:"page", p:p.p, spans:p.spans }))
-    .concat(r.note ? [{ type:"note", spans:r.note.spans }] : []);
+  const showPages = S.srch.grp === "all" || S.srch.grp === "body";
+  const showNote = S.srch.grp === "all" || S.srch.grp === "note";
+  const lines = (showPages ? r.pages.map(p => ({ type:"page", p:p.p, spans:p.spans })) : [])
+    .concat(r.note && showNote ? [{ type:"note", spans:r.note.spans }] : []);
   const shown = open ? lines : lines.slice(0, 3);
   const hitHtml = shown.map(l => {
     const hay = l.type === "page" ? (d.pageTexts[l.p - 1] || "") : noteTextOf(d);
@@ -4149,7 +4155,7 @@ function sdDocBlockHtml(r){
     ? `${esc(d.cat)} · ${String(monthOf(d)).padStart(2, "0")} W${weekOf(d)} · ${d.pages}p`
     : `${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p`;
   const src = r.title ? `<span class="src">📄 파일명 일치</span>` : "";
-  const counts = [r.pages.length ? `본문 ${r.pages.length}곳` : "", r.note ? "회의록 1곳" : ""].filter(Boolean).join(" · ");
+  const counts = [showPages && r.pages.length ? `본문 ${r.pages.length}곳` : "", showNote && r.note ? "회의록 1곳" : ""].filter(Boolean).join(" · ");
   return `<div class="sd-doc ${sel ? "sel" : ""}" data-id="${d.id}">
     <div class="sd-title" data-row data-id="${d.id}">
       <span class="t">${esc(d.title)}</span>
@@ -4175,7 +4181,7 @@ function sdZeroHtml(){
       + `</div>`;
   }
   html += `<div class="sd-zhint" style="display:flex;align-items:center">`
-        + `<span>AND : +&nbsp;&nbsp;&nbsp;&nbsp;OR : /&nbsp;&nbsp;&nbsp;&nbsp;제외 : -&nbsp;&nbsp;&nbsp;&nbsp;정확히 : “ ”&nbsp;&nbsp;&nbsp;&nbsp;오타 포함 : ~&nbsp;&nbsp;&nbsp;&nbsp;태그 : #</span>`
+        + `<span>AND : +&nbsp;&nbsp;&nbsp;&nbsp;OR : /&nbsp;&nbsp;&nbsp;&nbsp;제외 : -&nbsp;&nbsp;&nbsp;&nbsp;정확히 : “ ”&nbsp;&nbsp;&nbsp;&nbsp;오타 허용 : ~&nbsp;&nbsp;&nbsp;&nbsp;태그 : #</span>`
         + `<button class="sd-help-btn" id="sd-helpbtn">문법 도움 ?</button></div>`;
   return html;
 }
@@ -4200,7 +4206,7 @@ const SD_GRAMMAR = [
   { sym:"+", mean:"모두 포함", ex:"임원회의 + 컴플라이언스" },
   { sym:"/", mean:"하나라도", ex:"직영 / 위탁" },
   { sym:"-", mean:"제외", ex:"유휴차량 -지입" },
-  { sym:'" "', mean:"정확히(붙여서)", ex:'"차량 방치"' },
+  { sym:'" "', mean:"정확히", ex:'"차량 방치"' },
   { sym:"~", mean:"오타 허용", ex:"컴플라이언스~" },
   { sym:"#", mean:"회의 태그", ex:"#임원회의" }
 ];
