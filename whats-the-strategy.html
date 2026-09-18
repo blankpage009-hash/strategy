@@ -312,7 +312,7 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .sd-rg .n{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
 .sd-rg.on .n{color:var(--accent-ink);}
 .sd-rsep{height:1px;background:var(--line);margin:10px 0;}
-.sd-rbars{display:flex;flex-direction:column;gap:5px;padding:0 12px;}
+.sd-rbars{display:flex;flex-direction:column;gap:10px;padding:0 12px;}
 .sd-bar{display:flex;align-items:center;gap:7px;cursor:pointer;background:none;border:none;padding:0;width:100%;text-align:left;}
 .sd-bar .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:600;color:var(--text);}
 .sd-bar .track{flex:0 0 auto;width:54px;height:6px;background:var(--line);}
@@ -4115,7 +4115,7 @@ function sdPeriodHtml(R){
   if(!present.length) return "";
   const rows = present.map(x => {
     const on = S.srch.mon ? S.srch.mon === x.k : x.k === "max";
-    return `<button class="sd-prow ${on ? "on" : ""}" data-mon="${x.k}"><span class="t">${x.label}</span><span class="n">${x.n.toLocaleString()}건</span></button>`;
+    return `<button class="sd-prow ${on ? "on" : ""}" data-mon="${x.k}"><span class="t">${x.label}</span><span class="n">${x.n.toLocaleString()}</span></button>`;
   }).join("");
   return `<div class="sd-rsep"></div><div class="sd-rlbl">기간</div><div class="sd-pcol">${rows}</div>`;
 }
