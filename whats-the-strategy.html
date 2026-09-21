@@ -2390,7 +2390,7 @@ function sumBox(id, value, editing, placeholder){
 /* 하이라이트·굵게·밑줄 토글 3개 (data-fmt = 씌울 태그). Edit 중이든 읽기 전용 카드든 글자를 골라 두고 누르면 됩니다 */
 function fmtBarHtml(){
   return `<span class="fmtbar">
-    <button type="button" class="fmtbtn fmt-mark" data-fmt="mark" title="하이라이트 — 고른 글자에 켜고, 한 번 더 누르면 끕니다">가</button>
+    <button type="button" class="fmtbtn fmt-mark" data-fmt="mark" title="하이라이트(Ctrl+H) — 고른 글자에 켜고, 한 번 더 누르면 끕니다">가</button>
     <button type="button" class="fmtbtn fmt-bold" data-fmt="b" title="굵게 — 고른 글자에 켜고, 한 번 더 누르면 끕니다">B</button>
     <button type="button" class="fmtbtn fmt-underline" data-fmt="u" title="밑줄 — 고른 글자에 켜고, 한 번 더 누르면 끕니다">U</button>
   </span>`;
@@ -3848,7 +3848,7 @@ function renderRight(){
       ${ sumBody }
       ${ S.editP ? `<div class="tip">지금 보고 있는 <b>${curPg}p</b> 의 AI 요약입니다.
              적는 대로 저장됩니다. 골라서
-             <b>가</b> 하이라이트 · <b>B</b> 굵게(Ctrl+B) · <b>U</b> 밑줄(Ctrl+U) — 한 번 더 누르면 풀립니다.</div>` : "" }
+             <b>가</b> 하이라이트(Ctrl+H) · <b>B</b> 굵게(Ctrl+B) · <b>U</b> 밑줄(Ctrl+U) — 한 번 더 누르면 풀립니다.</div>` : "" }
     </div>
   `;
 
@@ -3879,13 +3879,14 @@ function renderRight(){
         ${ scPages.length ? `<span class="scjump"><span class="lb">SCRIPTED</span>${
             scPages.map(n => `<button class="pgchip ${n === curPg ? "on" : ""}" data-scgo="${n}"
               title="${n}p로 가기">${n}</button>`).join("") }</span>` : "" }
+        ${ (S.editS || scText) ? fmtBarHtml() : "" }
         ${ lockBtn("S", scHas(scText), S.editS) }
       </h4>
       ${ sumBox("sumS", scText, S.editS, S.editS ? "이 p에서 할 말을 한 줄씩"
                     : `Add 를 눌러 ${curPg}p에서 할 말을 적으세요`) }
       ${ S.editS ? `<div class="tip">지금 보고 있는 <b>${curPg}p</b> 의 스크립트입니다.
-             적는 대로 저장됩니다.
-             <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
+             적는 대로 저장됩니다. 골라서
+             <b>가</b> 하이라이트(Ctrl+H) · <b>B</b> 굵게(Ctrl+B) · <b>U</b> 밑줄(Ctrl+U) — 한 번 더 누르면 풀립니다.</div>` : "" }
     </div>
   `;
 
@@ -3893,11 +3894,14 @@ function renderRight(){
   const memoText = String((KV.memos || {})[d.id] || "");
   const paneMemo = `
     <div class="sect grow">
-      <h4 class="aihead">${ lockBtn("M", scHas(memoText), S.editM) }</h4>
+      <h4 class="aihead">
+        ${ (S.editM || memoText) ? fmtBarHtml() : "" }
+        ${ lockBtn("M", scHas(memoText), S.editM) }
+      </h4>
       ${ sumBox("sumM", memoText, S.editM, S.editM ? "이 자료에 대한 메모를 한 줄씩"
                     : "Add 를 눌러 메모를 적으세요") }
-      ${ S.editM ? `<div class="tip">적는 대로 저장됩니다.
-             <b>Ctrl+B</b> 굵게 · <b>Ctrl+U</b> 밑줄.</div>` : "" }
+      ${ S.editM ? `<div class="tip">적는 대로 저장됩니다. 골라서
+             <b>가</b> 하이라이트(Ctrl+H) · <b>B</b> 굵게(Ctrl+B) · <b>U</b> 밑줄(Ctrl+U) — 한 번 더 누르면 풀립니다.</div>` : "" }
     </div>
   `;
 
@@ -6310,7 +6314,36 @@ $("#filtertoggle").onclick = () => {
 const BULLET = "ㆍ";
 /* ㆍ 를 붙여 주고 적는 대로 저장하는 글상자들 — 요약 · 회의록 · 발표 스크립트 */
 const SUMBOX = new Set(["sumA", "sumB", "sumS", "sumM", "sumP"]);
+/* 마지막으로 하이라이트·굵게·밑줄을 누른 자리 — Ctrl+Z 로 한 번 되돌릴 수 있게 기억해 둡니다.
+   Edit 중인 글상자(editable:true)는 execCommand 의 굵게·밑줄까지 브라우저 자체 undo 가 고르게 먹지 않아
+   여기서도 직접 스냅샷을 되돌리고, 읽기 전용 카드·잠긴 글상자(editable:false)도 같은 방식으로 되돌립니다.
+   글상자에서 이 토글 말고 다른 글자를 더 적으면(다음 input) 스냅샷을 버려 — 그 뒤 Ctrl+Z 는 브라우저의
+   평소 undo(타이핑 되돌리기)로 자연스럽게 넘어갑니다. */
+let lastFmtUndo = null;   /* { host, prevHTML, editable } */
+document.addEventListener("keydown", e => {
+  if(!lastFmtUndo) return;
+  if(!((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "z" || e.key === "Z"))) return;
+  const { host, prevHTML, editable } = lastFmtUndo;
+  if(!host || !document.body.contains(host)) { lastFmtUndo = null; return; }
+  if(editable){
+    if(document.activeElement !== host) return;   /* 다른 칸에 초점이 있으면 그 칸의 undo 를 건드리지 않습니다 */
+    lastFmtUndo = null;
+    host.innerHTML = prevHTML;
+    host.dispatchEvent(new Event("input", { bubbles:true }));
+    placeCaretEnd(host);
+    e.preventDefault();
+    return;
+  }
+  const af = document.activeElement;
+  if(af && (af.isContentEditable || /^(INPUT|TEXTAREA)$/.test(af.tagName || ""))) return; /* 다른 입력칸의 undo 는 건드리지 않습니다 */
+  lastFmtUndo = null;
+  host.innerHTML = prevHTML;
+  saveFmtReadOnly(host);
+  e.preventDefault();
+});
 $("#rbody").addEventListener("input", e => {
+  /* 방금 기억해 둔 서식 되돌리기 자리가 있는 칸에 다른 변화(타이핑)가 더 생기면 — 그 스냅샷은 이제 못 쓰니 버립니다 */
+  if(lastFmtUndo && e.target === lastFmtUndo.host) lastFmtUndo = null;
   if(!S.sel) return;
   /* 발표 스크립트는 지금 그려 둔 쪽에 저장합니다 (뷰어에 펼쳐진 쪽) */
   if(e.target.id === "sumS"){
@@ -6352,17 +6385,35 @@ $("#rbody").addEventListener("input", e => {
 $("#rbody").addEventListener("keydown", e => {
   const t = e.target;
   if(SUMBOX.has(t.id) && t.isContentEditable){
-    /* Ctrl/Cmd+B, Ctrl/Cmd+U — 골라 둔 글자를 굵게·밑줄로 */
+    /* Ctrl/Cmd+B, Ctrl/Cmd+U, Ctrl/Cmd+H — 골라 둔 글자를 굵게·밑줄·하이라이트로.
+       단추(가·B·U)와 똑같이 toggleTagSel 로 현재 상태를 보고 뒤집습니다 — execCommand 를 쓰면
+       브라우저가 <strong>같은 다른 태그를 만들어 단추 쪽 판정(closest("b"))과 어긋날 수 있어 피합니다.
+       누르기 전 모습을 lastFmtUndo 에 남겨 둬 Ctrl+Z 한 번으로 바로 되돌릴 수 있게 합니다 */
     if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "b" || e.key === "B")){
       e.preventDefault();
-      document.execCommand("bold");
-      t.dispatchEvent(new Event("input",{bubbles:true}));
+      const prevHTML = t.innerHTML;
+      if(toggleTagSel("b", t)){
+        t.dispatchEvent(new Event("input",{bubbles:true}));
+        lastFmtUndo = { host:t, prevHTML, editable:true };   /* input 다음에 남겨야 위 무효화 검사에 바로 지워지지 않습니다 */
+      }
       return;
     }
     if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "u" || e.key === "U")){
       e.preventDefault();
-      document.execCommand("underline");
-      t.dispatchEvent(new Event("input",{bubbles:true}));
+      const prevHTML = t.innerHTML;
+      if(toggleTagSel("u", t)){
+        t.dispatchEvent(new Event("input",{bubbles:true}));
+        lastFmtUndo = { host:t, prevHTML, editable:true };
+      }
+      return;
+    }
+    if((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "h" || e.key === "H")){
+      e.preventDefault();
+      const prevHTML = t.innerHTML;
+      if(toggleTagSel("mark", t)){
+        t.dispatchEvent(new Event("input",{bubbles:true}));
+        lastFmtUndo = { host:t, prevHTML, editable:true };
+      }
       return;
     }
     if(e.key === "Enter"){
@@ -6388,11 +6439,14 @@ $("#rbody").addEventListener("mousedown", e => {
   if(e.target.closest(".fmtbtn")) e.preventDefault();
 });
 /* 골라 둔 글자에 <tag>(mark·b·u)를 씌우거나 벗깁니다 — root 는 편집 글상자(.sum)나 읽기 전용 카드(.aisum).
-   · 커서(또는 고른 범위 전체)가 이미 그 태그 안이면 → 벗깁니다. 커서만 놓여 있어도 되게 해서
-     한 번 켠 것을 같은 단추로 바로 끌 수 있습니다.
-   · 아니면 고른 범위에 걸친 글자 마디(텍스트 노드)를 하나씩 감쌉니다 — 마디 단위라 범위가 여러 칸·줄에
-     걸쳐 있어도 칸 경계를 넘는 태그(카드에서 되읽을 때 깨지는 것)가 생기지 않습니다.
-     이미 감싸인 마디는 건너뛰고, 고른 마디가 모두 감싸여 있으면 전부 벗깁니다.
+   · 커서만 놓여 있고 고른 글자가 없으면 — 지금 커서가 든 태그를 끄는 것 말고는 할 게 없습니다.
+   · 고른 범위가 있으면 지금 상태를 보고 그대로 뒤집습니다: 고른 글자가 하나도 빠짐없이 전부 이미
+     씌워져 있으면 → 벗깁니다(끔). 하나라도 아직 안 씌워졌으면 → 안 씌운 자리를 마저 씌웁니다(켬).
+     '절반 이상'같은 어림짐작이 아니라 '전부냐 아니냐' 로 판단해야, 이미 하이라이트된 구절을 다시 골라
+     누르면 반드시 꺼지고, 일부만 켜진 구절을 누르면 반드시 나머지도 마저 켜져 — 버튼을 몇 번 눌러도
+     결과를 예측할 수 있습니다.
+   · 감싸거나 벗기는 건 고른 범위에 걸친 글자 마디(텍스트 노드) 단위입니다 — 범위가 여러 칸·줄에 걸쳐
+     있어도 칸 경계를 넘는 태그(카드에서 되읽을 때 깨지는 것)가 생기지 않습니다.
    · 카드에서는 본문 칸(.core · .lb · .tx) 안의 글자만 — 머리글·'해당 없음' 은 저장 글에 없으니 손대지 않습니다.
    execCommand 는 편집 상자 밖(카드)에서는 아무것도 하지 않아 여기서는 쓰지 않습니다.
    바꿨으면 true — 부르는 쪽이 저장합니다. */
@@ -6415,12 +6469,14 @@ function toggleTagSel(tag, root){
     p.normalize();                            /* 벗기고 남은 이웃 마디를 합쳐 둡니다 — 다음에 다시 씌울 때 태그가 쪼개지지 않게 */
   };
 
-  /* 1) 이미 그 태그 안 → 벗기고 끝 */
-  const anc = within(range.commonAncestorContainer);
-  if(anc){ unwrap(anc); return true; }
-  if(range.collapsed) return false;          /* 고른 글자가 없으면 새로 감쌀 것도 없습니다 */
+  /* 고른 글자가 없을 때(커서만) — 지금 커서가 든 태그가 있으면 끄고 끝, 없으면 할 일이 없습니다 */
+  if(range.collapsed){
+    const anc = within(range.commonAncestorContainer);
+    if(anc){ unwrap(anc); return true; }
+    return false;
+  }
 
-  /* 2) 고른 범위에 걸친 글자 마디를 모으고, 양 끝 마디는 고른 만큼만 남게 자릅니다 */
+  /* 고른 범위에 걸친 글자 마디를 모으고, 양 끝 마디는 고른 만큼만 남게 자릅니다 */
   const sc = range.startContainer, so = range.startOffset, ec = range.endContainer, eo = range.endOffset;
   const hit = [];
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -6439,14 +6495,10 @@ function toggleTagSel(tag, root){
   });
   if(!parts.length) return false;
 
-  /* 3) 고른 글자의 절반 이상이 이미 감싸여 있으면 → 벗깁니다(해제). 아니면 아직 안 감싼 마디에 씌웁니다.
-     '모두' 가 아니라 '절반 이상' 인 이유: 한 번 켠 구절을 다시 고를 때 앞뒤 한두 글자가 더 잡히기 쉬운데,
-     그때도 사용자의 뜻은 해제이기 때문입니다. 반대로 새 글자가 더 많이 잡혔으면 넓혀 씌우는 쪽으로 봅니다 */
+  /* 고른 글자가 전부 이미 씌워져 있으면 → 전부 벗깁니다. 하나라도 안 씌워졌으면 → 안 씌운 자리만 마저 씌웁니다 */
   const wrapped = parts.map(within);
-  const len = arr => arr.reduce((s, n) => s + n.nodeValue.replace(/\s/g, "").length, 0);
-  const lenW = len(parts.filter((n, i) => wrapped[i]));
-  if(lenW && lenW * 2 >= len(parts)){
-    Array.from(new Set(wrapped.filter(x => x))).forEach(unwrap);
+  if(wrapped.every(Boolean)){
+    Array.from(new Set(wrapped)).forEach(unwrap);
   }else{
     parts.forEach((n, i) => {
       if(wrapped[i]) return;
@@ -6464,17 +6516,29 @@ function toggleTagSel(tag, root){
   }
   return true;
 }
-/* 읽기 전용 상태(Edit 아님)에서 카드(.aisum)나 잠긴 글상자(#sumP)의 강조를 바꾼 뒤 저장 —
+/* 읽기 전용 상태(Edit 아님)에서 카드(.aisum)나 잠긴 글상자(#sumP·#sumS·#sumM)의 강조를 바꾼 뒤 저장 —
    카드는 aiSumFromCard 로 되읽어 aiSumToText(…, raw) 로 저장 글을 다시 만들고, 글상자는 innerHTML 그대로.
    화면은 이미 바뀌어 있으니 다시 그리지 않습니다 (다시 그리면 고른 범위가 풀려 한 번 더 누르기가 안 됩니다). */
 function saveFmtReadOnly(host){
   if(!S.sel) return;
-  const pg = +($("#rbody").dataset.page || S.page || 1);
-  if(!(pg > 0)) return;
   let v = "";
   if(host.classList.contains("aisum")){ const o = aiSumFromCard(host); v = o ? aiSumToText(o, true) : ""; }
   else v = normalizeSumHtml(host.innerHTML);
   if(!scHas(v)) return;
+  if(host.id === "sumS"){
+    const pg = +($("#rbody").dataset.page || S.page || 1);
+    if(!(pg > 0)) return;
+    const cur = Object.assign({}, KV.scripts[S.sel]);
+    cur[pg] = v; KV.scripts[S.sel] = cur; saveKV("scripts");
+    return;
+  }
+  if(host.id === "sumM"){
+    const cur = Object.assign({}, KV.memos);
+    cur[S.sel] = v; KV.memos = cur; saveKV("memos");
+    return;
+  }
+  const pg = +($("#rbody").dataset.page || S.page || 1);
+  if(!(pg > 0)) return;
   const cur = Object.assign({}, KV.sums[S.sel]);
   const pgs = Object.assign({}, cur.pg);
   pgs[pg] = Object.assign({}, pgs[pg], { text:v, editedByUser:true });
@@ -6568,11 +6632,21 @@ $("#rbody").addEventListener("click", async e => {
     if(!se || !se.closest || !$("#rbody").contains(se)) return;
     const box = se.closest('.sum[contenteditable="true"]');
     if(box && SUMBOX.has(box.id)){
-      if(toggleTagSel(fmt.dataset.fmt, box)) box.dispatchEvent(new Event("input", { bubbles:true }));
+      const prevHTML = box.innerHTML;               /* Ctrl+Z 로 되돌릴 수 있게 누르기 전 모습을 기억해 둡니다 */
+      if(toggleTagSel(fmt.dataset.fmt, box)){
+        box.dispatchEvent(new Event("input", { bubbles:true }));
+        lastFmtUndo = { host:box, prevHTML, editable:true };
+      }
       return;
     }
-    const host = se.closest('.aisum:not(.empty), #sumP');
-    if(host && toggleTagSel(fmt.dataset.fmt, host)) saveFmtReadOnly(host);
+    const host = se.closest('.aisum:not(.empty), #sumP, #sumS, #sumM');
+    if(host){
+      const prevHTML = host.innerHTML;              /* Ctrl+Z 로 되돌릴 수 있게 누르기 전 모습을 기억해 둡니다 */
+      if(toggleTagSel(fmt.dataset.fmt, host)){
+        lastFmtUndo = { host, prevHTML, editable:false };
+        saveFmtReadOnly(host);
+      }
+    }
     return;
   }
   /* Add / Edit — 잠금을 풀거나 다시 잠급니다 */
