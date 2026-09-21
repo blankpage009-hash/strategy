@@ -1142,6 +1142,38 @@ div.sum:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-e
   font-size:11px;font-weight:700;padding:1px 7px;color:var(--muted);}
 .annote .bad .retry:hover{border-color:var(--accent);color:var(--accent-ink);}
 
+/* ---------- AI SCRIPT 팝업 — 옵션 화면 · 결과 화면 ---------- */
+#aiscriptbg .modal{height:88vh;}
+#aiscriptbg .modal > header .sckick{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;}
+#aiscriptbg .modal > header .scwho{font-weight:400;font-size:12px;color:var(--muted);min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+#aiscriptbg .mrow input[type=text]{margin-top:6px;}
+/* 칩 — 회의 종류 칩(.cat·.agtog)과 같은 모양. 어조는 여러 개, 분량·범위는 하나만 켜집니다 */
+.scchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center;}
+.sctog{height:24px;padding:0 9px;border:2px solid var(--line);background:none;color:var(--muted);
+  border-radius:0;font-size:11.5px;font-weight:700;white-space:nowrap;}
+.sctog:not(.on):hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
+.sctog.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+/* .mrow input[type=text] 의 width:100% 보다 앞서야 하므로 id 로 특이성을 올립니다 */
+#aiscriptbg .scchips input.etc{flex:1 1 140px;min-width:120px;width:auto;height:24px;padding:0 8px;margin:0;
+  border:1px solid var(--line);border-radius:0;background:var(--panel);font-size:12px;}
+#aiscriptbg .scchips input.etc:focus{border-color:var(--accent);outline:none;}
+.scrange{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.scrange[hidden]{display:none;}
+.scrange input[type=number]{width:60px;height:24px;padding:0 6px;border:1px solid var(--line);border-radius:0;
+  background:var(--panel);font-size:12px;text-align:center;}
+.scrange input[type=number]:focus{border-color:var(--accent);outline:none;}
+.schint{font-size:11.5px;color:var(--muted2);margin-top:6px;font-variant-numeric:tabular-nums;}
+/* 결과 — 쪽마다 머리 한 줄 + 고칠 수 있는 글상자 */
+.scmeta{font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:6px;}
+.scres{margin:10px 0 14px;}
+.scph{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;font-weight:800;font-size:12.5px;}
+.scph .n{font-weight:400;font-size:11px;color:var(--muted2);font-variant-numeric:tabular-nums;}
+.scph .has{font-weight:600;font-size:10.5px;color:var(--accent-ink);border:1px solid var(--accent-line);
+  background:var(--accent-soft);padding:0 5px;line-height:16px;}
+#aiscriptbg .sum{min-height:110px;max-height:44vh;}
+#aiscriptbg .sum.miss{background:var(--panel2);}
+
 /* ---------- Summary 탭 — p별 AI 요약 카드 (디자인 7a) ---------- */
 .aisum{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);background:var(--bg);font-size:13px;}
 .aisum .blk{display:flex;flex-direction:column;gap:8px;padding:14px 14px 16px;border-top:2px solid var(--rule);}
@@ -2130,6 +2162,16 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   </div>
 </div>
 
+<!-- AI SCRIPT — 발표 스크립트 옵션(발표자·청중·어조·분량·범위) → 결과(쪽별 글상자, Input). 본문·아래줄은 renderAiScript() 가 그립니다 -->
+<div class="modalbg" id="aiscriptbg">
+  <div class="modal wide" role="dialog" aria-label="AI SCRIPT">
+    <header><span class="sckick">AI SCRIPT</span><span class="scwho" id="scwho"></span>
+      <button class="x" id="scx" aria-label="닫기">✕</button></header>
+    <div class="content" id="scbody"></div>
+    <footer id="scfoot"></footer>
+  </div>
+</div>
+
 <!-- 자료 관리 -->
 <div class="modalbg" id="managebg">
   <div class="modal wide" role="dialog" aria-label="자료 관리">
@@ -2819,6 +2861,9 @@ const KV_DEFAULT = {
   scripts:{},
   /* 자유 메모 — { 자료 id: "메모 글" } */
   memos:{},
+  /* AI SCRIPT 팝업에서 마지막에 쓴 발표자·청중·어조·분량 — 다음에 열 때 미리 채워 둡니다.
+     기기별로만 둡니다 (SYNC_KV_KEYS · 백업 내보내기에 넣지 않음) */
+  scriptOpts:{},
   /* 마지막으로 보던 자료 — 다음에 열 때 그대로 이어서 봅니다 */
   sel:null,
   ai:"off", aiKey:"", aiModel:"gemini-3.8-flash",
@@ -2850,6 +2895,7 @@ async function loadKV(){
   KV.scripts = Object.assign({}, KV.scripts);
   KV.memos   = Object.assign({}, KV.memos);
   KV.drawcfg = Object.assign({}, KV.drawcfg);
+  KV.scriptOpts = Object.assign({}, KV.scriptOpts);
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
   if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
@@ -2966,6 +3012,11 @@ const S = {
   aiBusy:null, aiErr:"", aiErrId:null, aiStep:"",   /* AI 요약 진행/오류 상태 */
   anBusy:null, anErr:"", anErrId:null,              /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
   asBusy:null, asErr:"", asErrId:null, asStep:"",   /* p별 AI 요약(Summary 탭) 진행/오류 상태 */
+  /* AI SCRIPT 팝업(Script 탭) — open 은 창이 떠 있는지, view 는 옵션/결과 중 무엇을 보이는지,
+     docId·page 는 창을 연 자료와 쪽, opts 는 지금 폼에 적힌 값, busy 는 만드는 중인 자료 id(없으면 null),
+     res 는 { docId, pageNos, scripts:{쪽:글}, skipped, cut, at, model, src, opts } 결과입니다.
+     결과는 Input 을 누르기 전까지 KV 에 쓰지 않습니다 (저장하지 않는 화면 상태). */
+  sc:{ open:false, view:"opts", docId:null, page:1, opts:null, busy:null, step:"", err:"", res:null },
   /* AI NOTE 고치기 — anEdit 은 지금 고치고 있는 자료 id, anDraft 는 그 노트의 사본입니다.
      저장하면 사본을 원본 자리에 끼워 넣고, 취소하면 사본을 그냥 버립니다. */
   anOpen:null, anEdit:null, anDraft:null
@@ -3712,16 +3763,29 @@ function aiSumBlock(d, pageNo){
   </div>`;
 }
 
-/* SCRIPT 탭 위쪽 — 'Generate AI SCRIPT' 한 단추.
-   아직 기능이 없어 눌리지 않습니다(추후 연결 예정). 첨부 단추는 없습니다. */
-function aiScriptBlock(){
+/* SCRIPT 탭 위쪽 — 'Generate AI SCRIPT' 한 단추. 누르면 옵션 팝업(openAiScript)이 뜹니다.
+   만드는 중에도 눌립니다(팝업에서 진행 상태를 보여 줌). 결과가 있으면 '결과 보기' 로 바뀝니다. */
+function aiScriptBlock(d, pageNo){
+  const ready  = aiSumReady();
+  const busy   = S.sc.busy === d.id;
+  const res    = (S.sc.res && S.sc.res.docId === d.id) ? S.sc.res : null;
+  const err    = (S.sc.docId === d.id && S.sc.err) ? S.sc.err : "";
+  const has    = scHas(scriptsOf(d.id)[pageNo]);
+
+  let stat = `${pageNo}p · ${has ? "스크립트 있음" : "스크립트 없음"}`;
+  if(res && !busy) stat = `결과 준비됨 · ${res.pageNos.length}쪽 · 생성 ${anWhen(res.at).slice(5)}` + (res.model ? ` · ${esc(res.model)}` : "");
+  if(busy) stat = esc(S.sc.step || "준비 중");
+
+  const label = busy ? "생성 중…" : (res ? "결과 보기" : "Generate AI SCRIPT");
   return `<div class="annote">
     <div class="anhd">
-      <div class="anlbl"><span class="kick">AI SCRIPT</span><span class="stat">준비 중 — 곧 추가됩니다</span></div>
+      <div class="anlbl"><span class="kick">AI SCRIPT</span><span class="stat">${stat}</span></div>
       <div class="anbtns">
-        <button class="genmini" disabled title="곧 추가될 기능입니다">Generate AI SCRIPT</button>
+        <button class="genmini" data-aiscript="open"${ready ? "" : " disabled"}>${label}</button>
       </div>
     </div>
+    ${ ready ? "" : `<div class="lock">설정 › AI NOTE (제미나이) 에 API 키를 넣으면 켜집니다.</div>` }
+    ${ (err && !busy) ? `<div class="bad">✕ ${esc(err)}<button class="retry" data-aiscript="open">다시 시도</button></div>` : "" }
   </div>`;
 }
 
@@ -3877,7 +3941,7 @@ function renderRight(){
   /* ── 탭 4 : 발표 스크립트 — 회의록과 같은 글상자를 쪽마다 하나씩 ─────
        지금 뷰어에 펼쳐진 쪽의 스크립트만 보이고, 쪽을 넘기면 그 쪽 글로 바뀝니다. */
   const paneScript = `
-    ${ aiScriptBlock() }
+    ${ aiScriptBlock(d, curPg) }
     <div class="sect grow">
       <h4 class="aihead">
         <span class="scpage">
@@ -6724,6 +6788,14 @@ $("#rbody").addEventListener("click", async e => {
     makeAiSum(S.sel, pg);
     return;
   }
+  /* AI SCRIPT — 옵션 팝업을 엽니다 (결과가 있으면 결과 화면부터, 만드는 중이면 진행 상태) */
+  const asc = e.target.closest("[data-aiscript]");
+  if(asc){
+    if(!S.sel) return;
+    const pg = +($("#rbody").dataset.page || S.page || 1);
+    openAiScript(S.sel, pg > 0 ? pg : 1);
+    return;
+  }
   /* AI NOTE — 회의록 한 장 정리 (생성 / 보기) */
   const an = e.target.closest("[data-annote]");
   if(an){
@@ -7116,13 +7188,18 @@ async function callAI(prompt, opts){
   const cfg = { temperature: 0, maxOutputTokens: AI_OUT_MAX };  /* 매번 같은 모양 · 답 길이 제한 */
   if(o.json) cfg.responseMimeType = "application/json";
 
-  /* 그림은 몇 쪽인지 알려 주면서 순서대로 붙입니다 */
+  /* 그림은 몇 쪽인지 알려 주면서 순서대로 붙입니다.
+     o.pageNos 가 있으면(AI SCRIPT 처럼 1쪽부터가 아니라 3p~8p 같은 범위를 보낼 때) 그 실제 쪽 번호를 라벨로 씁니다.
+     없으면 지금까지처럼 순서 번호([1쪽]·[2쪽]…)를 붙입니다 — 기존 호출은 바뀌지 않습니다. */
   const imgs = o.images || [];
+  const nos  = Array.isArray(o.pageNos) && o.pageNos.length === imgs.length ? o.pageNos : null;
   const parts = [];
   if(imgs.length){
-    parts.push({ text:`아래는 회의자료 ${imgs.length}쪽을 순서대로 찍은 그림입니다. 표의 숫자를 꼼꼼히 읽으세요.` });
+    parts.push({ text: nos
+      ? `아래는 회의자료 ${imgs.length}쪽(${nos.map(n => n + "p").join("·")})을 찍은 그림입니다. 표의 숫자를 꼼꼼히 읽으세요.`
+      : `아래는 회의자료 ${imgs.length}쪽을 순서대로 찍은 그림입니다. 표의 숫자를 꼼꼼히 읽으세요.` });
     imgs.forEach((im, i) => {
-      parts.push({ text:`[${i+1}쪽]` });
+      parts.push({ text: nos ? `[${nos[i]}p]` : `[${i+1}쪽]` });
       parts.push({ inlineData:{ mimeType: im.mime, data: im.data } });
     });
   }
@@ -8319,6 +8396,284 @@ async function makeAiSum(docId, pageNo){
   }
 }
 
+/* =========================================================
+   AI SCRIPT — Script 탭의 'Generate AI SCRIPT' (2026-09-21)
+   · 팝업에서 발표자(Speaker)·청중(Audience)·어조(Tone, 복수)·분량(Length)·범위(이 p만/전체/p 범위)를 고르면
+     그 쪽들의 글자 + p 그림을 제미나이에게 보내 쪽마다 실제로 입으로 말할 스크립트를 받습니다.
+   · 결과는 팝업 안 글상자에서 고칠 수 있고, Input 을 누를 때만 KV.scripts[자료 id][p] 에 들어갑니다
+     (스크립트 저장 형식은 그대로 문자열 — 만든 시각·모델은 저장하지 않습니다).
+   · 부르기는 p별 AI 요약(makeAiSum)과 같이 callAINote() 로 하고, 키·모델도 같은 것을 씁니다.
+   ========================================================= */
+const SC_TONES   = ["전문적인","설득력 있게","단호하게","객관적인","설명적인","친근한","대화하는 듯한","열정적인","영감을 주는"];
+const SC_LENGTHS = [1, 2, 3, 5, 10];         /* 분 */
+const SC_CPM     = 270;                       /* 한국어 발표 속도 — 분당 글자 수(공백 포함) */
+const SC_MIN_PP  = 120;                       /* 쪽당 최소 글자 수 — 두 문장 정도. 1분을 30쪽에 나눠 쪽당 9자가 되는 것을 막습니다 */
+const SC_LIM = {
+  textTotal: 24000,   /* 보낼 글자 총량의 기준 — 쪽당 = max(textMin, textTotal / 쪽수) */
+  textMin:    1200,   /* 쪽당 최소 */
+  textCap:  120000,   /* 그래도 전체가 이보다 길면 뒷쪽부터 더 줄입니다 */
+  script:     6000    /* 받은 스크립트 쪽당 최대 글자 */
+};
+/* 제미나이가 이 모양 그대로 JSON 하나만 돌려주도록 부탁합니다. 필드 이름을 바꾸면 aiScriptParse() 도 함께 고쳐야 합니다. */
+const SC_SHAPE = `{ "pages": [ { "p": 14, "script": "첫 문단\\n둘째 문단" } ] }`;
+
+/* 분량 → 글자 수. n 쪽에 나누되 쪽당 SC_MIN_PP 아래로는 내려가지 않습니다 (바닥이 이기면 실제 분량이 늘어납니다) */
+function scTargetChars(minutes, n){
+  const m = Math.max(0.25, +minutes || 0), k = Math.max(1, n | 0);
+  const perPage = Math.max(SC_MIN_PP, Math.round(m * SC_CPM / k));
+  const total   = perPage * k;
+  return { perPage, total, realMin: total / SC_CPM };
+}
+/* '기타' 분량 문구에서 분 수를 읽어 봅니다 — "90초" → 1.5, "7분" → 7, "1분 30초" → 1.5. 못 읽으면 null */
+function scParseMinutes(s){
+  s = String(s || "").trim(); if(!s) return null;
+  let min = 0, hit = false;
+  const mm = s.match(/(\d+(?:\.\d+)?)\s*분/); if(mm){ min += +mm[1]; hit = true; }
+  const ss = s.match(/(\d+(?:\.\d+)?)\s*초/); if(ss){ min += +ss[1] / 60; hit = true; }
+  if(!hit){ const n = s.match(/\d+(?:\.\d+)?/); if(n){ min = +n[0]; hit = true; } }
+  return hit && min > 0 ? min : null;
+}
+/* 옵션에서 실제 분 수 — 기타 문구가 있으면 그것을 먼저, 없으면 고른 칩 */
+function scMinutesOf(opts){
+  return scParseMinutes(opts && opts.lengthEtc) || (+(opts && opts.minutes) || 0) || null;
+}
+/* 그 자료의 마지막 쪽 — 뷰어에 열려 있으면 PDF 가 아는 쪽수, 아니면 저장된 쪽수 */
+function scLastPage(d){ return (S.sel === d.id && S.pdf) ? S.pdf.numPages : Math.max(1, d.pages || 1); }
+/* 범위 옵션(page / all / span) → 실제 쪽 번호 목록 (1~last 로 잘라 냅니다) */
+function scPageNosOf(opts, last){
+  const clamp = n => Math.min(Math.max(1, +n || 1), last);
+  if(opts.range === "all") return Array.from({ length: last }, (_, i) => i + 1);
+  if(opts.range === "span"){
+    let a = clamp(opts.from), b = clamp(opts.to); if(a > b){ const t = a; a = b; b = t; }
+    return Array.from({ length: b - a + 1 }, (_, i) => a + i);
+  }
+  return [clamp(opts.page || S.page)];
+}
+
+/* 여러 쪽을 JPEG 로 — pageImageOne 과 같지만 쪽 목록을 받아 PDF 를 한 번만 엽니다.
+   뷰어에 열린 S.pdf 가 그 자료면 그대로 쓰되, 도중에 자료를 바꿔 S.pdf 가 닫히면(getPage 실패)
+   IndexedDB 의 원본을 한 번 열어 남은 쪽을 이어서 만듭니다. AI_IMG_PAGES 를 넘는 쪽은 그림 없이 글자만 갑니다.
+   돌려주는 것: { images:[{mime,data}], pageNos:[그림이 만들어진 실제 쪽 번호…] } — 실패한 쪽은 조용히 빠집니다. */
+async function pageImagesOf(doc, pageNos, onStep){
+  const out = { images:[], pageNos:[] };
+  if(!doc.hasPdf) return out;
+  const want = pageNos.slice(0, AI_IMG_PAGES);
+  let live = (S.pdf && S.sel === doc.id) ? S.pdf : null;   /* 도중에 S.pdf 가 바뀌어도 이 참조를 붙잡아 둡니다 */
+  let own = null;                                            /* 여기서 직접 연 PDF — 끝나면 닫습니다 */
+  const openOwn = async () => {
+    if(own !== null) return own || null;                     /* 이미 열었거나(객체), 원본이 없다고 확인했거나(false) */
+    const rec = await dbGet("files", doc.id);
+    if(!rec || !rec.blob){ own = false; return null; }
+    const buf = await rec.blob.arrayBuffer();
+    own = await pdfjsLib.getDocument({ data: buf }).promise;
+    return own;
+  };
+  try{
+    for(let i = 0; i < want.length; i++){
+      const p = want[i];
+      if(onStep) onStep(i + 1, want.length, p);
+      let img = null;
+      if(live){
+        try{ if(p <= live.numPages) img = await renderPageJpeg(await live.getPage(p)); }
+        catch(e){ live = null; }                           /* 뷰어가 닫혔습니다 — 아래에서 원본을 엽니다 */
+      }
+      if(!img && !live){
+        try{
+          const pdf = await openOwn();
+          if(pdf && p <= pdf.numPages) img = await renderPageJpeg(await pdf.getPage(p));
+        }catch(e){ img = null; }
+      }
+      if(img){ out.images.push(img); out.pageNos.push(p); }
+      await new Promise(r => setTimeout(r, 0));            /* 20장을 내리 그리면 화면이 굳으니 한 번씩 숨을 돌립니다 */
+    }
+  }finally{ if(own){ try{ own.destroy(); }catch(e){} } }
+  return out;
+}
+
+/* 스크립트를 써 달라는 부탁글. pages = [{p, text}] (쓸 수 있는 쪽만), imgPageNos = 그림을 함께 보낸 쪽 번호들 */
+function aiScriptPrompt(doc, pages, opts, imgPageNos, meta){
+  const n      = pages.length;
+  const first  = pages[0].p, last = pages[n - 1].p;
+  const total  = doc.pages || Math.max(last, 1);
+  const multi  = n > 1;
+  const imgSet = new Set(imgPageNos || []);
+  const noImg  = pages.filter(x => !imgSet.has(x.p)).map(x => x.p);
+
+  /* 쪽당 글자 클립 — 쪽이 많을수록 한 쪽에 보내는 글자를 줄이고, 그래도 전체가 textCap 을 넘으면 뒷쪽부터 더 줄입니다 */
+  let per = Math.max(SC_LIM.textMin, Math.floor(SC_LIM.textTotal / n));
+  let bodies = pages.map(x => clip(x.text, per));
+  let sum = bodies.reduce((a, b) => a + b.length, 0), trimmed = false;
+  for(let i = bodies.length - 1; i >= 0 && sum > SC_LIM.textCap; i--){
+    const cut = Math.min(bodies[i].length, sum - SC_LIM.textCap);
+    if(cut > 0){ bodies[i] = clip(bodies[i], Math.max(200, bodies[i].length - cut)); trimmed = true; }
+    sum = bodies.reduce((a, b) => a + b.length, 0);
+  }
+
+  const minutes = scMinutesOf(opts) || 3;
+  const tgt     = scTargetChars(minutes, n);
+  const tones   = (opts.tones || []).filter(Boolean);
+  const toneTxt = [tones.join(", "), String(opts.toneEtc || "").trim()].filter(Boolean).join(" · ") || "전문적인";
+  const rangeTxt = multi ? `${first}p~${last}p (${n}쪽)` : `${first}p 한 쪽`;
+  const lenTxt  = String(opts.lengthEtc || "").trim()
+    ? `분량은 "${String(opts.lengthEtc).trim()}" 로 요청받았습니다 (약 ${minutes}분 · ${tgt.total}자 안팎으로 봅니다).`
+    : `분량은 ${minutes}분 발표, 약 ${tgt.total}자(공백 포함, 분당 ${SC_CPM}자 기준)입니다.`;
+
+  return `당신은 회사 전략담당자의 발표 스크립트 작성 비서입니다.
+아래는 회의자료 "${doc.title}" (${doc.cat} · ${fmtYMW(doc)} · 전체 ${total}p) 가운데 ${rangeTxt} 에서 뽑은 글자${
+  imgSet.size ? `이고, 같은 쪽의 그림도 함께 보냈습니다 (그림이 붙은 쪽: ${[...imgSet].map(p => p + "p").join("·")})` : "입니다"}.
+발표자가 청중에게 이 자료를 발표할 때 쪽마다 실제로 입으로 말할 스크립트를 한국어로 쓰세요.
+결과는 JSON 하나만 출력합니다. JSON 밖에는 인사말·설명·코드펜스를 쓰지 않습니다.
+
+--- 발표 조건 ---
+- 말하는 사람: ${String(opts.speaker || "").trim() || "(미기재 — 자료를 만든 담당자로 가정)"}
+- 듣는 사람: ${String(opts.audience || "").trim() || "(미기재 — 회사 경영진으로 가정)"}
+- 어조: ${toneTxt}
+- ${lenTxt}${multi ? ` 쪽마다 내용의 무게에 따라 나누되 한 쪽은 최소 ${tgt.perPage}자 이상으로 하고, 합계가 목표의 ±15% 안에 들게 합니다.` : " 목표의 ±15% 안에서 끝냅니다."}
+
+--- 결과 틀 (필드 이름을 그대로 지킬 것) ---
+${SC_SHAPE}
+- pages 에는 아래 "쪽별 글자" 에 나온 쪽 번호(p)만, 그 순서대로 하나씩 넣습니다. 빠뜨리거나 없는 쪽을 만들지 않습니다.
+- script 는 그 쪽에서 말할 문장을 문단으로 나눠 \\n 으로 이어 붙인 순수 글자입니다.
+
+--- 문체 규칙 ---
+- 구어체 존댓말(~입니다 / ~습니다)로, 소리 내어 읽었을 때 자연스러운 문장만 씁니다.
+- 마크다운·글머리 기호·제목·번호 목록·별표(**)·등호(==)·괄호 속 무대 지시("(잠시 멈춤)")를 쓰지 않습니다.
+- 자료에 적힌 내용만 말합니다. 자료에 없는 배경·해석·수치를 지어내지 않습니다.
+${AI_NUM_RULES}
+
+--- 흐름 규칙 ---
+${multi
+  ? `- 첫 쪽(${first}p) 앞머리에 짧은 인사와 오늘 발표의 목적을, 마지막 쪽(${last}p) 끝에 짧은 마무리와 감사 인사를 넣습니다.
+- 가운데 쪽들은 "다음으로 …", "이어서 …" 처럼 앞 쪽과 자연스럽게 잇는 말로 시작합니다. 각 쪽의 script 는 그 쪽을 띄워 놓고 말하는 분량입니다.`
+  : `- 한 쪽만 다루므로 인사·마무리 없이 이 쪽의 내용만 말합니다.`}
+
+--- 읽는 법 ---
+- 글자는 PDF 에서 뽑은 것이라 조각의 순서가 섞여 있을 수 있습니다.${imgSet.size ? " 그림이 있는 쪽은 그림 속 표와 항목의 위치를 기준으로 어느 숫자가 어느 항목의 것인지 읽습니다." : ""}
+${noImg.length && imgSet.size ? `- 그림이 없는 쪽(${noImg.map(p => p + "p").join("·")})은 글자만 보고 씁니다.\n` : ""}${
+  (meta && meta.imgCapped) ? `- 그림은 앞 ${AI_IMG_PAGES}쪽까지만 보냈습니다. 나머지 쪽은 글자만 보고 씁니다.\n` : ""}${
+  trimmed ? `- 글자가 많아 뒷쪽 일부는 앞부분만 보냈습니다.\n` : ""}- 글자를 뽑지 못한 쪽은 "(글자 없음 — 그림만 보고 써 주세요)" 로 표시되어 있습니다.
+
+--- 쪽별 글자 ---
+${pages.map((x, i) => `=== ${x.p}p ===\n${bodies[i] || "(글자 없음 — 그림만 보고 써 주세요)"}`).join("\n\n")}`;
+}
+
+/* 답(JSON)에서 { 쪽: 스크립트 } 를 뽑습니다. 요청한 쪽(pageNos)만 받고, 마크다운 찌꺼기는 걷어 냅니다.
+   돌려주는 것: { scripts:{p:글}, cut:boolean } — cut 은 잘린 답을 jsonSalvage 로 살린 경우. 하나도 없으면 null */
+function aiScriptParse(text, pageNos){
+  let s = String(text || "").replace(/^\s*```(?:json)?/i, "").replace(/```\s*$/, "").trim();
+  const i = s.indexOf("{"); if(i < 0) return null;
+  const j = s.lastIndexOf("}");
+  const body = j > i ? s.slice(i, j + 1) : s.slice(i);
+
+  let o, cut = false;
+  try{ o = JSON.parse(body); }
+  catch(e){
+    const fixed = jsonSalvage(body);
+    if(!fixed) return null;
+    try{ o = JSON.parse(fixed); cut = true; }catch(e2){ return null; }
+  }
+  if(!o || typeof o !== "object") return null;
+
+  const want = new Set((pageNos || []).map(Number));
+  const clean = v => {
+    if(typeof v !== "string") return "";
+    let t = v.replace(/\r/g, "")
+      .replace(/\*\*|==|__/g, "")                      /* 강조 마커 */
+      .replace(/^[ \t]*(?:[-*•ㆍ]|\d+[.)])[ \t]+/gm, "") /* 줄 앞 글머리 */
+      .replace(/^#+[ \t]*/gm, "")                       /* 제목 기호 */
+      .replace(/^[ \t]+/gm, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    return t.length > SC_LIM.script ? t.slice(0, SC_LIM.script - 1) + "…" : t;
+  };
+
+  /* pages 배열이 정석이지만, { "14": "…" } 처럼 쪽 번호 키 객체나 맨몸 배열도 받아 줍니다 */
+  const scripts = {};
+  const put = (p, v) => { p = +p; const t = clean(v); if(p > 0 && want.has(p) && t) scripts[p] = t; };
+  const list = Array.isArray(o) ? o : (Array.isArray(o.pages) ? o.pages : null);
+  if(list) list.forEach(r => { if(r && typeof r === "object") put(r.p != null ? r.p : r.page, r.script != null ? r.script : r.text); });
+  else{
+    const src = (o.pages && typeof o.pages === "object") ? o.pages : o;
+    Object.keys(src).forEach(k => { const v = src[k]; put(k, typeof v === "string" ? v : (v && (v.script || v.text))); });
+  }
+  if(!Object.keys(scripts).length) return null;
+  return { scripts, cut };
+}
+
+/* ---- AI 스크립트 만들기 ------------------------------------------------
+   makeAiSum 과 구조는 같지만 완전히 따로입니다. 결과는 S.sc.res 에만 두고 KV 에는 쓰지 않습니다 (Input 이 씁니다).
+   opts = { range:"page"|"all"|"span", page, from, to, speaker, audience, tones:[], toneEtc, minutes, lengthEtc }
+   콘솔에서도 부를 수 있습니다: await makeAiScript(S.sel, { range:"page", page:S.page, minutes:1, tones:["전문적인"] }) */
+async function makeAiScript(docId, opts){
+  const d = DOCS.find(x => x.id === docId);
+  if(!d || !aiSumReady() || S.sc.busy) return;
+  opts = Object.assign({ range:"page", tones:[] }, opts || {});
+
+  const pageNos = scPageNosOf(opts, scLastPage(d));
+
+  S.sc.busy = docId; S.sc.docId = docId; S.sc.opts = opts; S.sc.err = ""; S.sc.step = "";
+  /* 마지막에 쓴 발표자·청중·어조·분량은 실패해도 기억해 둡니다 (범위는 매번 '이 p만' 부터) */
+  KV.scriptOpts = { speaker: opts.speaker || "", audience: opts.audience || "", tones: (opts.tones || []).slice(),
+                    toneEtc: opts.toneEtc || "", minutes: opts.minutes || null, lengthEtc: opts.lengthEtc || "" };
+  saveKV("scriptOpts");
+  /* pane 이 참일 때만 오른쪽 패널도 다시 그립니다 — 그림 20장 루프 안에서 매번 #rbody 를 갈아 끼우면
+     사용자가 Edit 중인 글상자의 커서가 튀므로, 단계 경계에서만 그립니다 */
+  const step = (t, pane) => {
+    S.sc.step = t;
+    if(S.sc.open) renderAiScript();
+    if(pane && S.sel === docId) renderRight();
+  };
+  step("준비 중", true);
+  try{
+    const pages = pageNos.map(p => ({ p, text: String((d.pageTexts || [])[p - 1] || "") }));
+
+    /* 1) 그 쪽들의 그림 — 실패해도 멈추지 않고 글자만 보냅니다 */
+    let imgs = { images:[], pageNos:[] };
+    if(d.hasPdf){
+      step(`p 그림을 만드는 중 (0/${Math.min(pageNos.length, AI_IMG_PAGES)})`, true);
+      try{ imgs = await pageImagesOf(d, pageNos, (i, n) => step(`p 그림을 만드는 중 (${i}/${n})`, false)); }
+      catch(e){ imgs = { images:[], pageNos:[] }; }
+    }
+    const imgSet = new Set(imgs.pageNos);
+    const usable = pages.filter(x => x.text.trim() || imgSet.has(x.p));
+    const skipped = pages.filter(x => !(x.text.trim() || imgSet.has(x.p))).map(x => x.p);
+    if(!usable.length){
+      if(!d.hasPdf)
+        throw new Error((pageNos.length > 1 ? "이 쪽들은" : "이 쪽은") + " 글자를 뽑지 못했고 PDF 원본도 없습니다. " +
+                        "설정에서 ‘PDF 원본까지 저장’ 으로 바꾼 뒤 같은 파일을 다시 올려 주세요.");
+      throw new Error((pageNos.length > 1 ? "이 쪽들은" : "이 쪽은") + " 글자를 뽑지 못했고 p 그림도 만들지 못했습니다. 다시 시도해 주세요.");
+    }
+
+    /* 2) 제미나이에게 */
+    step("AI가 스크립트를 쓰는 중", true);
+    const prompt = aiScriptPrompt(d, usable, opts, imgs.pageNos, { imgCapped: pageNos.length > AI_IMG_PAGES });
+    const aiOpts = { json:true, images: imgs.images, pageNos: imgs.pageNos,
+                     timeout: imgs.images.length ? AI_IMG_TIMEOUT : AI_TIMEOUT };
+    let r;
+    try{ r = await callAINote(prompt, aiOpts); }
+    catch(err){ if(err && err.status === 400) r = await callAINote(prompt, Object.assign({}, aiOpts, { json:false })); else throw err; }
+
+    const parsed = aiScriptParse(r.text, usable.map(x => x.p));
+    if(!parsed) throw new Error("AI가 스크립트 틀을 지키지 못했습니다. 다시 시도해 주세요.");
+
+    /* 3) 결과는 화면 상태에만 — Input 을 눌러야 KV.scripts 로 갑니다 */
+    S.sc.res = {
+      docId, pageNos: usable.map(x => x.p), scripts: parsed.scripts, skipped, cut: parsed.cut,
+      at: new Date().toISOString(), model: r.model,
+      src: imgs.images.length ? "text+image" : "text", imgCapped: pageNos.length > AI_IMG_PAGES,
+      opts: Object.assign({}, opts)
+    };
+    S.sc.view = "result";
+    toast(`AI 스크립트를 만들었습니다 (${Object.keys(parsed.scripts).length}쪽 · ${r.model})`);
+  }catch(err){
+    S.sc.err = err.message || String(err);
+    S.sc.view = "opts";
+    if(!S.sc.open) toast("AI 스크립트 실패 — " + S.sc.err);
+  }finally{
+    S.sc.busy = null; S.sc.step = "";
+    if(S.sc.open) renderAiScript();
+    if(S.sel === docId) renderRight();
+  }
+}
+
 /* ---- AI NOTE 모달 — 만든 회의록을 흰 시트 한 장으로 보여 줍니다 ---------
    머리칸의 EDIT 를 누르면 세 섹션이 폼으로 바뀌고, 저장하면 IndexedDB 까지 갑니다.
    COPY/EXPORT/REGENERATE/TASKS(8단계) 는 아직 자리만 잡아 두고 눌리지 않게 막아 두었습니다.
@@ -8604,6 +8959,268 @@ function closeAiNote(){
   const back = $(".annote .genmini");      /* 포커스를 열었던 자리로 되돌립니다 */
   if(back && !back.disabled) back.focus();
 }
+
+/* ---- AI SCRIPT 팝업 — 옵션 화면(view:"opts") ↔ 결과 화면(view:"result") ----------
+   본문(#scbody)·아래줄(#scfoot)은 renderAiScript() 가 S.sc 를 보고 통째로 다시 그립니다.
+   옵션 화면의 칩·글칸은 S.sc.opts 에 바로 반영되고(제자리 토글 — 통째로 다시 그리면 초점이 날아갑니다),
+   결과 화면의 글상자는 고칠 때마다 S.sc.res.scripts 에 반영되어 ‹ 옵션 으로 갔다 와도, 닫았다 열어도 남습니다. */
+function scDefaultOpts(page){
+  const k = KV.scriptOpts || {};
+  return {
+    range:"page", page, from:page, to:page,
+    speaker: String(k.speaker || ""), audience: String(k.audience || ""),
+    tones: Array.isArray(k.tones) ? k.tones.filter(t => SC_TONES.includes(t)) : [],
+    toneEtc: String(k.toneEtc || ""),
+    minutes: SC_LENGTHS.includes(+k.minutes) ? +k.minutes : (k.lengthEtc ? null : 3),
+    lengthEtc: String(k.lengthEtc || "")
+  };
+}
+function openAiScript(docId, page){
+  const d = DOCS.find(x => x.id === docId);
+  if(!d) return;
+  if(!aiSumReady()){ toast("설정 › AI NOTE (제미나이) 에 API 키를 넣으면 켜집니다"); return; }
+  if(S.sc.busy && S.sc.busy !== docId){ toast("다른 자료의 스크립트를 만드는 중입니다"); return; }
+  if(S.sc.docId !== docId){ S.sc.res = null; S.sc.err = ""; S.sc.opts = null; S.sc.view = "opts"; }
+  S.sc.docId = docId; S.sc.page = page;
+  if(!S.sc.opts) S.sc.opts = scDefaultOpts(page);
+  else{ S.sc.opts.page = page; if(S.sc.opts.range === "page"){ S.sc.opts.from = page; S.sc.opts.to = page; } }
+  if(S.sc.res && !S.sc.busy) S.sc.view = "result";
+  S.sc.open = true;
+  renderAiScript();
+  $("#aiscriptbg").classList.add("on");
+  setTimeout(() => { const f = $("#sc-speaker") || $("#scx"); if(f) f.focus(); }, 30);
+}
+function closeAiScript(){
+  if(S.sc.open && S.sc.view === "opts") readScOpts();
+  S.sc.open = false;
+  $("#aiscriptbg").classList.remove("on");
+}
+/* 옵션 화면의 글칸 값을 S.sc.opts 로 — 칩(범위·어조·분량)은 누를 때 이미 반영되어 있습니다 */
+function readScOpts(){
+  const o = S.sc.opts; if(!o) return o;
+  const v = id => { const el = $("#" + id); return el ? el.value : null; };
+  if(v("sc-speaker")  != null) o.speaker  = v("sc-speaker");
+  if(v("sc-audience") != null) o.audience = v("sc-audience");
+  if(v("sc-toneetc")  != null) o.toneEtc  = v("sc-toneetc");
+  if(v("sc-lenetc")   != null) o.lengthEtc = v("sc-lenetc");
+  if(v("sc-from")     != null) o.from = +v("sc-from") || o.from;
+  if(v("sc-to")       != null) o.to   = +v("sc-to")   || o.to;
+  return o;
+}
+const scFmtSec = sec => sec >= 60 ? `${Math.floor(sec / 60)}분 ${String(sec % 60).padStart(2, "0")}초` : `${sec}초`;
+/* 분량 힌트 — "6쪽 · 5분 → 쪽당 약 225자 (약 50초)" */
+function scHintText(o, last){
+  const n = scPageNosOf(o, last).length, min = scMinutesOf(o);
+  if(!min) return "분량을 고르거나 기타에 적어 주세요 (예: 90초, 7분)";
+  const t = scTargetChars(min, n);
+  const real = Math.abs(t.realMin - min) > 0.05 ? ` — 쪽당 최소 ${SC_MIN_PP}자를 지키면 실제 약 ${scFmtSec(Math.round(t.realMin * 60))}` : "";
+  return `${n}쪽 · ${scFmtSec(Math.round(min * 60))} → 쪽당 약 ${t.perPage}자 (${scFmtSec(Math.round(t.perPage / SC_CPM * 60))})${real}`;
+}
+function scUpdateHint(){
+  const d = DOCS.find(x => x.id === S.sc.docId), h = $("#sc-lenhint");
+  if(d && h && S.sc.opts) h.textContent = scHintText(S.sc.opts, scLastPage(d));
+}
+function renderAiScript(){
+  const d = DOCS.find(x => x.id === S.sc.docId);
+  if(!d){ closeAiScript(); return; }
+  const o    = S.sc.opts || (S.sc.opts = scDefaultOpts(S.sc.page));
+  const last = scLastPage(d);
+  const busy = S.sc.busy === d.id;
+  const res  = (S.sc.res && S.sc.res.docId === d.id) ? S.sc.res : null;
+  $("#scwho").textContent = `— ${d.title}`;
+  const body = $("#scbody"), foot = $("#scfoot");
+  const busyBox = busy ? `<div class="aibusy">${esc(S.sc.step || "준비 중")} — 창을 닫아도 계속 만듭니다. 끝나면 알려 드립니다.</div>` : "";
+
+  if(S.sc.view === "result" && res){
+    const opt = res.opts || {};
+    const toneTxt = [(opt.tones || []).join(", "), String(opt.toneEtc || "").trim()].filter(Boolean).join(" · ") || "전문적인";
+    const lenTxt  = String(opt.lengthEtc || "").trim() || (opt.minutes ? `${opt.minutes}분` : "");
+    const first = res.pageNos[0], lastP = res.pageNos[res.pageNos.length - 1];
+    const missing = res.pageNos.filter(p => !res.scripts[p]);
+    const scripted = scriptsOf(d.id);
+    body.innerHTML = `
+      ${busyBox}
+      <div class="scmeta">
+        <b>${first === lastP ? `${first}p` : `${first}p~${lastP}p`}</b> · ${res.pageNos.length}쪽 · 생성 ${anWhen(res.at)}${res.model ? ` · ${esc(res.model)}` : ""}
+        · ${res.src === "text" ? "글자만" : "글자+그림"}${res.imgCapped ? ` (그림은 앞 ${AI_IMG_PAGES}쪽까지)` : ""}<br>
+        ${esc(opt.speaker || "(발표자 미기재)")} → ${esc(opt.audience || "(청중 미기재)")} · ${esc(toneTxt)}${lenTxt ? ` · ${esc(lenTxt)}` : ""}
+      </div>
+      ${res.skipped && res.skipped.length ? `<div class="tip">글자·그림을 뽑지 못해 건너뛴 쪽: ${res.skipped.map(p => p + "p").join(", ")}</div>` : ""}
+      ${res.cut ? `<div class="tip">내용이 많아 답이 중간에 끊겼습니다 — 뒷쪽은 비어 있을 수 있습니다. 범위를 줄여 다시 만들어 보세요.</div>` : ""}
+      ${missing.length ? `<div class="tip">AI 가 쓰지 않은 쪽: ${missing.map(p => p + "p").join(", ")} — 비워 두면 Input 때 건너뜁니다.</div>` : ""}
+      ${res.pageNos.map(p => {
+        const t = res.scripts[p] || "", chars = stripHtml(t).replace(/\s+/g, " ").trim().length;
+        return `<div class="scres">
+          <div class="scph">${p}p <span class="n" data-scn="${p}">${chars ? `약 ${chars}자 · ${scFmtSec(Math.round(chars / SC_CPM * 60))}` : "비어 있음 — Input 때 건너뜁니다"}</span>${
+            scHas(scripted[p]) ? `<span class="has" title="Input 을 누르면 덮어쓸지 물어봅니다">이미 있음</span>` : "" }</div>
+          <div class="sum${t ? "" : " miss"}" contenteditable="${busy ? "false" : "true"}" data-scbox="${p}"
+            data-placeholder="비워 두면 이 쪽은 건너뜁니다">${toEditableHtml(t)}</div>
+        </div>`; }).join("")}
+      <div class="tip">글상자에서 바로 고칠 수 있습니다. <b>Input</b> 을 누르면 오른쪽 Script 탭의 각 p 글상자에 들어갑니다.</div>`;
+    foot.innerHTML = `
+      <button class="ghostbtn" data-sc="toopts">‹ 옵션</button>
+      <button class="ghostbtn" data-sc="regen"${busy ? " disabled" : ""}>다시 만들기</button>
+      <button class="primarybtn" data-sc="input"${busy ? " disabled" : ""}>Input</button>`;
+    return;
+  }
+
+  /* 옵션 화면 */
+  const chip = (cls, on, data, label) => `<button type="button" class="${cls}${on ? " on" : ""}" ${data}${busy ? " disabled" : ""}>${label}</button>`;
+  body.innerHTML = `
+    ${busyBox}
+    ${(S.sc.err && !busy) ? `<div class="aierr">✕ ${esc(S.sc.err)}</div>` : ""}
+    <div class="mrow" style="padding-top:0">
+      <div class="lbl">범위</div>
+      <div class="scchips">
+        ${chip("sctog", o.range === "page", `data-scrange="page"`, `이 p만 (${S.sc.page}p)`)}
+        ${chip("sctog", o.range === "all",  `data-scrange="all"`,  `전체 (1~${last}p)`)}
+        ${chip("sctog", o.range === "span", `data-scrange="span"`, `범위`)}
+        <span class="scrange"${o.range === "span" ? "" : " hidden"}>
+          <input type="number" id="sc-from" min="1" max="${last}" value="${Math.min(Math.max(1, +o.from || 1), last)}"${busy ? " disabled" : ""}> ~
+          <input type="number" id="sc-to"   min="1" max="${last}" value="${Math.min(Math.max(1, +o.to || 1), last)}"${busy ? " disabled" : ""}> p
+        </span>
+      </div>
+    </div>
+    <div class="mrow">
+      <div class="lbl">Speaker — 말하는 사람</div>
+      <input type="text" id="sc-speaker" value="${esc(o.speaker)}" placeholder="예: 물류본부장" autocomplete="off"${busy ? " disabled" : ""}>
+    </div>
+    <div class="mrow">
+      <div class="lbl">Audience — 듣는 사람</div>
+      <input type="text" id="sc-audience" value="${esc(o.audience)}" placeholder="예: 대표이사 · 임원진" autocomplete="off"${busy ? " disabled" : ""}>
+    </div>
+    <div class="mrow">
+      <div class="lbl">Tone — 어조 (여러 개 고를 수 있습니다)</div>
+      <div class="scchips">
+        ${SC_TONES.map(t => chip("sctog", o.tones.includes(t), `data-sctone="${esc(t)}"`, esc(t))).join("")}
+        <input class="etc" type="text" id="sc-toneetc" value="${esc(o.toneEtc)}" placeholder="기타 — 직접 적기" autocomplete="off"${busy ? " disabled" : ""}>
+      </div>
+    </div>
+    <div class="mrow">
+      <div class="lbl">Length — 분량</div>
+      <div class="scchips">
+        ${SC_LENGTHS.map(m => chip("sctog", o.minutes === m && !String(o.lengthEtc || "").trim(), `data-sclen="${m}"`, `${m}분`)).join("")}
+        <input class="etc" type="text" id="sc-lenetc" value="${esc(o.lengthEtc)}" placeholder="기타 — 예: 90초, 7분" autocomplete="off"${busy ? " disabled" : ""}>
+      </div>
+      <div class="schint" id="sc-lenhint">${esc(scHintText(o, last))}</div>
+    </div>`;
+  foot.innerHTML = `
+    <span class="left">${d.hasPdf ? "PDF 원본이 있어 p 그림도 함께 보냅니다" : "PDF 원본이 없어 글자만 보냅니다"}</span>
+    ${res ? `<button class="ghostbtn" data-sc="toresult">결과 보기 ›</button>` : ""}
+    <button class="ghostbtn" data-sc="cancel">취소</button>
+    <button class="primarybtn" data-sc="gen"${busy ? " disabled" : ""}>생성</button>`;
+}
+/* 생성 — 폼을 읽어 확인하고 makeAiScript 를 부릅니다 */
+function scGenerate(){
+  const d = DOCS.find(x => x.id === S.sc.docId); if(!d || S.sc.busy) return;
+  const o = readScOpts(); if(!o) return;
+  o.page = S.sc.page;
+  if(!scMinutesOf(o)){ toast("분량을 고르거나 기타에 적어 주세요 (예: 90초, 7분)"); const f = $("#sc-lenetc"); if(f) f.focus(); return; }
+  const last = scLastPage(d);
+  if(o.range === "span" && !(o.from >= 1 && o.from <= last && o.to >= 1 && o.to <= last)){
+    toast(`쪽 번호는 1~${last} 사이여야 합니다`); const f = $("#sc-from"); if(f) f.focus(); return;
+  }
+  const n = scPageNosOf(o, last).length;
+  if(n > AI_IMG_PAGES && !confirm(`${n}쪽을 한 번에 보냅니다 — 시간이 오래 걸리고, 그림은 앞 ${AI_IMG_PAGES}쪽까지만 함께 갑니다.\n계속할까요?`)) return;
+  S.sc.err = "";
+  makeAiScript(d.id, Object.assign({}, o, { tones: o.tones.slice() }));
+}
+/* Input — 결과 글상자의 글을 KV.scripts[자료 id][p] 에 넣습니다 (이미 있는 쪽은 한 번 물어보고 덮어씀) */
+function scInput(){
+  const res = S.sc.res; if(!res || S.sc.busy) return;
+  const d = DOCS.find(x => x.id === res.docId);
+  if(!d){ toast("그 자료가 이제 없습니다"); return; }
+  /* 화면의 글상자를 한 번 더 읽습니다 — input 이벤트가 빠진 경우(붙여넣기 등)에 대비 */
+  $$("#scbody [data-scbox]").forEach(box => { res.scripts[+box.dataset.scbox] = normalizeSumHtml(box.innerHTML); });
+  const cur   = Object.assign({}, KV.scripts[d.id]);
+  const pages = res.pageNos.filter(p => scHas(res.scripts[p]));
+  if(!pages.length){ toast("넣을 스크립트가 없습니다"); return; }
+  const clash = pages.filter(p => scHas(cur[p]));
+  if(clash.length && !confirm(`${clash.map(p => p + "p").join(" · ")} 에 이미 스크립트가 있습니다.\nAI 스크립트로 덮어쓸까요?`)) return;
+  pages.forEach(p => { cur[p] = normalizeSumHtml(res.scripts[p]); });
+  KV.scripts[d.id] = cur; saveKV("scripts");
+  closeAiScript();
+  S.editS = false;
+  if(S.sel === d.id){
+    renderRight();
+    if(pages.length === 1 && pages[0] !== S.page) scGo(pages[0]);
+  }
+  toast(`${pages.length === 1 ? pages[0] + "p" : pages.length + "쪽"}에 스크립트를 넣었습니다`);
+}
+$("#scx").onclick = closeAiScript;
+$("#aiscriptbg").addEventListener("click", e => {
+  if(e.target.id === "aiscriptbg"){ closeAiScript(); return; }
+  const o = S.sc.opts;
+  const rg = e.target.closest("[data-scrange]");
+  if(rg && o){ readScOpts(); o.range = rg.dataset.scrange; renderAiScript(); return; }   /* from~to 칸을 보이거나 감추므로 다시 그립니다 */
+  const tn = e.target.closest("[data-sctone]");
+  if(tn && o){
+    const t = tn.dataset.sctone, i = o.tones.indexOf(t);
+    if(i < 0) o.tones.push(t); else o.tones.splice(i, 1);
+    tn.classList.toggle("on", i < 0);
+    return;
+  }
+  const ln = e.target.closest("[data-sclen]");
+  if(ln && o){
+    o.minutes = +ln.dataset.sclen; o.lengthEtc = "";
+    const et = $("#sc-lenetc"); if(et) et.value = "";
+    $$("#scbody [data-sclen]").forEach(b => b.classList.toggle("on", +b.dataset.sclen === o.minutes));
+    scUpdateHint();
+    return;
+  }
+  const act = e.target.closest("[data-sc]");
+  if(!act) return;
+  switch(act.dataset.sc){
+    case "cancel":   closeAiScript(); break;
+    case "toresult": readScOpts(); S.sc.view = "result"; renderAiScript(); break;
+    case "toopts":   S.sc.view = "opts"; renderAiScript(); break;
+    case "gen":      scGenerate(); break;
+    case "regen":    if(S.sc.res && !S.sc.busy) makeAiScript(S.sc.docId, Object.assign({}, S.sc.res.opts)); break;
+    case "input":    scInput(); break;
+  }
+});
+/* 글칸은 적는 대로 S.sc 에 반영합니다 — 다시 그려도(‹ 옵션 · 닫았다 열기) 적은 것이 남도록 */
+$("#aiscriptbg").addEventListener("input", e => {
+  const t = e.target, o = S.sc.opts;
+  if(t.dataset && t.dataset.scbox){
+    if(!S.sc.res) return;
+    const p = +t.dataset.scbox, v = normalizeSumHtml(t.innerHTML);
+    S.sc.res.scripts[p] = v;
+    t.classList.toggle("miss", !scHas(v));
+    const n = $(`#scbody [data-scn="${p}"]`);
+    if(n){ const chars = stripHtml(v).replace(/\s+/g, " ").trim().length;
+           n.textContent = chars ? `약 ${chars}자 · ${scFmtSec(Math.round(chars / SC_CPM * 60))}` : "비어 있음 — Input 때 건너뜁니다"; }
+    return;
+  }
+  if(!o) return;
+  if(t.id === "sc-speaker")  o.speaker  = t.value;
+  else if(t.id === "sc-audience") o.audience = t.value;
+  else if(t.id === "sc-toneetc")  o.toneEtc  = t.value;
+  else if(t.id === "sc-lenetc"){
+    o.lengthEtc = t.value;
+    if(t.value.trim()){ o.minutes = null; $$("#scbody [data-sclen]").forEach(b => b.classList.remove("on")); }
+    scUpdateHint();
+  }
+  else if(t.id === "sc-from" || t.id === "sc-to"){
+    o.from = +($("#sc-from") || {}).value || o.from; o.to = +($("#sc-to") || {}).value || o.to;
+    scUpdateHint();
+  }
+});
+/* 결과 글상자 — Enter 는 줄바꿈 글자로, 붙여넣기는 글자만 (오른쪽 패널 글상자와 같은 규칙) */
+$("#aiscriptbg").addEventListener("keydown", e => {
+  const t = e.target;
+  if(!(t.dataset && t.dataset.scbox && t.isContentEditable)) return;
+  if(e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey){
+    e.preventDefault();
+    document.execCommand("insertText", false, "\n");
+  }
+});
+$("#aiscriptbg").addEventListener("paste", e => {
+  const t = e.target;
+  if(!(t.dataset && t.dataset.scbox && t.isContentEditable)) return;
+  e.preventDefault();
+  document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
+});
 
 /* ---- 8단계 : COPY · EXPORT(인쇄) · REGENERATE · TASKS로 보내기 --------
    전부 '지금 열려 있는 노트'(S.anOpen) 하나만 다룹니다. 고치는 중(S.anEdit)이거나
@@ -11258,6 +11875,7 @@ document.addEventListener("keydown", e => {
     if(!$("#dwpop").hidden){ $("#dwpop").hidden = true; return; }
     if(window.drawActive && window.drawActive()){ window.drawExit && window.drawExit(); return; }
     if($("#ainotebg").classList.contains("on")){ if(S.anEdit) anCancelEdit(); else closeAiNote(); }
+    else if($("#aiscriptbg").classList.contains("on")) closeAiScript();
     else if($("#atvbg").classList.contains("on")) closeAtView();
     else if($("#atbg").classList.contains("on")) closeAttach();
     else if($("#ageditbg").classList.contains("on")) closeAgEdit();
