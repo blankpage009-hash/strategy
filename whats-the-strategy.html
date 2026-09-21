@@ -1352,6 +1352,12 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-radius:0;background:var(--panel);color:var(--muted);font-size:12px;cursor:pointer;}
 .cmrow .del:hover{border-color:var(--bad);color:var(--bad);}
 /* ---------- 자료 관리(Manage) ---------- */
+#mgfilters{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:10px;padding-bottom:10px;
+  border-bottom:1px solid var(--hairline);}
+.mgfgroup{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.mgflabel{flex:0 0 auto;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--muted);}
+.mgfsel{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;background:#fff;font-size:12px;}
+.mgfsel:focus{border-color:var(--accent);}
 #mgtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
 #mgsearch{flex:1 1 180px;min-width:0;height:32px;padding:0 9px;border:1px solid var(--line);
   border-radius:0;background:var(--panel);font-size:13px;}
@@ -2132,6 +2138,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
         이름·회의 종류·날짜는 <b>고치는 즉시 저장</b>됩니다.
         종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
+      </div>
+      <div id="mgfilters">
+        <div class="mgfgroup"><span class="mgflabel">종류</span><select class="mgfsel" id="mgfcat"></select></div>
+        <div class="mgfgroup"><span class="mgflabel">연도</span><select class="mgfsel" id="mgfyear"></select></div>
+        <div class="mgfgroup"><span class="mgflabel">월</span><select class="mgfsel" id="mgfmonth"></select></div>
       </div>
       <div id="mgtools">
         <input id="mgsearch" type="search" placeholder="이름으로 걸러내기" autocomplete="off">
@@ -5359,11 +5370,36 @@ const mgYearOptions = cur => {
 const mgMeta = d =>
   `${d.pages || 1}p${d.hasPdf ? "" : " · 글자만"}${noteOf(d) ? " · 회의록 있음" : ""}`;
 
+/* ---- 상단 필터 드롭다운 — 종류 · 연도 · 월 (하나씩 고릅니다, 기본은 전체) ---- */
+function mgCatList(){
+  const set = new Set(KV.cats);
+  DOCS.forEach(d => { if(d.cat) set.add(d.cat); });
+  return Array.from(set);
+}
+function mgYearList(){
+  const ys = new Set();
+  DOCS.forEach(d => { const y = yearOf(d); if(y) ys.add(y); });
+  return Array.from(ys).sort((a, b) => b.localeCompare(a));
+}
+function mgFilterSelects(){
+  const fill = (id, list, label) => {
+    const el = $(id), cur = el.value;
+    el.innerHTML = `<option value="">전체</option>` + list.map(v => sel(v, cur, label(v))).join("");
+  };
+  fill("#mgfcat",   mgCatList(),  v => v);
+  fill("#mgfyear",  mgYearList(), v => v + "년");
+  fill("#mgfmonth", Array.from({ length: 12 }, (_, i) => String(i + 1)), v => v + "월");
+}
+
 function mgRows(){
   const q = ($("#mgsearch").value || "").trim().toLowerCase();
   const nopdf = $("#mgnopdf").checked;
+  const fcat = $("#mgfcat").value, fyear = $("#mgfyear").value, fmonth = $("#mgfmonth").value;
   return DOCS
     .filter(d => !nopdf || !d.hasPdf)
+    .filter(d => !fcat   || (d.cat || "") === fcat)
+    .filter(d => !fyear  || yearOf(d) === fyear)
+    .filter(d => !fmonth || String(monthOf(d)) === fmonth)
     .filter(d => !q || (d.title || "").toLowerCase().includes(q)
                     || (d.cat   || "").toLowerCase().includes(q))
     .slice()
@@ -5387,6 +5423,7 @@ function mgSyncSel(){
 }
 
 function mgRender(){
+  mgFilterSelects();
   const rows = mgRows();
   $("#mgcount").textContent = `자료 ${DOCS.length}개${rows.length !== DOCS.length ? ` · ${rows.length}개 표시` : ""}`;
   $("#mglist").innerHTML = rows.length
@@ -5430,6 +5467,7 @@ async function mgSaveDoc(d){
 function openManage(){
   $("#mgsearch").value = "";
   $("#mgnopdf").checked = false;
+  $("#mgfcat").innerHTML = $("#mgfyear").innerHTML = $("#mgfmonth").innerHTML = "";
   mgRender();
   $("#managebg").classList.add("on");
 }
@@ -5445,6 +5483,9 @@ $("#mgdone").onclick     = closeManage;
 $("#managebg").addEventListener("click", e => { if(e.target.id === "managebg") closeManage(); });
 $("#mgsearch").addEventListener("input", mgRender);
 $("#mgnopdf").addEventListener("change", mgRender);
+$("#mgfcat").addEventListener("change", mgRender);
+$("#mgfyear").addEventListener("change", mgRender);
+$("#mgfmonth").addEventListener("change", mgRender);
 $("#mgall").onchange = () => {
   const on = $("#mgall").checked;
   $$("#mglist .mgchk").forEach(c => c.checked = on);
