@@ -5574,6 +5574,16 @@ $("#btn-thumbs").onclick = () => toggleThumbs();
 $("#thumbs").addEventListener("click", e => {
   const t = e.target.closest(".thumb"); if(t) goPage(+t.dataset.p);
 });
+/* 왼쪽 쪽 목록에 초점이 있을 때 ↑↓ 로 이전/다음 쪽 — 목록이 세로라 좌우보다 자연스럽습니다 */
+$("#thumbs").addEventListener("keydown", e => {
+  if(!S.pdf) return;
+  if(e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+  e.preventDefault();
+  const p = Math.min(S.pdf.numPages, Math.max(1, S.page + (e.key === "ArrowDown" ? 1 : -1)));
+  goPage(p);
+  const t = $(`#thumbs .thumb[data-p="${p}"]`);
+  if(t) t.focus();
+});
 /* 마우스 휠로 쪽 넘기기 — 아래로 굴리면 다음 장, 위로 굴리면 이전 장.
    확대해서 자료가 화면보다 클 때는 먼저 위아래로 움직이고, 끝에 닿으면 다음(이전) 장으로 갑니다. */
 (function wheelPage(){
