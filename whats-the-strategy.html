@@ -170,15 +170,12 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
 }
 .cmdlabel{flex:0 0 auto;margin-right:4px;font-size:10px;font-weight:800;
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
-/* Filter 막대 접기 / 펴기 — 왼쪽 패널 접기 단추와 같은 모양 */
-#filtertoggle{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;justify-content:center;
-  border:none;background:none;color:var(--muted);padding:2px;border-radius:0;}
-#filtertoggle svg{display:block;transition:transform .15s;}
-#filtertoggle:hover{color:var(--accent-ink);}
-body.filter-collapsed #filtertoggle svg{transform:rotate(180deg);}
-/* 접으면 토글만 남기고 막대를 얇게 줄입니다 */
-body.filter-collapsed #cmdbar{height:20px;}
-body.filter-collapsed #cmdbar > :not(#filtertoggle){display:none;}
+/* 우선 모델(제미나이) 선택 — Filter 막대 오른쪽 끝 */
+#topmodellabel{flex:0 0 auto;margin-left:auto;}
+#topmodel{flex:0 0 auto;height:24px;max-width:180px;padding:0 6px;margin-right:-10px;
+  border:2px solid var(--line);border-radius:0;background:var(--panel2);color:var(--muted);
+  font-size:11px;font-weight:700;}
+#topmodel:hover{border-color:var(--accent);color:var(--accent-ink);}
 #cats{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none;}
 #cats::-webkit-scrollbar{display:none;}
 /* 회의 종류 칩 — 눌러서 켜고 끕니다 */
@@ -1804,13 +1801,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <path d="M12 5v14M5 12h14"/>
     </svg>
   </button>
-  <button id="filtertoggle" type="button" title="Filter 막대 접기 / 펴기"
-          aria-label="Filter 막대 접기 / 펴기" aria-expanded="true">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-      <path d="M5 14l7-7 7 7"/>
-    </svg>
-  </button>
+  <span class="cmdlabel" id="topmodellabel">AI Model</span>
+  <select id="topmodel" title="우선 모델 (제미나이)" aria-label="우선 모델 (제미나이)"></select>
 </div>
 
 <div id="catmenu" role="menu"></div>
@@ -2876,8 +2868,6 @@ const KV_DEFAULT = {
   pencil:false,
   /* 그리기 도구 막대 — 평소엔 접어 둡니다 ("shown" 이면 펴 둡니다) */
   drawUI:"hidden",
-  /* 회의 종류 거르개(Filter 막대) — 평소엔 펴 둡니다 ("hidden" 이면 접어 둡니다) */
-  filterUI:"shown",
   /* 동기화(GitHub) — 이 기기에만 두는 값입니다. syncToken · syncPass 는 절대 올리지 않습니다.
      syncSalt 는 crypto.json 의 salt 를 기기에 캐시해 둔 것으로, 인터넷 없이도 앱 시작 때 열쇠를 다시 유도하기 위한 것입니다. */
   syncOwner:"", syncRepo:"", syncToken:"", syncPass:"", syncSalt:"", syncOn:false,
@@ -5775,21 +5765,38 @@ $("#drawtoggle").onclick = () => {
   applyDrawUI();
 };
 
-/* 회의 종류 거르개(Filter 막대) — 펴기 / 접기 (기기별로 유지) */
-function applyFilterUI(){
-  const shown = KV.filterUI !== "hidden";
-  document.body.classList.toggle("filter-collapsed", !shown);
-  const t = $("#filtertoggle");
-  if(t){
-    t.setAttribute("aria-expanded", shown ? "true" : "false");
-    t.title = shown ? "Filter 막대 접기" : "Filter 막대 펴기";
+/* Filter 막대 오른쪽 끝 — 우선 모델(제미나이) 드롭다운.
+   설정 화면의 우선 모델(KV.aiModel) 과 같은 값을 씁니다. */
+let topModelLoaded = false;
+function syncTopModel(){
+  const sel = $("#topmodel"); if(!sel) return;
+  const cur = String(KV.aiModel || "").trim() || KV_DEFAULT.aiModel;
+  if(![...sel.options].some(o => o.value === cur)){
+    sel.insertAdjacentHTML("beforeend", `<option value="${esc(cur)}">${esc(cur)}</option>`);
   }
+  sel.value = cur;
 }
-$("#filtertoggle").onclick = () => {
-  KV.filterUI = (KV.filterUI === "hidden") ? "shown" : "hidden";
-  saveKV("filterUI");
-  applyFilterUI();
-};
+async function ensureTopModelList(){
+  if(topModelLoaded) return;
+  if(String(KV.aiKey || "").trim().length < 10) return;
+  topModelLoaded = true;
+  try{
+    const names = await listModels();
+    const sel = $("#topmodel");
+    sel.innerHTML = names.slice(0, 24).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    syncTopModel();
+  }catch(err){ topModelLoaded = false; }
+}
+$("#topmodel").addEventListener("mousedown", ensureTopModelList);
+$("#topmodel").addEventListener("focus", ensureTopModelList);
+$("#topmodel").addEventListener("change", e => {
+  KV.aiModel = e.target.value.trim() || KV_DEFAULT.aiModel; saveKV("aiModel");
+  $("#set-model").value = KV.aiModel;
+  $("#an-model").value  = KV.aiModel;
+  $$("#modellist button").forEach(x => x.classList.toggle("on", x.dataset.m === KV.aiModel));
+  $$("#an-modellist button").forEach(x => x.classList.toggle("on", x.dataset.m === KV.aiModel));
+  toast(`모델을 ${KV.aiModel} 로 바꿨습니다`);
+});
 
 /* 가운데 화면이 좁아지면 툴바를 아이콘만 남깁니다.
    (사이드바를 펼쳤을 때도 좁아지므로 창 크기가 아니라 가운데 너비를 봅니다) */
@@ -7391,6 +7398,7 @@ $("#modellist").addEventListener("click", e => {
   KV.aiModel = b.dataset.m; saveKV("aiModel");
   $("#set-model").value = KV.aiModel;
   $$("#modellist button").forEach(x => x.classList.toggle("on", x.dataset.m === KV.aiModel));
+  syncTopModel();
   $("#aitest").className = ""; $("#aitest").textContent = "";
   toast(`모델을 ${KV.aiModel} 로 바꿨습니다`);
 });
@@ -10044,6 +10052,7 @@ $("#set-model").addEventListener("change", e => {
   KV.aiModel = e.target.value.trim() || KV_DEFAULT.aiModel;
   $("#set-model").value = KV.aiModel; saveKV("aiModel");
   renderModelList(null);
+  syncTopModel();
 });
 $("#btn-clearkey").onclick = () => {
   KV.aiKey = ""; saveKV("aiKey");
@@ -10056,6 +10065,7 @@ $("#btn-testai").onclick = async () => {
   KV.aiKey   = $("#set-key").value.trim();   saveKV("aiKey");
   KV.aiModel = $("#set-model").value.trim() || KV_DEFAULT.aiModel; saveKV("aiModel");
   $("#set-model").value = KV.aiModel;
+  syncTopModel();
   box.className = ""; box.textContent = "확인 중…"; btn.disabled = true;
   try{
     await callAI("한국어로 '연결 확인 완료' 라고만 답하세요.");
@@ -10105,6 +10115,7 @@ $("#an-model").addEventListener("change", e => {
   KV.aiModel = e.target.value.trim() || KV_DEFAULT.aiModel;
   $("#an-model").value = KV.aiModel; saveKV("aiModel");
   renderModelList(null, $("#an-modellist"));
+  syncTopModel();
 });
 $("#an-clear").onclick = () => {
   KV.aiKey = ""; saveKV("aiKey");
@@ -10116,6 +10127,7 @@ $("#an-test").onclick = async () => {
   KV.aiKey   = $("#an-key").value.trim();   saveKV("aiKey");
   KV.aiModel = $("#an-model").value.trim() || KV_DEFAULT.aiModel; saveKV("aiModel");
   $("#an-model").value = KV.aiModel;
+  syncTopModel();
   box.className = ""; box.textContent = "확인 중…"; btn.disabled = true;
   try{
     await callAI("한국어로 '연결 확인 완료' 라고만 답하세요.");
@@ -10133,6 +10145,7 @@ $("#an-modellist").addEventListener("click", e => {
   KV.aiModel = b.dataset.m; saveKV("aiModel");
   $("#an-model").value = KV.aiModel;
   $$("#an-modellist button").forEach(x => x.classList.toggle("on", x.dataset.m === KV.aiModel));
+  syncTopModel();
   const o = $("#an-test-out"); o.className = ""; o.textContent = "";
   toast(`모델을 ${KV.aiModel} 로 바꿨습니다`);
 });
@@ -11984,7 +11997,7 @@ function registerSW(){
   document.body.classList.toggle("left-closed",  (KV.left  === null || KV.left  === undefined) ? isNarrow() : !KV.left);
   document.body.classList.toggle("right-closed", (KV.right === null || KV.right === undefined) ? isNarrow() : !KV.right);
   applyDrawUI();
-  applyFilterUI();
+  syncTopModel();
 
   /* 지난번에 보던 자료를 그대로 다시 엽니다 (지워졌으면 기억만 지웁니다) */
   const last = KV.sel ? DOCS.find(d => d.id === KV.sel) : null;
