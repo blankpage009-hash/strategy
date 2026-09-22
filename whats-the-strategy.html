@@ -1092,7 +1092,7 @@ div.sum:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-e
 #taskadd input{flex:1 1 auto;min-width:0;height:28px;padding:0 8px;border:none;
   border-bottom:2px solid var(--line);border-radius:0;background:none;font-size:12px;}
 #taskadd input:focus{border-bottom-color:var(--accent);}
-#taskadd button{height:28px;padding:0 10px;border:1px solid var(--accent);border-radius:0;
+#taskadd button{align-self:center;height:22px;padding:0 10px;border:1px solid var(--accent);border-radius:0;
   background:var(--accent);color:#fff;font-size:11px;font-weight:600;}
 #taskadd button:hover{background:var(--accent-hover);border-color:var(--accent-hover);}
 #taskadd button:hover{background:var(--accent-hover);}
@@ -1115,11 +1115,16 @@ div.sum:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-e
 .sblk:last-child{border-bottom:none;}
 .skick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;
   font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
-.skick .sp{flex:1 1 auto;}
+.skick .sp,.taskchips .sp{flex:1 1 auto;}
 .skick .mini{border:1px solid var(--line);background:none;border-radius:0;
   font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;
   padding:2px 7px;color:var(--muted);}
 .skick .mini:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
+.sblk .genmini{display:flex;align-items:center;justify-content:center;gap:5px;height:24px;
+  border:0;border-radius:0;background:var(--accent);color:#fff;font-size:11px;font-weight:800;
+  letter-spacing:.02em;text-transform:none;padding:0 11px;cursor:pointer;white-space:nowrap;}
+.sblk .genmini:hover:not([disabled]){background:#dd2b0f;}
+.taskchips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-2px 0 8px;}
 .sblk .airow,.sblk .aibusy,.sblk .aierr,.sblk .tip{letter-spacing:0;text-transform:none;font-weight:400;}
 .sblk .airow{margin-top:8px;}
 
@@ -1323,6 +1328,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-bottom:2px solid var(--rule);font-weight:800;font-size:14px;}
 .modal > header .x{margin-left:auto;border:none;background:none;font-size:14px;color:var(--muted);padding:0 2px;}
 .modal > header .x:hover{color:var(--accent-ink);}
+#alltasksbg .modal > header .x{margin-left:0;}
 /* 첨부 노트 보기 창은 AI NOTE 창의 본문(흰 시트) 영역만큼 넓힙니다 */
 #atvbg .modal{max-width:900px;height:88vh;max-height:88vh;}
 #atvbg .modal > header .atvdel{margin-left:auto;border:1px solid var(--line);border-radius:0;background:none;
@@ -2213,7 +2219,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
     <header>All Tasks <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
       <button class="ghostbtn" id="alltasksdone" style="margin-left:auto;height:26px;padding:0 10px;font-size:11px"
         title="완료된 할 일을 함께 볼지 정합니다">완료 항목 보기</button>
-      <button class="x" id="alltasksclose" style="margin-left:auto">✕</button></header>
+      <button class="x" id="alltasksclose">✕</button></header>
     <div class="content" id="alltasksbody"></div>
   </div>
 </div>
@@ -3991,12 +3997,14 @@ function renderRight(){
     </div>` : "" }
 
     <div class="sblk">
-      <div class="skick">Tasks
+      <div class="skick">Tasks</div>
+      <div class="taskchips">
         <span class="chip ${leftCnt ? "on" : ""}"><i class="dot ${leftCnt ? "bad" : ""}"></i>${leftCnt} 남음</span>
         <span class="chip"><i class="dot ${doingCnt ? "go" : ""}"></i>${doingCnt} 진행중</span>
         <span class="chip"><i class="dot warn"></i>${doneCnt} 완료</span>
         <span class="sp"></span>
-        <button class="mini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">View All Tasks</button></div>
+        <button class="genmini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">View All Tasks</button>
+      </div>
       <div id="tasklist">
         ${ tasks.length ? tasks.map((t,i) => {
             const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
