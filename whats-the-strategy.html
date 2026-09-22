@@ -172,7 +172,7 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
 /* 우선 모델(제미나이) 선택 — Filter 막대 오른쪽 끝 */
 #topmodellabel{flex:0 0 auto;}
-#topsep{margin-left:auto;}
+#topmodelgrp{flex:0 0 auto;display:flex;align-items:center;margin-left:auto;}
 #topmodel{flex:0 0 auto;height:24px;max-width:180px;padding:0 6px;margin-right:-10px;
   border:2px solid var(--line);border-radius:0;background:var(--panel2);color:var(--muted);
   font-size:11px;font-weight:700;}
@@ -1796,7 +1796,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
     <button id="selall" type="button" title="모든 회의 종류 선택">Select All</button>
     <button id="deselall" type="button" title="모든 회의 종류 해제">Deselect All</button>
   </div>
-  <div class="cmdsep"></div>
+  <div class="cmdsep" id="leftsep"></div>
   <div id="cats"></div>
   <button id="addcat" title="회의 종류 추가" aria-label="회의 종류 추가">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1804,9 +1804,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
       <path d="M12 5v14M5 12h14"/>
     </svg>
   </button>
-  <div class="cmdsep" id="topsep"></div>
-  <span class="cmdlabel" id="topmodellabel">AI Model</span>
-  <select id="topmodel" title="우선 모델 (제미나이)" aria-label="우선 모델 (제미나이)"></select>
+  <div id="topmodelgrp">
+    <div class="cmdsep"></div>
+    <span class="cmdlabel" id="topmodellabel">AI Model</span>
+    <select id="topmodel" title="우선 모델 (제미나이)" aria-label="우선 모델 (제미나이)"></select>
+  </div>
 </div>
 
 <div id="catmenu" role="menu"></div>
@@ -4068,7 +4070,20 @@ function toggleSide(which, force){
   KV[which] = !closed; saveKV(which);
   /* 폭이 .16s 에 걸쳐 바뀌므로 다 바뀐 뒤에 다시 맞춥니다 */
   if(was !== closed && S.pdf) setTimeout(autoFit, 200);
+  if(was !== closed && which === "left") setTimeout(alignLeftSep, 200);
 }
+
+/* Filter 줄의 첫 구분선을 왼쪽 패널 오른쪽 경계선과 나란히 맞춥니다 */
+function alignLeftSep(){
+  const left = $("#left"), sep = $("#leftsep");
+  if(!left || !sep) return;
+  const gap = left.getBoundingClientRect().right - sep.getBoundingClientRect().left;
+  const cur = parseFloat(getComputedStyle(sep).marginLeft) || 0;
+  sep.style.marginLeft = Math.max(0, cur + gap) + "px";
+}
+window.addEventListener("resize", alignLeftSep);
+window.addEventListener("load", alignLeftSep);
+setTimeout(alignLeftSep, 0);
 $$(".rail").forEach(b => b.onclick = () => toggleSide(b.dataset.open, true));
 /* 접기 단추는 오른쪽 탭 줄처럼 새로 그려지기도 하므로 맡겨서 처리합니다 */
 document.addEventListener("click", e => {
