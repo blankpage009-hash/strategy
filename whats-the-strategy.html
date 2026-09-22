@@ -4091,10 +4091,16 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
 
 /* 제목을 누르면 카드가 오른쪽에서 왼쪽으로 뒤집혀 "전략이 뭐에요?" 뒷면이 나오고, 다시 누르면 영문으로 돌아옵니다 */
 (function(){
-  const brand = $("#brand"), flip = $("#brandflip");
+  const brand = $("#brand"), flip = $("#brandflip"), say = $("#brandsay");
+  const PHRASES = ["전략이 뭐에요?", "개런티 하는거에요?", "나를 왜 활용 안해요?"];
   const toggle = () => {
     const on = brand.classList.toggle("flipped");
     flip.setAttribute("aria-pressed", on ? "true" : "false");
+    if(on){
+      const phrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+      say.textContent = phrase;
+      say.style.fontSize = phrase.length > 8 ? "11px" : "13px";
+    }
   };
   brand.onclick = toggle;
   flip.addEventListener("keydown", e => {
