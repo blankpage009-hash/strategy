@@ -672,6 +672,8 @@ body.tight-bar #zoomval{width:42px;font-size:11px;}
 #docfind .dfbtn:hover:not([disabled]){color:var(--accent-ink);}
 #docfind .dfbtn[disabled]{opacity:.35;}
 #docfind .dfbtn svg{display:block;}
+#docfind #docfind-clear{display:none;font-size:13px;}
+#docfind.has-text #docfind-clear{display:flex;}
 body.hide-doctitle #docfind-in{flex-basis:104px;}
 body.tight-bar #docfind{padding:0 8px;gap:5px;}
 body.tight-bar #docfind-in{flex-basis:72px;}
@@ -1908,6 +1910,7 @@ body.full .thumb.sum::after{background:#f3f2f2;}
         </span>
         <input id="docfind-in" type="search" autocomplete="off" spellcheck="false"
                placeholder="이 자료에서 찾기" aria-label="이 자료에서 찾기">
+        <button class="dfbtn" id="docfind-clear" type="button" title="지우기" aria-label="검색어 지우기">✕</button>
         <span id="docfind-count" aria-live="polite"></span>
         <button class="dfbtn" id="docfind-prev" title="이전 (Shift+Enter)" aria-label="이전 결과">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2525,15 +2528,8 @@ function findSpans(sq, needle, limit){
   }
   return out;
 }
-/* 찾은 자리 앞뒤를 조금 붙여서 보여 줍니다 */
-function cutSpan(hay, from, to){
-  const a = Math.max(0, from - 28), b = Math.min(hay.length, to + 46);
-  return (a > 0 ? "…" : "") + esc(hay.slice(a, from))
-       + "<mark>" + esc(hay.slice(from, to)) + "</mark>"
-       + esc(hay.slice(to, b)) + (b < hay.length ? "…" : "");
-}
 /* 여러 자리를 한꺼번에 — 기준 자리(center, 없으면 첫 자리) 앞뒤를 자르고
-   그 창 안에 드는 모든 자리를 <mark> 로 감쌉니다. cutSpan 은 자료 내 검색이 아직 씁니다. */
+   그 창 안에 드는 모든 자리를 <mark> 로 감쌉니다. */
 function cutSpans(hay, spans, center){
   hay = String(hay == null ? "" : hay);
   const c = center || spans[0]; if(!c) return esc(hay.slice(0, 74)) + (hay.length > 74 ? "…" : "");
@@ -2557,8 +2553,9 @@ function cutSpans(hay, spans, center){
    +·-·/ 는 앞뒤 띄어쓰기와 상관없이 같게 동작(쿠팡+케미칼 = 쿠팡 + 케미칼 = 쿠팡+ 케미칼 = 쿠팡 +케미칼).
    단, 따옴표 안이나 #·cat:·year: 뒤에 붙은 +·-·/ 는 연산자로 보지 않고 글자 그대로 봄.
    결과 모양은 PLAN-SEARCH.md 1-2 절.                                         */
-function parseQuery(raw){
+function parseQuery(raw, opt){
   raw = String(raw == null ? "" : raw);
+  const noFields = !!(opt && opt.noFields);   /* 자료 내 검색 — #·cat:·year: 를 문법으로 보지 않고 그냥 글자로 봄 */
   const Q = { raw, tags:[], year:null, neg:[], groups:[], tokens:[] };
   /* ① 토큰 — 공백으로 나누되 따옴표 안은 한 덩어리로 (앞에 -· 가 붙어도 됩니다) */
   const toks = [];
@@ -2619,11 +2616,11 @@ function parseQuery(raw){
     if(s === "+"){ Q.tokens.push({ s, kind:"and", a:t.a, b:t.b }); return; }
     if(s === "/"){ Q.tokens.push({ s, kind:"or", a:t.a, b:t.b }); pendOr = true; return; }
     const low = s.toLowerCase();
-    if(s[0] === "#" || low.startsWith("cat:")){
+    if(!noFields && (s[0] === "#" || low.startsWith("cat:"))){
       const v = sqzQ(strip(s.slice(s[0] === "#" ? 1 : 4)));
       Q.tokens.push({ s, kind:"tag", a:t.a, b:t.b }); if(v) Q.tags.push(v); return;
     }
-    if(low.startsWith("year:")){
+    if(!noFields && low.startsWith("year:")){
       const v = (s.slice(5).match(/\d{4}/) || [])[0];
       Q.tokens.push({ s, kind:"year", a:t.a, b:t.b }); if(v) Q.year = v; return;
     }
@@ -2994,8 +2991,8 @@ const S = {
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
   offCats:new Set(), open:new Set(),
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
-  /* 자료 내 검색 — 지금 열린 자료에서만. raw=친 그대로, q=공백을 걷어 낸 것 */
-  find:{ raw:"", q:"", hits:[], i:-1, total:0 },
+  /* 자료 내 검색 — 지금 열린 자료에서만. raw=친 그대로, q=검색 중이면 raw, Q=parseQuery 결과 */
+  find:{ raw:"", q:"", Q:null, hits:[], i:-1, total:0 },
   /* 검색 결과 드롭다운(#sdrop) — R 은 지금 검색어의 runSearch() 결과(문자 그대로 바뀔 때만 다시 만듭니다),
      grp·cat·mon·sort 는 그 위에서 화면만 거르는 레일 상태입니다 */
   srch:{ open:false, R:null, grp:"all", cat:null, mon:null, sort:"date", more:8, openBlocks:new Set(), cur:-1, help:false },
@@ -4875,6 +4872,19 @@ async function paintHl(page, vp, seq){
   if(seq !== S.renderSeq) return;
   hl.appendChild(frag);
 }
+/* 쪽을 새로 그리지 않고 하이라이트 층만 다시 칠합니다 — 이미 보고 있는 쪽에서
+   검색어만 바뀌었을 때(자료 내 찾기 입력 중) goPage() 가 renderPage() 를 건너뛰므로 필요 */
+async function repaintHl(){
+  if(!S.hlQ){ hlClear(); return; }
+  if(!S.pdf) return;
+  const seq = S.renderSeq;
+  try{
+    const page = await S.pdf.getPage(S.page);
+    if(seq !== S.renderSeq) return;
+    const vp = page.getViewport({ scale: S.baseScale * S.zoom });
+    await paintHl(page, vp, seq);
+  }catch(e){ /* 쪽을 못 얻으면 그냥 둠 */ }
+}
 
 /* ---- 회의록 적중 — 오른쪽 회의록 글상자에서 첫 일치 자리를 골라 보이게 굴립니다 ---- */
 function noteReveal(Q){
@@ -4933,12 +4943,17 @@ function syncDocFind(){
 }
 
 function clearDocFind(){
-  S.find = { raw:"", q:"", hits:[], i:-1, total:0 };
+  /* 지금 뷰어 하이라이트가 자료 내 찾기 것일 때만 정리 — 딥링크(openHit)가 그새 다른 자료로
+     넘어가며 먼저 S.hlQ 를 새로 세팅해 뒀을 수 있어(자료를 열면 selectDoc 이 이 함수를 부름),
+     그 자리를 가로채지 않도록 오브젝트째 견줍니다 */
+  const ownsHl = !!(S.find.Q && S.hlQ === S.find.Q);
+  S.find = { raw:"", q:"", Q:null, hits:[], i:-1, total:0 };
   const el = $("#docfind-in"); if(el) el.value = "";
   const c = $("#docfind-count"); if(c){ c.textContent = ""; c.removeAttribute("title"); }
-  const b = $("#docfind"); if(b) b.classList.remove("nohit");
+  const b = $("#docfind"); if(b) b.classList.remove("nohit", "has-text");
   closeDfPop();
   refreshDfBtns();
+  if(ownsHl){ S.hlQ = S.nav ? S.nav.q : null; repaintHl(); }   /* 딥링크가 켜져 있으면 그쪽 하이라이트로 되돌림 */
 }
 
 function refreshDfBtns(){
@@ -4948,34 +4963,49 @@ function refreshDfBtns(){
   if(n) n.disabled = none;
 }
 
+/* 상단바 검색창과 같은 문법(+·/·-·"…"·말*·말~) — #태그·cat:·year: 는 자료 하나 안에서는
+   뜻이 없으므로 그냥 글자로 봅니다(noFields). AND 로 묶인 조각은 한 쪽 안에 다 같이 있어야 그 쪽을 침 */
 function runDocFind(){
   const d = docFindDoc();
   const raw = ($("#docfind-in").value || "").trim();
-  const q = sqzQ(raw);                       /* 띄어쓰기는 무시하고 견줍니다 */
-  S.find.raw = raw; S.find.q = q;
+  /* 지금 뷰어 하이라이트를 내(자료 내 찾기)가 칠했던 것인지 — clearDocFind() 와 같은 이유 */
+  const ownsHl = !!(S.find.Q && S.hlQ === S.find.Q);
+  const Q = parseQuery(raw, { noFields:true });
+  const active = Q.groups.length > 0;
+  S.find.raw = raw; S.find.q = active ? raw : ""; S.find.Q = Q;
   S.find.hits = []; S.find.i = -1; S.find.total = 0;
 
-  if(d && q){
+  if(d && active){
     const pages = sqzPages(d);
     for(let i = 0; i < pages.length; i++){
-      const spans = findSpans(pages[i], q);
-      if(spans.length){
-        S.find.hits.push({ p:i+1, n:spans.length, at:spans[0] });
-        S.find.total += spans.length;
-      }
+      if(Q.neg.some(n => hasHit(pages[i].t, n.nq))) continue;             /* 제외 조각이 있는 쪽은 건너뜀 */
+      const allHere = Q.groups.every(g => g.alts.some(alt => termHits(pages[i].t, alt) > 0));
+      if(!allHere) continue;
+      const spans = hitSpans(pages[i], Q);
+      if(!spans.length) continue;
+      S.find.hits.push({ p:i+1, n:spans.length, spans });
+      S.find.total += spans.length;
     }
   }
 
-  $("#docfind").classList.toggle("nohit", !!q && S.find.hits.length === 0);
+  $("#docfind").classList.toggle("nohit", active && S.find.hits.length === 0);
+  $("#docfind").classList.toggle("has-text", !!raw);
   refreshDfBtns();
   updateDocFindCount();
   renderDfPop();
+
+  /* 검색 중이면(글자를 쳤으면) 결과가 없어도 하이라이트 층은 자료 내 찾기가 맡습니다.
+     입력칸을 비웠을 때만 딥링크가 있던 자리(S.nav)로 되돌립니다 */
+  if(active) S.hlQ = Q;
+  else if(ownsHl) S.hlQ = S.nav ? S.nav.q : null;
 
   /* 처음 찾았을 때는 지금 쪽 또는 그 다음의 첫 일치로 옮겨 갑니다 */
   if(S.find.hits.length){
     let idx = S.find.hits.findIndex(h => h.p >= S.page);
     if(idx < 0) idx = 0;
-    gotoDocFindHit(idx, true);
+    gotoDocFindHit(idx, true);                              /* goPage 가 하이라이트도 다시 칠합니다 */
+  }else{
+    repaintHl();
   }
 }
 
@@ -4996,7 +5026,7 @@ function gotoDocFindHit(idx, quiet){
   updateDocFindCount();
   markCurrentHit();
   goPage(h[idx].p);
-  if(!quiet) toast(`‘${S.find.raw || S.find.q}’ · ${h[idx].p}p (이 p에 ${h[idx].n}곳)`);
+  if(!quiet) toast(`‘${S.find.raw}’ · ${h[idx].p}p (이 p에 ${h[idx].n}곳)`);
 }
 
 function stepDocFind(dir){
@@ -5007,7 +5037,7 @@ function stepDocFind(dir){
 /* ---- 찾은 쪽 목록 (툴바 아래로 내려오는 쪽지) ---- */
 function dfSnippet(d, h){
   const hay = d.pageTexts[h.p - 1] || "";
-  return h.at ? cutSpan(hay, h.at[0], h.at[1]) : esc(hay.slice(0, 70));
+  return h.spans && h.spans.length ? cutSpans(hay, h.spans) : esc(hay.slice(0, 70));
 }
 function renderDfPop(){
   const pop = $("#dfpop"), body = $("#dfpop-body"), d = docFindDoc();
@@ -5020,7 +5050,7 @@ function renderDfPop(){
         <span class="dfp">${h.p}</span>
         <span class="dfsnip">${dfSnippet(d, h)}</span>
         <span class="dfn">${h.n}곳</span></button>`).join("")
-    : `<div class="dfnone">‘${esc(S.find.raw || S.find.q)}’ 는 이 자료에 없습니다.</div>`;
+    : `<div class="dfnone">‘${esc(S.find.raw)}’ 는 이 자료에 없습니다.</div>`;
   pop.hidden = false;
 }
 function markCurrentHit(){
@@ -5064,6 +5094,7 @@ document.addEventListener("keydown", e => {
 document.addEventListener("click", e => {
   if(e.target.closest("#docfind-next")){ stepDocFind(1); return; }
   if(e.target.closest("#docfind-prev")){ stepDocFind(-1); return; }
+  if(e.target.closest("#docfind-clear")){ clearDocFind(); const inp = $("#docfind-in"); if(inp) inp.focus(); return; }
   if(e.target.closest("#dfpop-x")){ closeDfPop(); return; }
   const row = e.target.closest(".dfres");
   if(row){ gotoDocFindHit(+row.dataset.k); return; }
@@ -5723,7 +5754,7 @@ $("#nav-next").onclick = () => goPage(S.page + 1);
 function goPage(n){
   if(!S.pdf) return;
   const p = Math.min(S.pdf.numPages, Math.max(1, n|0));
-  if(p === S.page){ updateBars(); return; }
+  if(p === S.page){ updateBars(); repaintHl(); return; }
   S.page = p; renderPage();
 }
 /* 스크립트 탭에서 쪽 옮기기 — PDF가 있으면 뷰어까지 같이 넘어가고,
@@ -11571,7 +11602,7 @@ const TUT = [
     { h:"하는 법", type:"steps", items:[
       "<b>Filter 막대</b> 의 칩을 눌러 켜고 끕니다. <b class='k'>Select All</b> · <b class='k'>Deselect All</b> 로 한 번에 켜고 끌 수도 있습니다.",
       "상단바 검색창에 낱말을 치면 자료 이름 · 본문 · 회의록에서 걸린 곳이 아래로 펼쳐집니다. <b>↑ ↓</b> 로 줄을 옮기고 <b>Enter</b> 로 열거나, 그냥 눌러도 됩니다. 오른쪽 <b class='k'>?</b> 단추(문법 도움)에서 <b>-제외</b>·<b>\"정확히\"</b>·<b>#태그</b> 같은 문법을 볼 수 있습니다.",
-      "자료를 열어 둔 채 <b>이 자료에서 찾기</b> 에 낱말을 치면 몇 쪽에 있는지 세어 줍니다. <b>Enter</b> 로 다음, <b>Shift+Enter</b> 로 이전 쪽으로 넘어갑니다."
+      "자료를 열어 둔 채 <b>이 자료에서 찾기</b> 에 낱말을 치면 몇 쪽에 있는지 세어 주고, 걸린 자리는 목록과 본문 양쪽에 색칠해 보여 줍니다. <b>Enter</b> 로 다음, <b>Shift+Enter</b> 로 이전 쪽으로 넘어갑니다. 검색창과 같은 문법(<b>-제외</b>·<b>\"정확히\"</b>·<b>+ / </b>)을 쓸 수 있습니다 — 다만 <b>#태그</b> 는 자료 하나 안에서는 뜻이 없어 글자 그대로 찾습니다."
     ]},
     { h:"알아두기", type:"note", html:
       "검색은 <b>띄어쓰기를 무시</b>합니다. PDF에서 뽑은 글자는 낱말 사이 공백이 제멋대로라서, <b>공동영업</b> 이라고 쳐도 <b>공동 영업</b> 이 걸리게 해 두었습니다." },
