@@ -1099,12 +1099,23 @@ div.sum:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-e
 .legend{font-size:10.5px;color:var(--muted2);margin-top:10px;line-height:1.6;}
 
 /* ---------- 모든 할 일 팝업 ---------- */
-#alltasksbody .atgrp{margin-bottom:18px;}
-#alltasksbody .atgrp:last-child{margin-bottom:0;}
-#alltasksbody .athead{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--muted);padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--rule);}
-#alltasksbody .athead .atsub{margin-left:6px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted3);}
-#alltasksbody .atempty{font-size:12px;color:var(--muted);line-height:1.6;}
+#alltasksbg .modal{max-width:920px;height:82vh;max-height:82vh;}
+#alltasksbg .modal .content{display:flex;padding:0;overflow:hidden;}
+.atnav{flex:0 0 176px;border-right:2px solid var(--rule);padding:14px 10px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:3px;background:var(--panel);}
+.atnav-item{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:none;
+  background:none;border-radius:0;font-size:12.5px;font-weight:700;color:var(--muted);
+  text-align:left;cursor:pointer;width:100%;}
+.atnav-item:hover{background:var(--panel2);color:var(--ink);}
+.atnav-item.on{background:var(--rule);color:var(--bg);}
+.atnav-item .dot{flex:0 0 auto;width:9px;height:9px;}
+.atnav-item .nm{flex:1 1 auto;}
+.atnav-item .cnt{flex:0 0 auto;font-size:11px;font-weight:600;opacity:.75;}
+#alltasksbody{flex:1 1 auto;overflow-y:auto;padding:14px 18px 18px;}
+#alltasksbody .task{padding:7px 0;}
+#alltasksbody .task .tagr{flex:0 0 auto;align-self:center;font-size:10.5px;color:var(--muted3);
+  white-space:nowrap;margin-left:8px;}
+#alltasksbody .atempty{font-size:12px;color:var(--muted);line-height:1.6;padding-top:4px;}
 
 /* ---------- Executive Summary (구조 요약) ---------- */
 /* [0] 은 늘 펼쳐진 상자, [1]~[4] 는 눌러서 펴는 하이어라키입니다 */
@@ -1328,7 +1339,6 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-bottom:2px solid var(--rule);font-weight:800;font-size:14px;}
 .modal > header .x{margin-left:auto;border:none;background:none;font-size:14px;color:var(--muted);padding:0 2px;}
 .modal > header .x:hover{color:var(--accent-ink);}
-#alltasksbg .modal > header .x{margin-left:0;}
 /* 첨부 노트 보기 창은 AI NOTE 창의 본문(흰 시트) 영역만큼 넓힙니다 */
 #atvbg .modal{max-width:900px;height:88vh;max-height:88vh;}
 #atvbg .modal > header .atvdel{margin-left:auto;border:1px solid var(--line);border-radius:0;background:none;
@@ -2217,10 +2227,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 <div class="modalbg" id="alltasksbg">
   <div class="modal wide" role="dialog" aria-label="모든 할 일">
     <header>All Tasks <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
-      <button class="ghostbtn" id="alltasksdone" style="margin-left:auto;height:26px;padding:0 10px;font-size:11px"
-        title="완료된 할 일을 함께 볼지 정합니다">완료 항목 보기</button>
       <button class="x" id="alltasksclose">✕</button></header>
-    <div class="content" id="alltasksbody"></div>
+    <div class="content">
+      <nav class="atnav" id="atnav"></nav>
+      <div id="alltasksbody"></div>
+    </div>
   </div>
 </div>
 
@@ -6767,58 +6778,63 @@ function addTask(text){
 }
 
 /* ---- 모든 할 일 팝업 — 주차·종류 상관없이 전부 모아서 보여 줍니다 ---- */
-/* 완료된 항목은 기본으로 숨기고, 머리의 단추로 켜고 끕니다 */
-let showDoneTasks = false;
+/* 왼쪽 사이드바에서 남음·진행중·완료 가운데 하나를 고르면 본문에 그 상태만 보입니다 */
+const AT_STATUS = [
+  { key:"open",  val:0, label:"남음",   dot:"bad"  },
+  { key:"doing", val:1, label:"진행중", dot:"go"   },
+  { key:"done",  val:2, label:"완료",   dot:"warn" },
+];
+let atFilter = "open";
 function renderAllTasks(){
-  const all = DOCS.slice()
-    .sort((a,b) => (a.date + a.addedAt).localeCompare(b.date + b.addedAt))
-    .filter(d => (KV.tasks[d.id] || []).length);
+  const all = DOCS.slice().sort((a,b) => (a.date + a.addedAt).localeCompare(b.date + b.addedAt));
+  const items = [];
+  all.forEach(d => (KV.tasks[d.id] || []).forEach((t,i) => items.push({ d, t, i })));
 
-  let total = 0, open = 0, doneCnt = 0;
-  all.forEach(d => (KV.tasks[d.id] || []).forEach(t => { total++; if(t.s !== 2) open++; else doneCnt++; }));
-  $("#alltaskscount").textContent = total ? `· ${open} 남음 / 전체 ${total}개` : "";
+  const counts = { open:0, doing:0, done:0 };
+  items.forEach(({t}) => counts[t.s===2 ? "done" : (t.s===1 ? "doing" : "open")]++);
+  const total = items.length;
+  $("#alltaskscount").textContent = total ? `· 전체 ${total}개` : "";
 
-  const tg = $("#alltasksdone");
-  if(tg){
-    tg.classList.toggle("on", showDoneTasks);
-    tg.textContent = showDoneTasks ? "완료 항목 숨기기" : `완료 항목 보기${doneCnt ? " (" + doneCnt + ")" : ""}`;
-    tg.hidden = !doneCnt;
-  }
+  $("#atnav").innerHTML = AT_STATUS.map(s => `
+    <button class="atnav-item ${atFilter===s.key ? "on" : ""}" data-status="${s.key}">
+      <i class="dot ${s.dot}"></i><span class="nm">${s.label}</span><span class="cnt">${counts[s.key]}</span>
+    </button>`).join("");
 
-  /* 완료만 있는 자료는 숨김 상태에서 그룹째 빠집니다 */
-  const list = showDoneTasks
-    ? all
-    : all.filter(d => (KV.tasks[d.id] || []).some(t => t.s !== 2));
+  const cur = AT_STATUS.find(s => s.key === atFilter);
+  const list = items.filter(({t}) => t.s === cur.val);
 
-  $("#alltasksbody").innerHTML = list.length ? list.map(d => {
-    const arr = (KV.tasks[d.id] || [])
-      .map((t,i) => ({ t, i }))
-      .filter(x => showDoneTasks || x.t.s !== 2);
-    const head = (d.date ? fmtYMW(d) + " · " : "") + (d.cat || "");
-    return `<div class="atgrp">
-      <div class="athead">${esc(head)}<span class="atsub">${esc(d.short || d.title || "")}</span></div>
-      ${ arr.map(({t,i}) => {
-        const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
-        const dot = t.s===2 ? "warn" : (t.s===1 ? "go" : "bad");
-        const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행중" : "남음");
-        return `<div class="task ${cls}">
-          <button class="st" data-doc="${d.id}" data-ti="${i}" title="상태 바꾸기 (지금 ${nm})"
-            ><i class="dot ${dot}"></i></button>
-          <div class="tx">${esc(t.t)}</div></div>`;
-      }).join("") }
-    </div>`;
+  $("#alltasksbody").innerHTML = list.length ? list.map(({d,t,i}) => {
+    const tag = (d.date ? fmtYMW(d) : "") + (d.cat ? " · " + d.cat : "");
+    return `<div class="task">
+      <button class="st" data-doc="${d.id}" data-ti="${i}" title="상태 바꾸기 (지금 ${cur.label})"
+        ><i class="dot ${cur.dot}"></i></button>
+      <div class="tx">${esc(t.t)}</div>
+      <div class="tagr">${esc(tag)}</div>
+      <button class="rm" data-doc="${d.id}" data-ti="${i}" title="삭제">✕</button></div>`;
   }).join("") : `<div class="atempty">${
-    total ? "남은 할 일이 없습니다. <b>완료 항목 보기</b>로 지난 할 일을 볼 수 있습니다."
-          : "아직 등록된 할 일이 없습니다. 자료를 골라 <b>할 일</b> 탭에서 추가해 보세요."
+    total ? `${cur.label} 항목이 없습니다.` : "아직 등록된 할 일이 없습니다. 자료를 골라 <b>할 일</b> 탭에서 추가해 보세요."
   }</div>`;
 }
 function openAllTasks(){ renderAllTasks(); $("#alltasksbg").classList.add("on"); }
-$("#alltasksdone").onclick = () => { showDoneTasks = !showDoneTasks; renderAllTasks(); };
+$("#atnav").addEventListener("click", e => {
+  const btn = e.target.closest(".atnav-item[data-status]");
+  if(!btn) return;
+  atFilter = btn.dataset.status;
+  renderAllTasks();
+});
 $("#alltasksclose").onclick = () => $("#alltasksbg").classList.remove("on");
 $("#alltasksbg").addEventListener("click", e => {
   if(e.target.id === "alltasksbg") $("#alltasksbg").classList.remove("on");
 });
 $("#alltasksbody").addEventListener("click", e => {
+  const rm = e.target.closest(".rm[data-doc]");
+  if(rm){
+    const arr = KV.tasks[rm.dataset.doc]; if(!arr) return;
+    arr.splice(+rm.dataset.ti, 1); saveKV("tasks");
+    renderAllTasks();
+    if(rm.dataset.doc === S.sel) renderRight();
+    return;
+  }
   const st = e.target.closest(".st[data-doc]");
   if(!st) return;
   const arr = KV.tasks[st.dataset.doc]; if(!arr) return;
