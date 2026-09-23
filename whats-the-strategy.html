@@ -1913,12 +1913,16 @@ body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-botto
 .mhead-cats .cat.on{background:none;color:var(--text);border-bottom-color:var(--accent);}
 .mhead-cats .cat:not(.on):hover{background:none;}
 
-/* 자료 행 — 제목(굵게) + 아래 종류·쪽수·날짜, 열람 중은 연분홍 배경 + 왼쪽 빨간 선 */
+/* 자료 목록 — PC 와 같은 연/월 접기 트리(손가락 크기로 키움). 행은 W 태그 + 제목(굵게) + 아래 종류·쪽수·날짜,
+   열람 중은 연분홍 배경 + 왼쪽 빨간 선 */
 body.m #tree{padding:6px 0 20px;}
-body.m .mgrouphead{padding:14px 16px 6px;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--muted);}
-body.m .doc{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
-  padding:11px 16px;border-left:3px solid transparent;min-height:44px;justify-content:center;}
-body.m .doc .wk{display:none;}
+body.m .fold{min-height:44px;}
+body.m .fold.yr{padding:10px 16px;font-size:16px;}
+body.m .fold.mo{padding:9px 16px 9px 30px;font-size:14px;}
+body.m .fold .cnt{font-size:12.5px;}
+body.m .doc{gap:10px;padding:9px 16px 9px 44px;border-left:3px solid transparent;min-height:52px;}
+body.m .doc .wk{font-size:11.5px;min-width:30px;padding:2px 4px;}
+body.m .doc .mtx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;}
 body.m .doc .nm{white-space:normal;font-size:15px;font-weight:700;color:var(--text);}
 body.m .doc.sel{background:var(--accent-soft);border-left-color:var(--accent);}
 body.m .doc .mmeta{font-size:12px;font-weight:500;color:var(--muted);}
@@ -3607,8 +3611,6 @@ function renderTree(){
     return;
   }
 
-  if(isMobile()){ $("#tree").innerHTML = renderTreeMobile(list); return; }
-
   const years = {};
   list.forEach(d => {
     const y = d.date.slice(0,4), m = d.date.slice(0,7);
@@ -3616,6 +3618,7 @@ function renderTree(){
     (years[y][m] = years[y][m] || []).push(d);
   });
 
+  const mob = isMobile();
   let html = "";
   Object.keys(years).sort().reverse().forEach(y => {
     const months = years[y];
@@ -3631,6 +3634,7 @@ function renderTree(){
         <span class="nm">${parseInt(m.slice(5),10)}월</span>
         <span class="cnt">${docs.length}</span></div>`;
       if(!mOpen) return;
+      if(mob){ docs.forEach(d => { html += docRowMobile(d); }); return; }
       docs.forEach(d => {
         html += `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
             title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
@@ -3645,28 +3649,17 @@ function renderTree(){
   $("#tree").innerHTML = html;
 }
 
-/* 아이폰 화면(8a) — 접는 연/월 트리 대신, 주차 단위로 묶어 한 번에 죽 보여줍니다(접기 없음) */
-function renderTreeMobile(list){
-  const groups = {};
-  list.forEach(d => {
-    const k = `${yearOf(d)}-${String(monthOf(d)).padStart(2,"0")}-W${weekOf(d)}`;
-    (groups[k] = groups[k] || []).push(d);
-  });
-  let html = "";
-  Object.keys(groups).sort().reverse().forEach(k => {
-    const [y, m, w] = k.split("-");
-    html += `<div class="mgrouphead">${y} · ${m} · ${w}</div>`;
-    groups[k].forEach(d => {
-      const now = S.sel === d.id;
-      const date = d.date.slice(5).replace("-", ".");
-      html += `<div class="doc ${now?"sel":""}" data-id="${d.id}"
-          title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
-        <span class="nm">${esc(d.short || d.title)}</span>
-        <span class="mmeta">${esc(d.cat)} · ${d.pages||1}p · ${date}${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span>
-      </div>`;
-    });
-  });
-  return html;
+/* 아이폰 화면(8a) — PC 와 같은 연/월 접기 트리에, 행만 W 태그 + 제목(굵게) + 아래 종류·쪽수·날짜 */
+function docRowMobile(d){
+  const now = S.sel === d.id;
+  const date = d.date.slice(5).replace("-", ".");
+  return `<div class="doc ${now?"sel":""}" data-id="${d.id}"
+      title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
+    <span class="wk">W${weekOf(d)}</span>
+    <span class="mtx"><span class="nm">${esc(d.short || d.title)}</span>
+    <span class="mmeta">${esc(d.cat)} · ${d.pages||1}p · ${date}${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span></span>
+    ${noteOf(d) ? NOTE_MARK : ""}
+  </div>`;
 }
 
 function revealDoc(id){
