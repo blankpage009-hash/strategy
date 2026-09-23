@@ -1808,6 +1808,15 @@ body.m[data-mscr="settings"] #modalbg{bottom:var(--mtab);padding:0;padding-top:e
   background:var(--bg);}
 body.m[data-mscr="settings"] #modalbg .modal{max-width:none;max-height:none;height:100%;
   border:none;box-shadow:none;}
+/* 설정 화면 손가락 손질(9단계) — 줄이 빽빽한 목록(모델·자료 종류·규칙)이라 높이만 44px 로 키우고
+   (너비는 그대로라 줄바꿈 없음), 글자 입력칸은 16px 로(그 미만이면 iOS 사파리가 포커스 때 확대합니다). */
+body.m[data-mscr="settings"] #modalclose{width:44px;height:44px;font-size:16px;}
+body.m[data-mscr="settings"] .btnrow button{min-height:44px;}
+body.m[data-mscr="settings"] .clrow button{min-height:44px;}
+body.m[data-mscr="settings"] .cmrow select,body.m[data-mscr="settings"] .cmrow input,
+body.m[data-mscr="settings"] .cmrow .del{min-height:44px;}
+body.m[data-mscr="settings"] .mrow select,body.m[data-mscr="settings"] .mrow input[type=text],
+body.m[data-mscr="settings"] .mrow input[type=password]{min-height:44px;font-size:16px;}
 /* 화면 아래에 붙는 것들은 탭 줄 위로 올립니다 */
 body.m #hitbar:not([hidden]){bottom:var(--mtab);}
 body.m #toast{bottom:calc(var(--mtab) + 16px);}
