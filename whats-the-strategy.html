@@ -2027,6 +2027,59 @@ body.m[data-mscr="view"][data-msheet] #rbody[data-tab="memo"] .sect.grow{margin:
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="memo"] h4.aihead{margin:0;padding:8px 20px;}
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="memo"] .sum{margin:0 20px;}
 
+/* ---------- 8d 검색 화면 (PLAN-MOBILE.md 8단계) ----------
+   목록·뷰어 머리의 ⌕ 를 누르면 전체화면으로 뜹니다. 데스크톱은 뜨는 창(#sdrop)이라 그대로 옮겨 쓸 화면이
+   없어 #msearch 를 새로 두지만, 검색창 자체(마법사 아이콘 · 입력칸 · 지우기 ✕)는 새로 만들지 않고
+   #searchwrap 을 그대로 옮겨 씁니다(mMountHeader) — 입력·거울 색칠(#qmirror)·지우기가 다 그대로 동작합니다.
+   결과도 desktop 과 같은 S.q · S.srch.grp · runSearch/sdCompute 를 그대로 씁니다(화면만 새로 그림 — mRenderSearch).
+   #sdrop(데스크톱 드롭다운)은 포커스만 줘도 열리므로 아이폰에서는 아예 숨겨 둡니다. */
+body.m #sdrop{display:none !important;}
+#msearch{display:none;}   /* PC·아이패드는 desktop 드롭다운(#sdrop)을 그대로 씁니다 */
+body.m #workspace > #msearch{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;
+  background:var(--bg);visibility:hidden;pointer-events:none;}
+body.m[data-mscr="search"] #workspace > #msearch{visibility:visible;pointer-events:auto;}
+body.m[data-mscr="search"] #mtabbar{display:none;}
+body.m[data-mscr="search"] #hitbar{display:none !important;}
+.msrch-head{flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  padding:calc(8px + env(safe-area-inset-top)) 20px 12px;}
+.msrch-box{flex:1 1 auto;min-width:0;display:flex;align-items:center;height:46px;padding:0 12px;
+  border:2px solid var(--rule);background:#fff;}
+body.m #msearch #searchwrap{flex:1 1 auto;min-width:0;padding:0;background:none;}
+body.m #msearch #qhelp,body.m #msearch #copyright{display:none;}
+body.m #msearch #sfield{height:40px;}
+body.m #msearch #qmirror,body.m #msearch #search{height:40px;line-height:40px;font-size:16px;}
+body.m #msearch #search{border-bottom:none;}     /* 16px 미만이면 iOS 사파리가 포커스 때 확대합니다 */
+#msearch-cancel{flex:0 0 auto;height:44px;padding:0 2px;border:none;background:none;
+  color:var(--text);font-size:15px;font-weight:700;}
+/* 필터 칩 — 전체/본문/회의록/파일명(+개수), 고른 칩은 검정 */
+.msrch-chips{flex:0 0 auto;display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto;}
+.msr-chip{flex:0 0 auto;display:flex;align-items:center;height:34px;padding:0 12px;
+  border:1px solid var(--line);background:none;color:var(--text);font-size:13px;font-weight:700;
+  white-space:nowrap;}
+.msr-chip.on{border-color:var(--rule);background:var(--rule);color:#fff;font-weight:800;}
+/* 결과 목록 — 최근 기록·안내 문구는 검색 드롭다운(sd-zsec 등)과 같은 모양을 그대로 씁니다 */
+.msrch-list{flex:1 1 auto;min-height:0;overflow:auto;border-top:2px solid var(--rule);
+  padding-bottom:env(safe-area-inset-bottom);}
+body.m #msearch .sd-zrow,body.m #msearch .sd-zdoc{padding:12px 20px;min-height:44px;}
+body.m #msearch .sd-zrow .t,body.m #msearch .sd-zdoc .t{font-size:14px;}
+body.m #msearch .sd-empty,body.m #msearch .sd-zhead{padding-left:20px;padding-right:20px;}
+.msr-doc{display:flex;flex-direction:column;gap:8px;padding:14px 20px;border-bottom:1px solid var(--line);}
+.msr-doc.sel{background:var(--accent-soft);}
+.msr-row1{display:flex;align-items:baseline;gap:10px;}
+.msr-row1 .no{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--muted);}
+.msr-doc.sel .no{color:var(--accent-ink);}
+.msr-row1 .ttl{flex:1 1 auto;min-width:0;font-size:16px;font-weight:800;line-height:1.35;}
+.msr-row1 .ttl mark{background:var(--accent-soft);color:inherit;}
+.msr-doc.sel .msr-row1 .ttl mark{background:#fff;}
+.msr-meta{padding-left:28px;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;}
+.msr-doc.sel .msr-meta{color:var(--accent-ink);}
+.msr-ex{padding-left:28px;font-size:14px;line-height:1.55;color:var(--text);}
+.msr-ex mark{background:var(--accent-soft);color:inherit;font-weight:700;}
+.msr-chips{display:flex;flex-wrap:wrap;gap:6px;padding-left:28px;}
+.msr-chip2{display:flex;align-items:center;height:36px;padding:0 12px;border:1px solid var(--rule);
+  font-size:13px;font-weight:800;}
+.msr-doc.sel .msr-chip2{border:2px solid var(--accent);color:var(--accent-ink);}
+
 /* 7a 요약 카드 — 아이폰 글자 크기. 주요 수치는 2열 칸(짧은 값은 크게), 긴 글은 한 줄 전체(.wide) */
 body.m .aisum{border:none;font-size:15px;}
 body.m .aisum .blk{padding:16px 20px;}
@@ -2366,6 +2419,16 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
       </div>
     </div>
   </aside>
+
+  <!-- 8d 검색 화면(폭 600px 이하) — PLAN-MOBILE.md 8단계. #searchwrap 을 그대로 옮겨 씁니다(아래 JS mMountHeader). -->
+  <div id="msearch">
+    <div class="msrch-head">
+      <div class="msrch-box" id="msearchBox"></div>
+      <button type="button" id="msearch-cancel">취소</button>
+    </div>
+    <div class="msrch-chips" id="msearchChips"></div>
+    <div class="msrch-list" id="msearchList"></div>
+  </div>
 
 </div>
 
@@ -5066,6 +5129,7 @@ $("#search").addEventListener("input", e => {
     sdResetFacets();
     sdRecompute();
     if(S.srch.open) renderSdrop();
+    if(isMobile()) mRenderSearch();   /* 8d 검색 화면 (8단계) */
   }, 120);
 });
 $("#search").addEventListener("scroll", () => { $("#qmirror").scrollLeft = $("#search").scrollLeft; });
@@ -5129,6 +5193,7 @@ $("#clearsearch").onclick = () => {
   renderQMirror();
   S.srch.R = null; sdResetFacets();
   $("#search").focus(); openSdrop(); renderSdrop();
+  if(isMobile()) mRenderSearch();   /* 8d 검색 화면 (8단계) */
 };
 $("#qhelp").addEventListener("click", () => {
   S.srch.help = !S.srch.help;
@@ -12523,6 +12588,7 @@ const MQ_M = window.matchMedia("(max-width: 600px)");
 function isMobile(){ return document.body.classList.contains("m"); }
 let mScr = "list";          /* 지금 화면 */
 let mBeforeSet = "list";    /* 설정을 열기 전 화면 — 설정을 닫으면 그리로 돌아갑니다 */
+let mBeforeSearch = "list"; /* 검색을 열기 전 화면(목록 또는 뷰어) — 취소를 누르면 그리로 돌아갑니다 (8단계) */
 
 /* 화면을 그립니다 — 방문 기록은 건드리지 않습니다 (mGo · 뒤로가기가 부릅니다) */
 function mShow(scr){
@@ -12544,6 +12610,11 @@ function mShow(scr){
   }
   if(scr !== "view") mSheetDraw(null);                    /* 뷰어를 떠나면 시트는 닫습니다 */
   if(scr === "notes"){ setRtab("note"); mSyncNotesHead(); }
+  if(scr === "search"){
+    if(prev !== "search") mBeforeSearch = prev;           /* 취소를 누르면 이 화면(목록·뷰어)으로 */
+    mRenderSearch();
+    requestAnimationFrame(() => $("#search").focus());
+  }
   if(scr === "view"){
     mSyncView();
     /* 시트만 열고 닫을 때(뷰어 → 뷰어)는 다시 맞추지 않습니다 */
@@ -12597,20 +12668,128 @@ new MutationObserver(() => {
 const mCatsHome   = { parent: $("#cmdbar"), before: $("#addcat") };
 const mUploadHome = { parent: $(".side-head"), before: $(".side-head .closebtn") };
 const mModelHome  = { parent: $("#topmodelgrp") };   /* 모델 고르개는 무리의 맨 끝이 제자리입니다 */
+const mSearchHome = { parent: $("#topbar"), before: $("#topright") };   /* 검색칸(8d, 8단계) */
 function mMountHeader(on){
   if(on){
     $("#mheadCats").appendChild($("#cats"));
     $("#mheadActions").insertBefore($("#btn-upload"), $("#mbtn-search"));
     $("#mheadActions").insertBefore($("#btn-manage"), $("#mbtn-search"));
     $("#msmodel").appendChild($("#topmodel"));        /* 바텀시트의 AI Model 칸 (4단계) */
+    $("#msearchBox").appendChild($("#searchwrap"));   /* 8d 검색 화면 (8단계) */
   }else{
     mCatsHome.parent.insertBefore($("#cats"), mCatsHome.before);
     mUploadHome.parent.insertBefore($("#btn-upload"), mUploadHome.before);
     mUploadHome.parent.insertBefore($("#btn-manage"), mUploadHome.before);
     mModelHome.parent.appendChild($("#topmodel"));
+    mSearchHome.parent.insertBefore($("#searchwrap"), mSearchHome.before);
   }
 }
-$("#mbtn-search").addEventListener("click", () => toast("검색 화면은 8단계에서 만듭니다"));
+$("#mbtn-search").addEventListener("click", () => mGo("search"));
+
+/* =========================================================
+   8d 검색 화면 (PLAN-MOBILE.md 8단계) — 데스크톱 검색 드롭다운(#sdrop)과 같은 데이터
+   (S.q · S.srch.grp · runSearch/sdCompute — PLAN-SEARCH.md)를 그대로 쓰되, 화면만 새로 그립니다.
+   ========================================================= */
+$("#msearch-cancel").onclick = () => mGo(mBeforeSearch === "search" ? "list" : mBeforeSearch);
+
+/* 검색어가 비어 있을 때 — 최근 검색어·최근 열람 문서만(그림 도움말은 화면이 좁아 뺍니다).
+   sdZeroHtml() 과 같은 데이터·같은 클래스 이름(sd-zsec 등)을 쓰지만, id="sd-helpbtn" 이 겹치지
+   않도록(#sdrop 도 같은 검색어로 같이 그려질 수 있음) 여기서 새로 씁니다. */
+function msZeroHtml(){
+  const rq = (KV.recentQ || []).slice(0, 5);
+  const rd = (KV.recentDocs || []).map(id => DOCS.find(d => d.id === id)).filter(Boolean).slice(0, 5);
+  let html = "";
+  if(rq.length){
+    html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">🕘 최근 검색어</span><button class="clr" data-clrq>모두 지우기</button></div>`
+      + rq.map(q => `<div class="sd-zrow" data-q="${esc(q)}"><span class="t">${esc(q)}</span><button class="rm" data-rmq="${esc(q)}">${SD_ICO.xs}</button></div>`).join("")
+      + `</div>`;
+  }
+  if(rd.length){
+    html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">📂 최근 열람 문서</span></div>`
+      + rd.map(d => `<div class="sd-zdoc" data-id="${d.id}"><span class="t">${esc(d.title)}</span>`
+        + `<span class="m">${esc(d.cat)} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p</span></div>`).join("")
+      + `</div>`;
+  }
+  return html || `<div class="sd-empty"><div class="et">최근 기록이 없습니다. 찾을 말을 입력하세요.</div></div>`;
+}
+/* 자료 제목의 검색어 자리를 <mark> 로 — desktop 결과 줄(sd-title)은 안 하지만, 시안(8d)이 제목을
+   강조해 두어 hitSpans(runSearch 가 쓰는 것과 같은 함수)로 자리만 새로 찾아 씁니다 */
+function msTitleHtml(d, R){
+  if(!R || !R.q) return esc(d.title);
+  const spans = hitSpans(sqz(d.title), R.q);
+  if(!spans.length) return esc(d.title);
+  let html = "", at = 0;
+  spans.forEach(s => {
+    if(s[0] < at) return;
+    html += esc(d.title.slice(at, s[0])) + "<mark>" + esc(d.title.slice(s[0], s[1])) + "</mark>";
+    at = s[1];
+  });
+  return html + esc(d.title.slice(at));
+}
+/* 결과 한 줄 — 번호 · 제목(강조) · 종류·쪽수·적중 수 · (제목이 안 걸렸으면) 본문·회의록 발췌 한 줄 · 쪽 칩 + 회의록 칩.
+   showPages/showNote 는 desktop sdDocBlockHtml 과 같은 규칙(S.srch.grp 필터) */
+function msDocRowHtml(r, i){
+  const d = r.d, sel = S.sel === d.id;
+  const showPages = S.srch.grp === "all" || S.srch.grp === "body";
+  const showNote  = S.srch.grp === "all" || S.srch.grp === "note";
+  const pages = showPages ? r.pages : [];
+  const note  = showNote ? r.note : null;
+  const excerpt = r.title ? "" : pages.length ? cutSpans(d.pageTexts[pages[0].p - 1] || "", pages[0].spans)
+                : note ? cutSpans(noteTextOf(d), note.spans) : "";
+  const chips = pages.map(p => `<span class="msr-chip2" data-p="${p.p}">${p.p}p</span>`).join("")
+    + (note ? `<span class="msr-chip2" data-note="1">회의록</span>` : "");
+  return `<div class="msr-doc ${sel ? "sel" : ""}" data-id="${d.id}">
+    <div class="msr-row1"><span class="no">${String(i + 1).padStart(2, "0")}</span>
+      <span class="ttl">${msTitleHtml(d, S.srch.R)}</span></div>
+    <div class="msr-meta">${esc(d.cat)} · ${d.pages}p · 적중 ${r.hits}곳</div>
+    ${excerpt ? `<div class="msr-ex">${excerpt}</div>` : ""}
+    ${chips ? `<div class="msr-chips">${chips}</div>` : ""}
+  </div>`;
+}
+function mRenderSearch(){
+  if(!isMobile()) return;
+  sdRecompute();       /* 화면을 열 때마다(또는 자료가 바뀐 채) 지금 검색어로 다시 셉니다 */
+  const q = S.q.trim(), Q = q ? parseQuery(q) : null;
+  const chipsEl = $("#msearchChips"), listEl = $("#msearchList");
+  if(!q || !queryHasTerms(Q)){ chipsEl.innerHTML = ""; listEl.innerHTML = msZeroHtml(); return; }
+  const R = S.srch.R;
+  if(!R || !R.docs.length){ chipsEl.innerHTML = ""; listEl.innerHTML = sdEmptyHtml(q, Q); return; }
+  const chip = (key, label, n) => `<button type="button" class="msr-chip ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">${label} ${n}</button>`;
+  chipsEl.innerHTML = chip("all", "전체", R.tot.hits) + chip("body", "본문", R.tot.body)
+    + chip("note", "회의록", R.tot.note) + chip("title", "파일명", R.tot.title);
+  const docs = sdDocsFor(R);
+  listEl.innerHTML = docs.length ? docs.map(msDocRowHtml).join("")
+    : `<div class="sd-empty"><div class="et">이 조건에 맞는 자료가 없습니다.</div></div>`;
+}
+$("#msearchChips").addEventListener("click", e => {
+  const b = e.target.closest("[data-grp]");
+  if(b){ S.srch.grp = b.dataset.grp; mRenderSearch(); }
+});
+$("#msearchList").addEventListener("click", async e => {
+  const t = e.target;
+  if(t.closest("[data-clrq]")){ KV.recentQ = []; saveKV("recentQ"); mRenderSearch(); return; }
+  const rmq = t.closest("[data-rmq]");
+  if(rmq){ KV.recentQ = (KV.recentQ || []).filter(x => x !== rmq.dataset.rmq); saveKV("recentQ"); mRenderSearch(); return; }
+  const zdoc = t.closest(".sd-zdoc[data-id]");
+  if(zdoc){ await openHit({ id:zdoc.dataset.id }); return; }
+  const zq = t.closest(".sd-zrow[data-q], .sd-sugg[data-q]");
+  if(zq){ sdSetQuery(zq.dataset.q); mRenderSearch(); return; }
+  const chip2 = t.closest(".msr-chip2");
+  if(chip2){
+    const id = chip2.closest(".msr-doc").dataset.id;
+    if(chip2.dataset.note){ await openHit({ id, note:true }); mSheet("note"); }
+    else await openHit({ id, p:+chip2.dataset.p });
+    return;
+  }
+  const row1 = t.closest(".msr-row1");
+  if(row1){
+    const id = row1.closest(".msr-doc").dataset.id;
+    const r = S.srch.R && S.srch.R.docs.find(x => x.d.id === id);
+    if(r && r.pages.length) await openHit({ id, p:r.pages[0].p });
+    else if(r && r.note){ await openHit({ id, note:true }); mSheet("note"); }
+    else await openHit({ id });
+  }
+});
 
 /* 8b 뷰어 (PLAN-MOBILE.md 3단계) — 머리(제목 · 종류 · 날짜)와 쪽 이동 줄(‹ n / N › · 진행 막대)을
    지금 자료·쪽에 맞춥니다. updateBars(쪽을 그릴 때마다) · 자료 고를 때 · 뷰어로 올 때 부릅니다. */
@@ -12857,7 +13036,7 @@ $("#mv-back").onclick = () => {
   if(document.body.dataset.msheet) mSheet(null);
   else mGo("list");
 };
-$("#mv-search").onclick = () => toast("검색 화면은 8단계에서 만듭니다");
+$("#mv-search").onclick = () => mGo("search");
 
 /* 폭이 600px 을 넘나들 때(처음 열 때 · 가로로 돌릴 때) 켜고 끕니다 */
 function applyMobile(){
