@@ -1936,9 +1936,10 @@ body.m[data-mscr="view"][data-msheet="script"] .msmodel{flex:0 0 auto;display:fl
   border:1px solid var(--rule);border-radius:0;background:#fff;color:var(--text);font-size:14px;font-weight:700;}
 /* 본문 — 시트 안에서만 굴러갑니다. 바닥 줄이 없는 시트는 홈 막대 자리만큼 아래를 띄웁니다 */
 body.m[data-mscr="view"][data-msheet] #rbody{flex:1 1 auto;min-height:0;}
-body.m[data-mscr="view"][data-msheet]:not([data-msheet="sum"]) .msheet{padding-bottom:env(safe-area-inset-bottom);}
-/* 바닥 줄 — 요약은 ‹ 앞 p 요약 / 다음 p 요약 › */
-body.m[data-mscr="view"][data-msheet="sum"] .msfoot{flex:0 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+body.m[data-mscr="view"][data-msheet]:not([data-msheet="sum"]):not([data-msheet="note"]) .msheet{padding-bottom:env(safe-area-inset-bottom);}
+/* 바닥 줄 — 요약은 ‹ 앞 p 요약 / 다음 p 요약 ›, 회의록은 전문 보기 / 공유 */
+body.m[data-mscr="view"][data-msheet="sum"] .msfoot,
+body.m[data-mscr="view"][data-msheet="note"] .msfoot{flex:0 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
   border-top:2px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);background:var(--bg);}
 .msfoot button{min-width:0;height:52px;padding:0 20px;border:none;border-radius:0;background:var(--bg);color:var(--text);
   font-size:14px;font-weight:800;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1954,6 +1955,28 @@ body.m[data-mscr="view"][data-msheet] #rbody[data-tab="sum"] .annote .stat{font-
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="sum"] .sect.grow{margin:0;}
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="sum"] h4.aihead{margin:0;padding:8px 20px;justify-content:flex-end;}
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="sum"] .sum{margin:0 20px;}
+/* 회의록 시트도 같은 요령 — 머리와 겹치는 AI NOTE 글씨 · 생성/보기·업로드 단추는 숨기고 상태 줄만 남깁니다 */
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"]{padding:0 0 12px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .annote{margin:0;padding:8px 20px;border-bottom:1px solid var(--line);}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .annote .kick,
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .annote .anbtns{display:none;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .annote .stat{font-size:12px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .sect.grow{margin:0;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] h4.aihead{margin:0;padding:8px 20px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .sum{margin:0 20px;}
+/* 회의록 시트 머리 아래 메타줄(시간 · 참석 · 원문 Np) — 한 줄로 자르고, 길면 … */
+#msnotemeta{display:none;padding:0 20px 10px;font-size:12px;font-weight:600;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.m[data-mscr="view"][data-msheet="note"] #msnotemeta{display:block;}
+/* ---------- 8e AI 노트(회의록) 전체화면 (PLAN-MOBILE.md 5단계) ----------
+   하단 탭 'AI 노트' 는 #right 의 NOTE 탭(paneNote)을 화면 전체로 그대로 씁니다 — 시트가 아니므로
+   위 탭 줄(#rtop)로 다른 탭에 못 가게 숨기고, 대신 어느 자료의 회의록인지 알려 주는 머리 한 줄만 얹습니다. */
+body.m[data-mscr="notes"] #rtop{display:none;}
+body.m[data-mscr="notes"] .mshead{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;
+  gap:12px;padding:14px 16px 12px;border-bottom:2px solid var(--rule);}
+/* Add·Edit·Generate 단추는 44px 손가락 영역을 채웁니다 */
+body.m[data-mscr="notes"] .sect > h4 .mini{min-height:44px;display:inline-flex;align-items:center;}
+body.m[data-mscr="notes"] .annote .genmini{min-height:44px;}
 
 /* 7a 요약 카드 — 아이폰 글자 크기. 주요 수치는 2열 칸(짧은 값은 크게), 긴 글은 한 줄 전체(.wide) */
 body.m .aisum{border:none;font-size:15px;}
@@ -2284,6 +2307,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           <button type="button" class="msact" id="ms-act" hidden>AI 생성</button>
         </div>
         <div class="msmodel" id="msmodel"><span class="lb">AI Model</span></div>
+        <div id="msnotemeta"></div>
         <div id="rtop"></div>
         <div class="side-scroll" id="rbody"></div>
         <div class="msfoot" id="msfoot">
@@ -4144,8 +4168,12 @@ function renderRight(){
     body.dataset.tab = "";
     body.dataset.mode = "";
     body.dataset.page = "";
-    body.innerHTML = `<div class="emptybox">자료를 선택하면<br>여기에 ${what}이 나옵니다.` +
-      (DOCS.length ? `<br><br>왼쪽 <b>자료 목록</b> 에서 자료를 하나 고르세요.` : ``) + `</div>`;
+    body.innerHTML = isMobile()
+      ? `<div class="emptybox">자료를 먼저 여세요.` +
+        (DOCS.length ? `<br><br><button type="button" class="mini" data-mempty="list">자료 목록으로</button>` : ``) + `</div>`
+      : `<div class="emptybox">자료를 선택하면<br>여기에 ${what}이 나옵니다.` +
+        (DOCS.length ? `<br><br>왼쪽 <b>자료 목록</b> 에서 자료를 하나 고르세요.` : ``) + `</div>`;
+    if(mScr === "notes") mSyncNotesHead();   /* 자료가 닫혀도 머리 글은 다시 맞춥니다 */
     mSyncSheet();
     return;
   }
@@ -7203,6 +7231,9 @@ $("#alltasksbody").addEventListener("click", e => {
 });
 
 $("#rbody").addEventListener("click", async e => {
+  /* 아이폰 — 아직 자료를 연 적 없을 때 '자료 목록으로' 안내 단추 */
+  const me = e.target.closest("[data-mempty]");
+  if(me){ mGo(me.dataset.mempty); return; }
   /* 하이라이트·굵게·밑줄 토글 — 골라 둔 글자가 있는 곳에 적용합니다.
      Edit 중인 글상자면 input 을 흉내 내 평소처럼 저장하고, 읽기 전용 카드·잠긴 글상자면 따로 저장합니다 */
   const fmt = e.target.closest("[data-fmt]");
@@ -9745,15 +9776,12 @@ function anPlainText(rec){
   return L.join("\n");
 }
 
-function anCopy(){
-  const id = S.anOpen, rec = id && AINOTES[id];
-  if(!rec || S.anEdit || S.anBusy) return;
-  const text = anPlainText(rec);
-  const good = () => toast("회의록을 복사했습니다 — 아무 데나 붙여 넣으세요");
-  const bad  = () => toast("복사하지 못했습니다 — 시트를 직접 긁어 복사해 주세요");
-
-  /* 옛 방식을 먼저 씁니다 — file:// 에서도 되고, 버튼을 누른 그 순간(클릭)에 바로 실행돼야
-     브라우저가 허락합니다. await 를 거치면 그 허락이 풀립니다. */
+/* 글자를 클립보드에 복사합니다 (COPY 단추 · 아이폰 회의록 시트의 공유 대체 수단이 함께 씁니다).
+   옛 방식을 먼저 씁니다 — file:// 에서도 되고, 버튼을 누른 그 순간(클릭)에 바로 실행돼야
+   브라우저가 허락합니다. await 를 거치면 그 허락이 풀립니다. */
+function copyPlain(text, okMsg, badMsg){
+  const good = () => toast(okMsg);
+  const bad  = () => toast(badMsg);
   let ok = false;
   try{
     const ta = document.createElement("textarea");
@@ -9771,6 +9799,11 @@ function anCopy(){
     return;
   }
   bad();
+}
+function anCopy(){
+  const id = S.anOpen, rec = id && AINOTES[id];
+  if(!rec || S.anEdit || S.anBusy) return;
+  copyPlain(anPlainText(rec), "회의록을 복사했습니다 — 아무 데나 붙여 넣으세요", "복사하지 못했습니다 — 시트를 직접 긁어 복사해 주세요");
 }
 
 function anExport(){
@@ -12440,7 +12473,7 @@ function mShow(scr){
     $("#modalbg").classList.remove("on");
   }
   if(scr !== "view") mSheetDraw(null);                    /* 뷰어를 떠나면 시트는 닫습니다 */
-  if(scr === "notes") setRtab("note");
+  if(scr === "notes"){ setRtab("note"); mSyncNotesHead(); }
   if(scr === "view"){
     mSyncView();
     /* 시트만 열고 닫을 때(뷰어 → 뷰어)는 다시 맞추지 않습니다 */
@@ -12465,6 +12498,11 @@ function mGo(scr){
 
 window.addEventListener("popstate", e => {
   if(!isMobile()) return;
+  /* 뒤로 손짓은 화면부터 바꾸는데, AI NOTE 모달·첨부 팝업이 열려 있으면 화면만 바뀌고
+     모달은 그 자리에 남아 자료가 달라 보일 수 있습니다 — 화면을 바꾸기 전에 먼저 닫습니다 */
+  if($("#ainotebg").classList.contains("on")){ if(S.anEdit) anCancelEdit(); else closeAiNote(); }
+  if($("#atvbg").classList.contains("on")) closeAtView();
+  if($("#atbg").classList.contains("on")) closeAttach();
   const st = e.state || {};
   mShow(st.mscr || "list");
   if(st.mscr === "view") mSheetDraw(st.sheet || null);   /* 시트가 있던 칸이면 열고, 없던 칸이면 닫습니다 */
@@ -12607,21 +12645,36 @@ function mSyncSheet(){
   $("#ms-kick").textContent = tab === "task" ? `Tasks · ${nTask}건` : k.replace("{p}", p);
   $("#ms-ttl").textContent  = t;
 
-  /* 오른쪽 단추 — 요약은 패널 안의 원래 생성 단추를 대신 누릅니다(덮어쓰기 확인 · 쪽 번호 그대로) */
+  /* 오른쪽 단추 — 요약은 패널 안의 원래 생성 단추를 대신 누릅니다(덮어쓰기 확인 · 쪽 번호 그대로).
+     회의록은 이미 만든 노트가 있으면(act="open") '보기'는 바닥 줄 전문 보기가 맡으므로 숨깁니다. */
   const act = $("#ms-act");
-  const gen = tab === "sum" ? $('#rbody .genmini[data-aisum="gen"]') : null;
-  act.hidden = !gen;
-  if(gen){
+  const gen = tab === "sum" ? $('#rbody .genmini[data-aisum="gen"]')
+            : tab === "note" ? $('#rbody .annote .genmini:not(.up)') : null;
+  const genIsOpen = tab === "note" && gen && gen.dataset.annote === "open";
+  act.hidden = !gen || genIsOpen;
+  if(gen && !genIsOpen){
     act.disabled = gen.disabled;
-    act.textContent = (d && S.asBusy === d.id) ? "생성 중…" : "AI 생성";
+    const busyId = tab === "sum" ? S.asBusy : tab === "note" ? S.anBusy : null;
+    act.textContent = (d && busyId === d.id) ? "생성 중…" : "AI 생성";
   }
 
-  /* 바닥 줄 — 요약은 앞 p / 다음 p */
-  const word = tab === "sum" ? "요약" : "";
-  $("#ms-prev").textContent = p > 1    ? `‹ ${p - 1}p ${word}` : "‹ 첫 p";
-  $("#ms-next").textContent = p < last ? `${p + 1}p ${word} ›` : "마지막 p ›";
-  $("#ms-prev").disabled = !d || p <= 1;
-  $("#ms-next").disabled = !d || p >= last;
+  /* 바닥 줄 — 요약·스크립트는 앞 p / 다음 p, 회의록은 전문 보기 / 공유 */
+  if(tab === "note"){
+    const rec = d ? AINOTES[d.id] : null;
+    const shareText = d ? msNoteShareText() : "";
+    $("#ms-prev").textContent = "전문 보기";
+    $("#ms-prev").disabled = !rec;
+    $("#ms-next").textContent = "공유";
+    $("#ms-next").disabled = !shareText;
+    const M = (rec && rec.note && rec.note.doc && rec.note.doc.meta) || {};
+    $("#msnotemeta").textContent = [M.date, M.attendees].filter(Boolean).concat(`원문 ${last}p`).join(" · ");
+  }else{
+    const word = tab === "sum" ? "요약" : "";
+    $("#ms-prev").textContent = p > 1    ? `‹ ${p - 1}p ${word}` : "‹ 첫 p";
+    $("#ms-next").textContent = p < last ? `${p + 1}p ${word} ›` : "마지막 p ›";
+    $("#ms-prev").disabled = !d || p <= 1;
+    $("#ms-next").disabled = !d || p >= last;
+  }
 }
 
 $("#mvtabs").addEventListener("click", e => {
@@ -12629,7 +12682,8 @@ $("#mvtabs").addEventListener("click", e => {
 });
 $("#msdoc").onclick = () => mSheet(null);
 $("#ms-act").onclick = () => {
-  const gen = $('#rbody .genmini[data-aisum="gen"]');
+  const tab = document.body.dataset.msheet;
+  const gen = $(tab === "note" ? '#rbody .annote .genmini:not(.up)' : '#rbody .genmini[data-aisum="gen"]');
   if(gen && !gen.disabled) gen.click();
 };
 /* 원본이 있으면 뷰어도 같이 넘기고, 글자만 있는 자료는 쪽 번호만 옮깁니다 */
@@ -12638,8 +12692,38 @@ function mSheetPage(dir){
   const n = (S.page || 1) + dir;
   if(S.pdf) mPage(n); else scGo(n);
 }
-$("#ms-prev").onclick = () => mSheetPage(-1);
-$("#ms-next").onclick = () => mSheetPage(1);
+/* 회의록 공유·복사에 쓸 글 — AI NOTE(한 장 정리)가 있으면 그것을, 없으면 손으로 적은 회의록 원문을 씁니다 */
+function msNoteShareText(){
+  const id = S.sel; if(!id) return "";
+  const rec = AINOTES[id];
+  if(rec) return anPlainText(rec);
+  return stripHtml((KV.sums[id] || {}).b || "").trim();
+}
+/* 전문 보기 — AI NOTE(한 장 정리)가 있을 때만 그 모달을 엽니다 */
+function msNoteView(){
+  const id = S.sel;
+  if(!id || !AINOTES[id]) return;
+  openAiNote(id);
+}
+/* 공유 — 가능하면 OS 공유창, 안 되면 복사(같은 실패 문구를 씁니다) */
+function msNoteShare(){
+  const id = S.sel; if(!id) return;
+  const text = msNoteShareText();
+  if(!text) return;
+  const rec = AINOTES[id], d = DOCS.find(x => x.id === id);
+  const title = (rec && rec.note.doc && rec.note.doc.title) || (d ? d.title : "") || "회의록";
+  const fallback = () => copyPlain(text, "회의록을 복사했습니다 — 아무 데나 붙여 넣으세요", "복사하지 못했습니다 — 시트를 직접 긁어 복사해 주세요");
+  if(navigator.share) navigator.share({ title, text }).catch(err => { if(!err || err.name !== "AbortError") fallback(); });
+  else fallback();
+}
+$("#ms-prev").onclick = () => { if(document.body.dataset.msheet === "note") msNoteView(); else mSheetPage(-1); };
+$("#ms-next").onclick = () => { if(document.body.dataset.msheet === "note") msNoteShare(); else mSheetPage(1); };
+/* 아이폰 'AI 노트' 화면(전체화면) 머리 — 지금(또는 마지막으로 본) 자료 이름을 한 줄로 보여 줍니다 */
+function mSyncNotesHead(){
+  const d = DOCS.find(x => x.id === S.sel);
+  $("#ms-kick").textContent = "AI 노트";
+  $("#ms-ttl").textContent  = d ? d.title : "회의록";
+}
 
 /* 끌어내려 닫기 — 끌개 · 시트 머리를 잡고 아래로 밉니다. 충분히 내리거나 빠르게 튕기면 닫히고,
    아니면 제자리로 돌아갑니다. 단추 위에서 시작한 손짓은 받지 않습니다. */
