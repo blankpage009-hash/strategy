@@ -1936,10 +1936,11 @@ body.m[data-mscr="view"][data-msheet="script"] .msmodel{flex:0 0 auto;display:fl
   border:1px solid var(--rule);border-radius:0;background:#fff;color:var(--text);font-size:14px;font-weight:700;}
 /* 본문 — 시트 안에서만 굴러갑니다. 바닥 줄이 없는 시트는 홈 막대 자리만큼 아래를 띄웁니다 */
 body.m[data-mscr="view"][data-msheet] #rbody{flex:1 1 auto;min-height:0;}
-body.m[data-mscr="view"][data-msheet]:not([data-msheet="sum"]):not([data-msheet="note"]) .msheet{padding-bottom:env(safe-area-inset-bottom);}
-/* 바닥 줄 — 요약은 ‹ 앞 p 요약 / 다음 p 요약 ›, 회의록은 전문 보기 / 공유 */
+body.m[data-mscr="view"][data-msheet]:not([data-msheet="sum"]):not([data-msheet="note"]):not([data-msheet="script"]) .msheet{padding-bottom:env(safe-area-inset-bottom);}
+/* 바닥 줄 — 요약·스크립트는 ‹ 앞 p / 다음 p ›, 회의록은 전문 보기 / 공유 */
 body.m[data-mscr="view"][data-msheet="sum"] .msfoot,
-body.m[data-mscr="view"][data-msheet="note"] .msfoot{flex:0 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+body.m[data-mscr="view"][data-msheet="note"] .msfoot,
+body.m[data-mscr="view"][data-msheet="script"] .msfoot{flex:0 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
   border-top:2px solid var(--rule);padding-bottom:env(safe-area-inset-bottom);background:var(--bg);}
 .msfoot button{min-width:0;height:52px;padding:0 20px;border:none;border-radius:0;background:var(--bg);color:var(--text);
   font-size:14px;font-weight:800;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1967,7 +1968,8 @@ body.m[data-mscr="view"][data-msheet] #rbody[data-tab="note"] .sum{margin:0 20px
 /* 회의록 시트 머리 아래 메타줄(시간 · 참석 · 원문 Np) — 한 줄로 자르고, 길면 … */
 #msnotemeta{display:none;padding:0 20px 10px;font-size:12px;font-weight:600;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-body.m[data-mscr="view"][data-msheet="note"] #msnotemeta{display:block;}
+body.m[data-mscr="view"][data-msheet="note"] #msnotemeta,
+body.m[data-mscr="view"][data-msheet="script"] #msnotemeta{display:block;}
 /* ---------- 8e AI 노트(회의록) 전체화면 (PLAN-MOBILE.md 5단계) ----------
    하단 탭 'AI 노트' 는 #right 의 NOTE 탭(paneNote)을 화면 전체로 그대로 씁니다 — 시트가 아니므로
    위 탭 줄(#rtop)로 다른 탭에 못 가게 숨기고, 대신 어느 자료의 회의록인지 알려 주는 머리 한 줄만 얹습니다. */
@@ -1977,6 +1979,44 @@ body.m[data-mscr="notes"] .mshead{flex:0 0 auto;display:flex;align-items:flex-en
 /* Add·Edit·Generate 단추는 44px 손가락 영역을 채웁니다 */
 body.m[data-mscr="notes"] .sect > h4 .mini{min-height:44px;display:inline-flex;align-items:center;}
 body.m[data-mscr="notes"] .annote .genmini{min-height:44px;}
+
+/* ---------- 8g 스크립트 시트 (PLAN-MOBILE.md 6단계) ----------
+   요약 시트와 몸통 구조가 같아(생성 단추 · 쪽 이동 줄 · 글상자) 같은 요령을 그대로 씁니다. */
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"]{padding:0 0 12px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .annote{margin:0;padding:8px 20px;border-bottom:1px solid var(--line);}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .annote .kick,
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .annote .anbtns,
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .scpage{display:none;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .annote .stat{font-size:12px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .sect.grow{margin:0;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] h4.aihead{margin:0;padding:8px 20px;justify-content:flex-end;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .sum{margin:0 20px;}
+
+/* ---------- 8f 할 일 시트 (PLAN-MOBILE.md 6단계) ----------
+   위 카운트 칩·View All Tasks(데스크톱 전용 모아보기 창)는 숨기고 — 완료 수는 시트 머리(#ms-kick)에서
+   이미 보여 주므로 — 대신 전체/진행 중/완료 필터 탭만 남깁니다. 마감일·담당자는 데이터에 없어 시안의
+   'D-3·담당팀' 줄은 만들지 않습니다(결정 없이 새 데이터를 지어내지 않음). */
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"]{padding:0 0 12px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"] .sblk{padding:0 20px;}
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"] .taskchips{display:none;}
+/* "Tasks" 딱지는 시트 머리(TASKS · 완료 n/m)와 겹치니 이 블록만 숨깁니다(AI 후보 딱지는 남김) */
+body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"] .tasksblk > .skick{display:none;}
+.mtaskf{display:none;}
+body.m[data-mscr="view"][data-msheet="task"] .mtaskf{display:flex;gap:18px;margin:2px 0 10px;}
+.mtaskf button{padding:0 0 8px;border:none;border-bottom:3px solid transparent;background:none;
+  min-height:44px;font-size:13px;font-weight:700;color:var(--muted);}
+.mtaskf button.on{color:var(--text);border-bottom-color:var(--accent);}
+/* 체크(상태 바꾸기)·삭제 단추는 44px 손가락 영역으로, 행 글자도 조금 키웁니다 */
+body.m[data-mscr="view"][data-msheet="task"] .task{padding:6px 0;gap:8px;}
+body.m[data-mscr="view"][data-msheet="task"] .task .st{width:44px;height:44px;display:flex;align-items:center;justify-content:center;}
+body.m[data-mscr="view"][data-msheet="task"] .task .st .dot{width:14px;height:14px;}
+body.m[data-mscr="view"][data-msheet="task"] .task .tx{font-size:14px;}
+body.m[data-mscr="view"][data-msheet="task"] .task .rm{width:44px;height:44px;font-size:16px;}
+body.m[data-mscr="view"][data-msheet="task"] #taskadd{gap:8px;margin-top:14px;}
+body.m[data-mscr="view"][data-msheet="task"] #taskadd input{height:44px;padding:0 12px;font-size:16px;
+  border:1px solid var(--line);border-bottom:1px solid var(--line);}   /* 16px 미만이면 iOS 사파리가 포커스 때 확대합니다 */
+body.m[data-mscr="view"][data-msheet="task"] #taskadd input:focus{border-color:var(--accent);}
+body.m[data-mscr="view"][data-msheet="task"] #taskadd button{height:44px;min-width:64px;padding:0 16px;}
 
 /* 7a 요약 카드 — 아이폰 글자 크기. 주요 수치는 2열 칸(짧은 값은 크게), 긴 글은 한 줄 전체(.wide) */
 body.m .aisum{border:none;font-size:15px;}
@@ -4355,6 +4395,24 @@ function renderRight(){
   const doingCnt = tasks.filter(t => t.s === 1).length;
   const doneCnt  = tasks.filter(t => t.s === 2).length;
 
+  /* 아이폰 시트(8f) 전용 필터 탭 — 전체/진행 중(=완료 아님)/완료. 원래 배열 자리(i)는 그대로 두고
+     보여 줄 것만 걸러 냅니다 — 체크·삭제 단추가 i 로 원본 배열을 찾기 때문입니다. */
+  const mTaskFilter = isMobile() ? (S.mTaskFilter || "all") : "all";
+  const idxTasks = tasks.map((t, i) => ({ t, i }));
+  const visTasks = mTaskFilter === "done"  ? idxTasks.filter(x => x.t.s === 2)
+                 : mTaskFilter === "doing" ? idxTasks.filter(x => x.t.s !== 2)
+                 : idxTasks;
+  const taskRow = ({ t, i }) => {
+    const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
+    const dot = t.s===2 ? "warn" : (t.s===1 ? "go" : "bad");
+    const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행중" : "남음");
+    return `<div class="task ${cls}">
+      <button class="st" data-i="${i}" title="상태 바꾸기 (지금 ${nm})"
+        ><i class="dot ${dot}"></i></button>
+      <div class="tx">${esc(t.t)}</div>
+      <button class="rm" data-rm="${i}" title="삭제">✕</button></div>`;
+  };
+
   const paneTask = `
     ${ sug.length ? `
     <div class="sblk">
@@ -4367,7 +4425,7 @@ function renderRight(){
       <div class="tip"><b>+</b> 를 누른 것만 아래 할 일에 들어갑니다.</div>
     </div>` : "" }
 
-    <div class="sblk">
+    <div class="sblk tasksblk">
       <div class="skick">Tasks</div>
       <div class="taskchips">
         <span class="chip ${leftCnt ? "on" : ""}"><i class="dot ${leftCnt ? "bad" : ""}"></i>${leftCnt} 남음</span>
@@ -4376,18 +4434,15 @@ function renderRight(){
         <span class="sp"></span>
         <button class="genmini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">View All Tasks</button>
       </div>
+      <div class="mtaskf">
+        <button type="button" class="${mTaskFilter === "all"   ? "on" : ""}" data-mtaskf="all">전체</button>
+        <button type="button" class="${mTaskFilter === "doing" ? "on" : ""}" data-mtaskf="doing">진행 중</button>
+        <button type="button" class="${mTaskFilter === "done"  ? "on" : ""}" data-mtaskf="done">완료</button>
+      </div>
       <div id="tasklist">
-        ${ tasks.length ? tasks.map((t,i) => {
-            const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
-            const dot = t.s===2 ? "warn" : (t.s===1 ? "go" : "bad");
-            const nm  = t.s===2 ? "완료" : (t.s===1 ? "진행중" : "남음");
-            return `<div class="task ${cls}">
-              <button class="st" data-i="${i}" title="상태 바꾸기 (지금 ${nm})"
-                ><i class="dot ${dot}"></i></button>
-              <div class="tx">${esc(t.t)}</div>
-              <button class="rm" data-rm="${i}" title="삭제">✕</button></div>`;
-          }).join("")
-          : `<div class="nonote">아직 할 일이 없습니다. 아래에 입력하거나, 회의록 문장 옆 + 를 눌러 추가하세요.</div>` }
+        ${ !tasks.length ? `<div class="nonote">아직 할 일이 없습니다. 아래에 입력하거나, 회의록 문장 옆 + 를 눌러 추가하세요.</div>`
+          : visTasks.length ? visTasks.map(taskRow).join("")
+          : `<div class="nonote">이 필터에 해당하는 할 일이 없습니다.</div>` }
       </div>
       <div id="taskadd">
         <input id="newtask" type="text" placeholder="할 일 직접 입력" autocomplete="off">
@@ -6096,6 +6151,7 @@ async function selectDoc(id){
   pushRecentDoc(id);                                         /* 최근 열람 문서 (Zero-state, 5단계) */
   S.editA = S.editB = S.editS = S.editM = S.editP = false;              /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
+  S.mTaskFilter = "all";                                      /* 아이폰 할 일 필터도 새 자료마다 전체로 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
   if(S.anErrId !== id){ S.anErr = ""; S.anErrId = null; }   /* AI NOTE 지난 오류도 함께 */
   if(S.asErrId !== id){ S.asErr = ""; S.asErrId = null; }   /* p별 AI 요약 지난 오류도 함께 */
@@ -7156,6 +7212,8 @@ function addTask(text){
   const arr = KV.tasks[S.sel] || [];
   arr.push({ t, s:0 });
   KV.tasks[S.sel] = arr; saveKV("tasks");
+  /* 새로 넣은 항목은 늘 '남음' 이라, 아이폰에서 '완료' 필터를 보고 있었으면 안 보여 헷갈립니다 — 전체로 되돌립니다 */
+  if(S.mTaskFilter === "done") S.mTaskFilter = "all";
   /* 다른 탭에서 넣었으면 어디로 갔는지 알려 줍니다 */
   if(S.rtab !== "task") toast("Tasks 탭에 추가했습니다");
   renderRight();
@@ -7234,6 +7292,9 @@ $("#rbody").addEventListener("click", async e => {
   /* 아이폰 — 아직 자료를 연 적 없을 때 '자료 목록으로' 안내 단추 */
   const me = e.target.closest("[data-mempty]");
   if(me){ mGo(me.dataset.mempty); return; }
+  /* 아이폰 할 일 시트(8f) — 전체/진행 중/완료 필터 탭 */
+  const mtf = e.target.closest("[data-mtaskf]");
+  if(mtf){ S.mTaskFilter = mtf.dataset.mtaskf; renderRight(); return; }
   /* 하이라이트·굵게·밑줄 토글 — 골라 둔 글자가 있는 곳에 적용합니다.
      Edit 중인 글상자면 input 을 흉내 내 평소처럼 저장하고, 읽기 전용 카드·잠긴 글상자면 따로 저장합니다 */
   const fmt = e.target.closest("[data-fmt]");
@@ -12501,6 +12562,7 @@ window.addEventListener("popstate", e => {
   /* 뒤로 손짓은 화면부터 바꾸는데, AI NOTE 모달·첨부 팝업이 열려 있으면 화면만 바뀌고
      모달은 그 자리에 남아 자료가 달라 보일 수 있습니다 — 화면을 바꾸기 전에 먼저 닫습니다 */
   if($("#ainotebg").classList.contains("on")){ if(S.anEdit) anCancelEdit(); else closeAiNote(); }
+  if($("#aiscriptbg").classList.contains("on")) closeAiScript();
   if($("#atvbg").classList.contains("on")) closeAtView();
   if($("#atbg").classList.contains("on")) closeAttach();
   const st = e.state || {};
@@ -12639,26 +12701,32 @@ function mSyncSheet(){
     cv.getContext("2d").drawImage(src, 0, 0, cv.width, cv.height);
   }else{ cv.width = 16; cv.height = 9; }
 
-  /* 머리 글 */
+  /* 머리 글 — 할 일은 완료/전체 건수를 함께 보여 줍니다(시안의 오른쪽 '완료 1/5' 를 여기 한 줄로 합침) */
   const [k, t] = MS_HEAD[tab] || MS_HEAD.sum;
-  const nTask = d ? (KV.tasks[d.id] || []).length : 0;
-  $("#ms-kick").textContent = tab === "task" ? `Tasks · ${nTask}건` : k.replace("{p}", p);
+  const dTasks = d ? (KV.tasks[d.id] || []) : [];
+  const nDone  = dTasks.filter(x => x.s === 2).length;
+  $("#ms-kick").textContent = tab === "task" ? `TASKS · 완료 ${nDone}/${dTasks.length}` : k.replace("{p}", p);
   $("#ms-ttl").textContent  = t;
 
-  /* 오른쪽 단추 — 요약은 패널 안의 원래 생성 단추를 대신 누릅니다(덮어쓰기 확인 · 쪽 번호 그대로).
-     회의록은 이미 만든 노트가 있으면(act="open") '보기'는 바닥 줄 전문 보기가 맡으므로 숨깁니다. */
+  /* 오른쪽 단추 — 요약·스크립트는 패널 안의 원래 생성 단추를 대신 누릅니다(덮어쓰기 확인 · 쪽 번호 그대로).
+     회의록은 이미 만든 노트가 있으면(act="open") '보기'는 바닥 줄 전문 보기가 맡으므로 숨깁니다.
+     할 일에는 한 번에 만드는 단추가 없어(회의록 옆 + 로만 늘어납니다) 늘 숨깁니다. */
   const act = $("#ms-act");
   const gen = tab === "sum" ? $('#rbody .genmini[data-aisum="gen"]')
-            : tab === "note" ? $('#rbody .annote .genmini:not(.up)') : null;
+            : tab === "note" ? $('#rbody .annote .genmini:not(.up)')
+            : tab === "script" ? $('#rbody .genmini[data-aiscript="open"]') : null;
   const genIsOpen = tab === "note" && gen && gen.dataset.annote === "open";
   act.hidden = !gen || genIsOpen;
   if(gen && !genIsOpen){
     act.disabled = gen.disabled;
-    const busyId = tab === "sum" ? S.asBusy : tab === "note" ? S.anBusy : null;
-    act.textContent = (d && busyId === d.id) ? "생성 중…" : "AI 생성";
+    const busyId = tab === "sum" ? S.asBusy : tab === "note" ? S.anBusy : tab === "script" ? S.sc.busy : null;
+    const busy = d && busyId === d.id;
+    /* 스크립트는 만든 결과가 기다리고 있으면(팝업을 안 닫고 나온 경우) '결과 보기' 로 알려 줍니다 */
+    const scResReady = tab === "script" && !busy && S.sc.res && d && S.sc.res.docId === d.id;
+    act.textContent = busy ? "생성 중…" : (scResReady ? "결과 보기" : "AI 생성");
   }
 
-  /* 바닥 줄 — 요약·스크립트는 앞 p / 다음 p, 회의록은 전문 보기 / 공유 */
+  /* 바닥 줄 — 요약·스크립트는 앞 p / 다음 p, 회의록은 전문 보기 / 공유, 할 일은 줄 자체가 숨겨집니다(CSS) */
   if(tab === "note"){
     const rec = d ? AINOTES[d.id] : null;
     const shareText = d ? msNoteShareText() : "";
@@ -12669,11 +12737,19 @@ function mSyncSheet(){
     const M = (rec && rec.note && rec.note.doc && rec.note.doc.meta) || {};
     $("#msnotemeta").textContent = [M.date, M.attendees].filter(Boolean).concat(`원문 ${last}p`).join(" · ");
   }else{
-    const word = tab === "sum" ? "요약" : "";
+    const word = tab === "sum" ? "요약" : (tab === "script" ? "스크립트" : "");
     $("#ms-prev").textContent = p > 1    ? `‹ ${p - 1}p ${word}` : "‹ 첫 p";
     $("#ms-next").textContent = p < last ? `${p + 1}p ${word} ›` : "마지막 p ›";
     $("#ms-prev").disabled = !d || p <= 1;
     $("#ms-next").disabled = !d || p >= last;
+  }
+  /* 스크립트는 AI Model 아래에 예상 시간·글자 수를 한 줄로(팝업 안 글자 수 계산과 같은 식) */
+  if(tab === "script"){
+    const scText = d ? String(scriptsOf(d.id)[p] || "") : "";
+    const chars  = stripHtml(scText).replace(/\s+/g, " ").trim().length;
+    $("#msnotemeta").textContent = chars
+      ? `예상 ${scFmtSec(Math.round(chars / SC_CPM * 60))} · 약 ${chars}자`
+      : "비어 있음 — Input 때 건너뜁니다";
   }
 }
 
@@ -12683,7 +12759,9 @@ $("#mvtabs").addEventListener("click", e => {
 $("#msdoc").onclick = () => mSheet(null);
 $("#ms-act").onclick = () => {
   const tab = document.body.dataset.msheet;
-  const gen = $(tab === "note" ? '#rbody .annote .genmini:not(.up)' : '#rbody .genmini[data-aisum="gen"]');
+  const sel = tab === "note" ? '#rbody .annote .genmini:not(.up)'
+            : tab === "script" ? '#rbody .genmini[data-aiscript="open"]' : '#rbody .genmini[data-aisum="gen"]';
+  const gen = $(sel);
   if(gen && !gen.disabled) gen.click();
 };
 /* 원본이 있으면 뷰어도 같이 넘기고, 글자만 있는 자료는 쪽 번호만 옮깁니다 */
