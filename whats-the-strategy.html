@@ -1761,6 +1761,49 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   /* 검색창에 포커스가 있는 동안은 입력칸이 가득 차도록 오른쪽 단추들을 숨깁니다 */
   #searchwrap.focus ~ #topright{display:none;}
 }
+
+/* ---------- 아이폰 화면 (폭 600px 이하 · PLAN-MOBILE.md 1단계 뼈대) ----------
+   스크립트가 폭 600px 이하에서만 <body> 에 m 클래스를, 지금 보는 화면 이름을 data-mscr 에 붙입니다.
+     list : 자료 목록(#left)   view : 뷰어(#center)   notes : AI 노트 = 회의록(#right)   settings : 설정 창
+   세 칸을 같은 자리에 겹쳐 두고 지금 화면만 보이게 합니다. 안 보이는 칸도 크기는 그대로 두어야
+   뷰어가 PDF 폭을 제대로 잽니다(아예 숨기면 폭이 0 이 되어 PDF 가 콩알만 해집니다).
+   바로 위 860px(아이패드 서랍) 규칙보다 뒤에 두어, 같은 무게의 규칙끼리는 이쪽이 이깁니다.
+   아이패드·PC 에는 m 클래스가 붙지 않으므로 아래 규칙은 하나도 적용되지 않습니다. */
+#mtabbar{display:none;}
+body.m{--mtab:calc(58px + env(safe-area-inset-bottom));padding-top:env(safe-area-inset-top);}
+/* 위쪽 머리띠(제목·검색·설정 단추)와 회의 종류 줄은 쓰지 않습니다 — 아래 탭 줄과 각 화면 머리가 대신합니다 */
+body.m #topbar,body.m #cmdbar,body.m #backdrop{display:none !important;}
+body.m #workspace{display:block;}
+body.m #workspace > #left,body.m #workspace > #center,body.m #workspace > #right{
+  position:absolute;inset:0;width:auto;z-index:auto;box-shadow:none;border:none;transition:none;
+  padding-left:0;padding-right:0;visibility:hidden;pointer-events:none;}
+body.m[data-mscr="list"] #workspace > #left,
+body.m[data-mscr="view"] #workspace > #center,
+body.m[data-mscr="notes"] #workspace > #right{visibility:visible;pointer-events:auto;}
+body.m .side-inner,body.m #right .side-inner{width:100%;}
+/* 서랍을 여닫는 세로 띠 · 접기 단추는 필요 없습니다 */
+body.m aside .rail,body.m aside .closebtn{display:none !important;}
+/* 아래 탭 줄 — 시안 8a. 한 칸은 44px 보다 넉넉하게, 홈 막대 자리(safe-area)만큼 아래를 띄웁니다 */
+body.m #mtabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  height:var(--mtab);padding-bottom:env(safe-area-inset-bottom);
+  border-top:2px solid var(--rule);background:var(--bg);position:relative;z-index:30;}
+#mtabbar button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;
+  min-height:44px;margin-top:-2px;padding:0 16px;border:none;border-top:3px solid transparent;
+  border-left:1px solid var(--line);border-radius:0;background:none;text-align:left;}
+#mtabbar button:first-child{border-left:none;padding-left:20px;}
+#mtabbar .ko{font-size:14px;font-weight:700;color:var(--muted);}
+#mtabbar .en{font-size:11px;font-weight:600;color:var(--muted2);}
+#mtabbar button.on{border-top-color:var(--accent);}
+#mtabbar button.on .ko{font-weight:800;color:var(--text);}
+#mtabbar button.on .en{color:var(--muted);}
+/* 설정 — 창을 화면 가득(아래 탭 줄 위까지) 펼칩니다. 다른 창들은 지금처럼 탭 줄 위에 뜹니다 */
+body.m[data-mscr="settings"] #modalbg{bottom:var(--mtab);padding:0;padding-top:env(safe-area-inset-top);
+  background:var(--bg);}
+body.m[data-mscr="settings"] #modalbg .modal{max-width:none;max-height:none;height:100%;
+  border:none;box-shadow:none;}
+/* 화면 아래에 붙는 것들은 탭 줄 위로 올립니다 */
+body.m #hitbar:not([hidden]){bottom:var(--mtab);}
+body.m #toast{bottom:calc(var(--mtab) + 16px);}
 </style>
 </head>
 <body>
@@ -2009,6 +2052,13 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   </aside>
 
 </div>
+
+<!-- 아이폰 화면(폭 600px 이하)에서만 보이는 아래 탭 줄 — PLAN-MOBILE.md 1단계 -->
+<nav id="mtabbar" aria-label="화면 바꾸기">
+  <button type="button" data-mscr="list"><span class="ko">자료</span><span class="en">Materials</span></button>
+  <button type="button" data-mscr="notes"><span class="ko">AI 노트</span><span class="en">Notes</span></button>
+  <button type="button" data-mscr="settings"><span class="ko">설정</span><span class="en">Settings</span></button>
+</nav>
 
 <div id="backdrop"></div>
 
@@ -4138,6 +4188,7 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
   let sx = 0, sy = 0, sT = 0, act = null;
   $("#workspace").addEventListener("touchstart", e => {
     act = null;
+    if(isMobile()) return;                       /* 아이폰 화면에는 서랍이 없습니다 */
     if(e.touches.length !== 1) return;
     if(e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
     const t = e.touches[0];
@@ -5734,6 +5785,7 @@ async function selectDoc(id){
   if(S.asErrId !== id){ S.asErr = ""; S.asErrId = null; }   /* p별 AI 요약 지난 오류도 함께 */
   renderTree(); renderRight();
   if(isNarrow()) toggleSide("left", false);
+  if(isMobile()) mGo("view");                                /* 아이폰은 뷰어 화면으로 넘어갑니다 (PDF 를 읽기 전에) */
   const el = document.querySelector(".doc.sel");
   if(el && el.scrollIntoView) el.scrollIntoView({ block:"nearest" });
   await loadPdfFor(DOCS.find(d => d.id === id));
@@ -5750,6 +5802,7 @@ async function closeDoc(){
   renderTree(); renderRight();
   await loadPdfFor(null);
   updateBars();
+  if(isMobile()) mGo("list");                                  /* 아이폰은 목록으로 돌아갑니다 */
 }
 $("#btn-docclose").onclick = closeDoc;
 
@@ -12041,6 +12094,92 @@ window.addEventListener("resize", () => {
   clearTimeout(resizeT);
   resizeT = setTimeout(() => { if(S.pdf && S.fitMode !== "manual") fitTo(S.fitMode); }, 250);
 });
+
+/* =========================================================
+   15-1) 아이폰 화면 (PLAN-MOBILE.md 1단계 — 뼈대)
+      폭 600px 이하에서만 <body> 에 m 클래스를 붙이고, 한 번에 한 화면만 보여 줍니다.
+        list : 자료 목록   view : 뷰어   notes : AI 노트(회의록)   settings : 설정 창
+      모양은 CSS(body.m …)가 맡고, 여기서는 "지금 어느 화면인가" 와 뒤로가기만 챙깁니다.
+      뒤로가기는 한 층뿐입니다 — 목록이 바닥이고, 다른 화면은 모두 그 위 한 칸에 올라갑니다.
+      그래서 휴대폰의 뒤로 손짓(또는 사파리 ‹)을 하면 언제나 목록으로 돌아옵니다.
+      아이폰 화면이 아닐 때는 브라우저 방문 기록을 전혀 건드리지 않습니다.
+   ========================================================= */
+const MQ_M = window.matchMedia("(max-width: 600px)");
+function isMobile(){ return document.body.classList.contains("m"); }
+let mScr = "list";          /* 지금 화면 */
+let mBeforeSet = "list";    /* 설정을 열기 전 화면 — 설정을 닫으면 그리로 돌아갑니다 */
+
+/* 화면을 그립니다 — 방문 기록은 건드리지 않습니다 (mGo · 뒤로가기가 부릅니다) */
+function mShow(scr){
+  const prev = mScr;
+  mScr = scr;
+  document.body.dataset.mscr = scr;
+  const tab = scr === "view" ? "list" : scr;             /* 뷰어는 '자료' 탭 아래에 있습니다 */
+  $$("#mtabbar [data-mscr]").forEach(b => {
+    const on = b.dataset.mscr === tab;
+    b.classList.toggle("on", on);
+    if(on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  if(scr !== "view" && document.body.classList.contains("full")) setFull(false);
+  if(scr === "settings"){
+    if(prev !== "settings") mBeforeSet = prev;
+    if(!$("#modalbg").classList.contains("on")) $("#btn-settings").click();
+  }else if(prev === "settings" && $("#modalbg").classList.contains("on")){
+    $("#modalbg").classList.remove("on");
+  }
+  if(scr === "notes" && S.rtab !== "note"){
+    S.rtab = "note"; KV.rtab = S.rtab; saveKV("rtab");
+    S.editA = S.editB = S.editS = S.editM = S.editP = false;   /* 탭을 옮기면 다시 잠급니다 */
+    renderRight();
+  }
+  if(scr === "view" && S.pdf) requestAnimationFrame(autoFit);
+}
+
+/* 화면을 옮깁니다 — 목록에서 올라갈 때만 기록을 한 칸 쌓고, 나머지는 그 칸을 바꿔 끼웁니다 */
+function mGo(scr){
+  if(!isMobile() || scr === mScr) return;
+  if(scr === "list"){
+    const st = history.state;
+    if(st && st.mscr && st.mscr !== "list") history.back();    /* popstate 가 목록을 그립니다 */
+    else{ history.replaceState({ mscr:"list" }, ""); mShow("list"); }
+    return;
+  }
+  if(mScr === "list") history.pushState({ mscr:scr }, "");
+  else history.replaceState({ mscr:scr }, "");
+  mShow(scr);
+}
+
+window.addEventListener("popstate", e => {
+  if(!isMobile()) return;
+  mShow((e.state && e.state.mscr) || "list");
+});
+
+$("#mtabbar").addEventListener("click", e => {
+  const b = e.target.closest("[data-mscr]"); if(!b) return;
+  mGo(b.dataset.mscr);
+});
+
+/* 설정 창은 닫는 길이 여럿입니다(✕ · 바깥 누르기 · Esc · 저장 뒤 닫기).
+   어느 길로 닫혀도 여기서 알아채고 설정 전 화면으로 돌아갑니다. */
+new MutationObserver(() => {
+  if(mScr !== "settings" || $("#modalbg").classList.contains("on")) return;
+  if(isMobile()) mGo(mBeforeSet === "settings" ? "list" : mBeforeSet);
+  else mScr = "list";
+}).observe($("#modalbg"), { attributes:true, attributeFilter:["class"] });
+
+/* 폭이 600px 을 넘나들 때(처음 열 때 · 가로로 돌릴 때) 켜고 끕니다 */
+function applyMobile(){
+  const on = MQ_M.matches;
+  if(on === isMobile()) return;
+  document.body.classList.toggle("m", on);
+  if(on){
+    history.replaceState({ mscr:mScr }, "");
+    mShow(mScr);
+  }
+}
+applyMobile();   /* 시작 그리기(renderAll · PDF 읽기)보다 먼저 — 서랍 모양이 잠깐 비치지 않도록 */
+if(MQ_M.addEventListener) MQ_M.addEventListener("change", applyMobile);
+else if(MQ_M.addListener) MQ_M.addListener(applyMobile);
 
 /* =========================================================
    16) 시작
