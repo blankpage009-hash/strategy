@@ -1804,6 +1804,42 @@ body.m[data-mscr="settings"] #modalbg .modal{max-width:none;max-height:none;heig
 /* 화면 아래에 붙는 것들은 탭 줄 위로 올립니다 */
 body.m #hitbar:not([hidden]){bottom:var(--mtab);}
 body.m #toast{bottom:calc(var(--mtab) + 16px);}
+
+/* ---------- 8a 자료 목록 머리 · 행 (PLAN-MOBILE.md 2단계) ----------
+   데스크톱 머리(.side-head)는 숨기고, #left 안에 이미 있던 .mhead 를 대신 보여줍니다.
+   #cats · #btn-upload · #btn-manage 는 새로 만들지 않고 JS(mMountHeader)가 그 자리로 옮겨 옵니다. */
+.mhead{display:none;}
+body.m #left .side-head{display:none;}
+body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-bottom:2px solid var(--rule);background:var(--bg);}
+.mhead-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.mhead-brand{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted);}
+.mhead-ttl h1{margin:2px 0 12px;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--text);}
+.mhead-actions{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding-top:2px;}
+.mhead-actions #btn-upload{height:36px;min-width:36px;margin-left:0;}
+.mhead-actions #btn-manage{width:36px;height:36px;border-width:2px;}
+.mhead-search{width:36px;height:36px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);background:none;border-radius:0;color:var(--text);padding:0;}
+.mhead-search:hover{border-color:var(--accent);color:var(--accent-ink);}
+.mhead-search svg{display:block;}
+/* 회의 종류 — 밑줄 탭. #cats 자체 CSS(칩 모양)는 그대로 두고, .mhead-cats 안에서만 덮어씁니다 */
+.mhead-cats{padding:10px 0 0;}
+.mhead-cats #cats{gap:18px;}
+.mhead-cats .cat{border:none;background:none;padding:0 0 9px;height:auto;color:var(--muted);
+  font-size:13px;font-weight:700;border-bottom:3px solid transparent;}
+.mhead-cats .cat .cnt{display:none;}
+.mhead-cats .cat.on{background:none;color:var(--text);border-bottom-color:var(--accent);}
+.mhead-cats .cat:not(.on):hover{background:none;}
+
+/* 자료 행 — 제목(굵게) + 아래 종류·쪽수·날짜, 열람 중은 연분홍 배경 + 왼쪽 빨간 선 */
+body.m #tree{padding:6px 0 20px;}
+body.m .mgrouphead{padding:14px 16px 6px;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--muted);}
+body.m .doc{display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  padding:11px 16px;border-left:3px solid transparent;min-height:44px;justify-content:center;}
+body.m .doc .wk{display:none;}
+body.m .doc .nm{white-space:normal;font-size:15px;font-weight:700;color:var(--text);}
+body.m .doc.sel{background:var(--accent-soft);border-left-color:var(--accent);}
+body.m .doc .mmeta{font-size:12px;font-weight:500;color:var(--muted);}
+body.m .doc .mnow{color:var(--accent-ink);font-weight:800;}
 </style>
 </head>
 <body>
@@ -1881,6 +1917,25 @@ body.m #toast{bottom:calc(var(--mtab) + 16px);}
       <span class="arw">»</span><span class="lbl">MATERIALS</span>
     </button>
     <div class="side-inner">
+      <!-- 아이폰 화면(8a) 전용 머리 — PLAN-MOBILE.md 2단계. 아래 JS(mMountHeader)가
+           #cats · #btn-upload · #btn-manage 를 여기 안으로 옮겨 넣습니다(복제 아님, 같은 요소를 옮김). -->
+      <div class="mhead">
+        <div class="mhead-top">
+          <div class="mhead-ttl">
+            <span class="mhead-brand">WHAT'S THE STRATEGY?</span>
+            <h1>회의자료</h1>
+          </div>
+          <div class="mhead-actions" id="mheadActions">
+            <button type="button" id="mbtn-search" class="mhead-search" title="검색" aria-label="검색">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="mhead-cats" id="mheadCats"></div>
+      </div>
       <div class="side-head">Materials <span class="cnt" id="listcount"></span>
         <button id="btn-upload" title="PDF 자료 올리기">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -3142,6 +3197,8 @@ function renderTree(){
     return;
   }
 
+  if(isMobile()){ $("#tree").innerHTML = renderTreeMobile(list); return; }
+
   const years = {};
   list.forEach(d => {
     const y = d.date.slice(0,4), m = d.date.slice(0,7);
@@ -3176,6 +3233,30 @@ function renderTree(){
     });
   });
   $("#tree").innerHTML = html;
+}
+
+/* 아이폰 화면(8a) — 접는 연/월 트리 대신, 주차 단위로 묶어 한 번에 죽 보여줍니다(접기 없음) */
+function renderTreeMobile(list){
+  const groups = {};
+  list.forEach(d => {
+    const k = `${yearOf(d)}-${String(monthOf(d)).padStart(2,"0")}-W${weekOf(d)}`;
+    (groups[k] = groups[k] || []).push(d);
+  });
+  let html = "";
+  Object.keys(groups).sort().reverse().forEach(k => {
+    const [y, m, w] = k.split("-");
+    html += `<div class="mgrouphead">${y} · ${m} · ${w}</div>`;
+    groups[k].forEach(d => {
+      const now = S.sel === d.id;
+      const date = d.date.slice(5).replace("-", ".");
+      html += `<div class="doc ${now?"sel":""}" data-id="${d.id}"
+          title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
+        <span class="nm">${esc(d.short || d.title)}</span>
+        <span class="mmeta">${esc(d.cat)} · ${d.pages||1}p · ${date}${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span>
+      </div>`;
+    });
+  });
+  return html;
 }
 
 function revealDoc(id){
@@ -12167,11 +12248,30 @@ new MutationObserver(() => {
   else mScr = "list";
 }).observe($("#modalbg"), { attributes:true, attributeFilter:["class"] });
 
+/* 8a 자료 목록 머리 — #cats · #btn-upload · #btn-manage 는 복제하지 않고, 아이폰 화면일 때만
+   #left 안의 .mhead 로 옮겨 두었다가(모양은 body.m CSS 가 담당) PC/아이패드로 돌아가면 제자리로 되돌립니다. */
+const mCatsHome   = { parent: $("#cmdbar"), before: $("#addcat") };
+const mUploadHome = { parent: $(".side-head"), before: $(".side-head .closebtn") };
+function mMountHeader(on){
+  if(on){
+    $("#mheadCats").appendChild($("#cats"));
+    $("#mheadActions").insertBefore($("#btn-upload"), $("#mbtn-search"));
+    $("#mheadActions").insertBefore($("#btn-manage"), $("#mbtn-search"));
+  }else{
+    mCatsHome.parent.insertBefore($("#cats"), mCatsHome.before);
+    mUploadHome.parent.insertBefore($("#btn-upload"), mUploadHome.before);
+    mUploadHome.parent.insertBefore($("#btn-manage"), mUploadHome.before);
+  }
+}
+$("#mbtn-search").addEventListener("click", () => toast("검색 화면은 8단계에서 만듭니다"));
+
 /* 폭이 600px 을 넘나들 때(처음 열 때 · 가로로 돌릴 때) 켜고 끕니다 */
 function applyMobile(){
   const on = MQ_M.matches;
   if(on === isMobile()) return;
   document.body.classList.toggle("m", on);
+  mMountHeader(on);
+  renderTree();
   if(on){
     history.replaceState({ mscr:mScr }, "");
     mShow(mScr);
