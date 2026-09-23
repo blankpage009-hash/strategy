@@ -3221,8 +3221,8 @@ async function loadPdfFor(doc){
    기기별 한도(가로세로 길이 · 전체 점 개수) 안에서 최대한 크게 잡습니다. */
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const MAX_DIM    = IS_IOS ? 4096    : 8192;
-const MAX_PIXELS = IS_IOS ? 16.7e6  : 32e6;
+const MAX_DIM    = IS_IOS ? 4096    : 12000;
+const MAX_PIXELS = IS_IOS ? 16.7e6  : 50e6;
 function outScale(vp){
   let s = Math.min((window.devicePixelRatio || 1) * 2, 4);
   s = Math.min(s,
