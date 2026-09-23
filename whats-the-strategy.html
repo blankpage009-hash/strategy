@@ -1418,6 +1418,9 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .mrow .btnrow button{height:30px;padding:0 10px;border:2px solid var(--line);border-radius:0;
   background:none;font-size:11.5px;font-weight:700;color:var(--muted);}
 .mrow .btnrow button:hover:not([disabled]){border-color:var(--accent);color:var(--accent-ink);}
+#themerow{margin-bottom:6px;}
+#themerow button{min-width:64px;}
+#themerow button.on,#themerow button.on:hover{border-color:var(--accent);background:var(--accent);color:#fff;}
 .mrow .chk{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;cursor:pointer;}
 .mrow .chk input{width:15px;height:15px;margin:0;}
 /* ---------- 설정 — 설명 문구는 숨기고 ? 아이콘을 눌렀을 때만 팝업으로 ---------- */
@@ -2761,6 +2764,16 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           </div>
           <div id="aitest"></div>
         </div>
+      </div>
+
+      <div class="mrow">
+        <div class="lbl">화면 테마</div>
+        <div class="btnrow" id="themerow" role="group" aria-label="화면 테마">
+          <button type="button" data-theme="light">라이트</button>
+          <button type="button" data-theme="dark">다크</button>
+          <button type="button" data-theme="system">시스템</button>
+        </div>
+        <div class="hint">시스템은 컴퓨터·휴대폰의 밝기 설정을 따라갑니다. 이 기기에만 저장되며 다른 기기로 동기화되지 않습니다.</div>
       </div>
 
       <!-- AI NOTE (제미나이) — 회의록을 한 장으로 정리해 주는 새 기능의 설정입니다. 위 옛 자동요약과 분리돼 있습니다. -->
@@ -10822,6 +10835,17 @@ $("#an-model").addEventListener("change", e => {
   renderModelList(null, $("#an-modellist"));
   syncTopModel();
 });
+/* 화면 테마 — 실제 적용은 <head> 첫 스크립트(setThemePref)가 합니다 */
+function syncThemeRow(){
+  const p = getThemePref();
+  document.querySelectorAll("#themerow button").forEach(b => {
+    const on = b.dataset.theme === p;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  });
+}
+document.querySelectorAll("#themerow button").forEach(b => b.onclick = () => { setThemePref(b.dataset.theme); syncThemeRow(); });
+syncThemeRow();
+
 $("#an-clear").onclick = () => {
   KV.aiKey = ""; saveKV("aiKey");
   syncAiNoteRow();
