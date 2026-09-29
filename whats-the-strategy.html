@@ -1906,9 +1906,15 @@ body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-botto
   border:2px solid var(--line);background:none;border-radius:0;color:var(--text);padding:0;}
 .mhead-search:hover{border-color:var(--accent);color:var(--accent-ink);}
 .mhead-search svg{display:block;}
+.mhead-allcats{width:36px;height:36px;flex:0 0 auto;padding:0;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--text);border-radius:0;background:var(--bg);color:var(--text);}
+.mhead-allcats svg{display:block;}
+.mhead-allcats.on{background:var(--text);color:var(--bg);}
 /* 회의 종류 — PC 와 같은 칩(켜면 빨간 바탕). 손가락 크기로만 키웁니다 */
 .mhead-cats{padding:4px 0 12px;}
-.mhead-cats #cats{gap:6px;}
+/* 좁은 화면 규칙(#cats{overflow:visible})은 PC 커맨드 바용이라, 여기서는 칩 줄 자체가 좌우로 밀리게 되돌립니다 */
+.mhead-cats #cats{gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;
+  touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
 .mhead-cats .cat{height:32px;padding:0 11px;font-size:13px;}
 .mhead-cats .cat .cnt{display:none;}
 /* 터치는 누른 뒤에도 :hover 가 남아 끈 칩이 켜진 듯 보이므로 여기선 hover 색을 쓰지 않습니다 */
@@ -2267,6 +2273,13 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
             <h1>자료</h1>
           </div>
           <div class="mhead-actions" id="mheadActions">
+            <!-- 자료 종류 전체 선택/해제 한 단추 — 모두 켜져 있으면 검은 바탕(누르면 모두 끔), 아니면 흰 바탕(누르면 모두 켬) -->
+            <button type="button" id="mbtn-allcats" class="mhead-allcats" title="자료 종류 전체 선택 · 해제" aria-label="자료 종류 전체 선택 · 해제" aria-pressed="false">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
+              </svg>
+            </button>
             <button type="button" id="mbtn-search" class="mhead-search" title="검색" aria-label="검색">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
@@ -3574,6 +3587,8 @@ function renderBulkCats(){
   const allOff = has && KV.cats.every(c =>  S.offCats.has(c));
   $("#selall").classList.toggle("on", !!allOn);
   $("#deselall").classList.toggle("on", !!allOff);
+  $("#mbtn-allcats").classList.toggle("on", !!allOn);
+  $("#mbtn-allcats").setAttribute("aria-pressed", allOn ? "true" : "false");
 }
 
 function renderCats(){
@@ -12776,6 +12791,9 @@ function mMountHeader(on){
   }
 }
 $("#mbtn-search").addEventListener("click", () => mGo("search"));
+/* 전체 단추 — 모두 켜져 있으면 모두 끄고, 아니면 모두 켭니다(PC 의 #selall · #deselall 동작을 그대로 씀) */
+$("#mbtn-allcats").addEventListener("click", () =>
+  $($("#mbtn-allcats").classList.contains("on") ? "#deselall" : "#selall").click());
 
 /* =========================================================
    8d 검색 화면 (PLAN-MOBILE.md 8단계) — 데스크톱 검색 드롭다운(#sdrop)과 같은 데이터
