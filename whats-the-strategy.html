@@ -1896,22 +1896,23 @@ body.m #left .side-head{display:none;}
 body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-bottom:var(--rule-w) solid var(--rule);background:var(--bg);}
 .mhead-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 .mhead-brand{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted);}
-.mhead-ttl h1{margin:2px 0 12px;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--text);}
-.mhead-actions{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding-top:2px;}
-.mhead-actions #btn-upload{height:36px;min-width:36px;margin-left:0;}
+.mhead-ttl h1{margin:7px 0 12px;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--text);}
+.mhead-actions{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding-top:12px;}
+.mhead-actions #btn-upload{height:36px;min-width:36px;margin-left:0;padding:0;justify-content:center;}
+.mhead-actions #btn-upload .up-lbl{display:none;}
+.mhead-actions #btn-upload svg{width:16px;height:16px;}
 .mhead-actions #btn-manage{width:36px;height:36px;border-width:2px;}
 .mhead-search{width:36px;height:36px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
   border:2px solid var(--line);background:none;border-radius:0;color:var(--text);padding:0;}
 .mhead-search:hover{border-color:var(--accent);color:var(--accent-ink);}
 .mhead-search svg{display:block;}
-/* 회의 종류 — 밑줄 탭. #cats 자체 CSS(칩 모양)는 그대로 두고, .mhead-cats 안에서만 덮어씁니다 */
-.mhead-cats{padding:10px 0 0;}
-.mhead-cats #cats{gap:18px;}
-.mhead-cats .cat{border:none;background:none;padding:0 0 9px;height:auto;color:var(--muted);
-  font-size:13px;font-weight:700;border-bottom:3px solid transparent;}
+/* 회의 종류 — PC 와 같은 칩(켜면 빨간 바탕). 손가락 크기로만 키웁니다 */
+.mhead-cats{padding:4px 0 12px;}
+.mhead-cats #cats{gap:6px;}
+.mhead-cats .cat{height:32px;padding:0 11px;font-size:13px;}
 .mhead-cats .cat .cnt{display:none;}
-.mhead-cats .cat.on{background:none;color:var(--text);border-bottom-color:var(--accent);}
-.mhead-cats .cat:not(.on):hover{background:none;}
+/* 터치는 누른 뒤에도 :hover 가 남아 끈 칩이 켜진 듯 보이므로 여기선 hover 색을 쓰지 않습니다 */
+.mhead-cats .cat:not(.on):hover{border-color:var(--line);color:var(--muted);}
 
 /* 자료 목록 — PC 와 같은 연/월 접기 트리(손가락 크기로 키움). 행은 W 태그 + 제목(굵게) + 아래 종류·쪽수·날짜,
    열람 중은 연분홍 배경 + 왼쪽 빨간 선 */
@@ -2263,7 +2264,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
         <div class="mhead-top">
           <div class="mhead-ttl">
             <span class="mhead-brand">WHAT'S THE STRATEGY?</span>
-            <h1>회의자료</h1>
+            <h1>자료</h1>
           </div>
           <div class="mhead-actions" id="mheadActions">
             <button type="button" id="mbtn-search" class="mhead-search" title="검색" aria-label="검색">
@@ -2281,7 +2282,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-          </svg>Upload</button>
+          </svg><span class="up-lbl">Upload</span></button>
         <button id="btn-manage" title="자료 이름 바꾸기 · 옮기기 · 삭제" aria-label="자료 관리">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
