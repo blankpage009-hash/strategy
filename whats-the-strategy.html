@@ -2211,7 +2211,7 @@ body.m #msearch #searchwrap{flex:1 1 auto;min-width:0;padding:0;background:none;
 body.m #msearch #qhelp,body.m #msearch #copyright{display:none;}
 body.m #msearch #sfield{height:40px;}
 body.m #msearch #qmirror,body.m #msearch #search{height:40px;line-height:40px;font-size:16px;}
-body.m #msearch #search{border-bottom:none;}     /* 16px 미만이면 iOS 사파리가 포커스 때 확대합니다 */
+body.m #msearch #search{border-bottom:none;outline:none;}   /* 포커스 테두리(빨간 윤곽)가 박스 오른쪽과 어긋나 보이던 것을 없앰. 16px 미만이면 iOS 사파리가 포커스 때 확대합니다 */
 #msearch-cancel{flex:0 0 auto;height:44px;padding:0 2px;border:none;background:none;
   color:var(--text);font-size:15px;font-weight:700;}
 /* 필터 드롭다운 세 칸 — 회의자료(회의 종류) · 기간 · 본문/회의록. 기본은 모두 '전체'.
