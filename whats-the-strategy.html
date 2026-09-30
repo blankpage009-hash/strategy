@@ -1877,11 +1877,11 @@ body.m[data-mscr="settings"] #modalbg .modal{max-width:none;max-height:none;heig
   border:none;box-shadow:none;}
 /* 설정 화면 손가락 손질(9단계) — 줄이 빽빽한 목록(모델·자료 종류·규칙)이라 높이만 44px 로 키우고
    (너비는 그대로라 줄바꿈 없음), 글자 입력칸은 16px 로(그 미만이면 iOS 사파리가 포커스 때 확대합니다). */
-body.m[data-mscr="settings"] #modalclose{width:44px;height:44px;font-size:16px;}
-body.m[data-mscr="settings"] .btnrow button{min-height:44px;}
-body.m[data-mscr="settings"] .clrow button{min-height:44px;}
-body.m[data-mscr="settings"] .cmrow select,body.m[data-mscr="settings"] .cmrow input,
-body.m[data-mscr="settings"] .cmrow .del{min-height:44px;}
+body.m[data-mscr="settings"] #modalclose{width:32px;height:32px;font-size:16px;}
+body.m[data-mscr="settings"] .btnrow button{min-height:32px;height:32px;}
+body.m[data-mscr="settings"] .clrow button{min-height:32px;height:32px;}
+body.m[data-mscr="settings"] .cmrow select,body.m[data-mscr="settings"] .cmrow input{min-height:44px;}
+body.m[data-mscr="settings"] .cmrow .del{min-height:32px;height:32px;}
 body.m[data-mscr="settings"] .mrow select,body.m[data-mscr="settings"] .mrow input[type=text],
 body.m[data-mscr="settings"] .mrow input[type=password]{min-height:44px;font-size:16px;}
 /* 화면 아래에 붙는 것들은 탭 줄 위로 올립니다 */
@@ -2063,9 +2063,9 @@ body.m[data-mscr="view"][data-msheet="script"] #msnotemeta{display:block;}
 body.m[data-mscr="notes"] #rtop{display:none;}
 body.m[data-mscr="notes"] .mshead{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;
   gap:12px;padding:14px 16px 12px;border-bottom:var(--rule-w) solid var(--rule);}
-/* Add·Edit·Generate 단추는 44px 손가락 영역을 채웁니다 */
-body.m[data-mscr="notes"] .sect > h4 .mini{min-height:44px;display:inline-flex;align-items:center;}
-body.m[data-mscr="notes"] .annote .genmini{min-height:44px;}
+/* Add·Edit·Generate 단추 — 44px 는 너무 커서 30px 로 줄임 */
+body.m[data-mscr="notes"] .sect > h4 .mini{min-height:30px;display:inline-flex;align-items:center;}
+body.m[data-mscr="notes"] .annote .genmini{min-height:30px;height:30px;}
 
 /* ---------- 8g 스크립트 시트 (PLAN-MOBILE.md 6단계) ----------
    요약 시트와 몸통 구조가 같아(생성 단추 · 쪽 이동 줄 · 글상자) 같은 요령을 그대로 씁니다. */
