@@ -1488,6 +1488,11 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .mgdetach{flex:0 0 auto;height:28px;padding:0 9px;border:1px solid var(--line);border-radius:0;
   background:var(--bg);color:var(--muted);font-size:11px;white-space:nowrap;}
 .mgdetach:hover{border-color:var(--accent);color:var(--text);}
+.mgdown{flex:0 0 auto;height:28px;padding:0 9px;border:1px solid var(--line);border-radius:0;
+  background:var(--bg);color:var(--muted);font-size:11px;white-space:nowrap;margin-left:auto;}
+.mgdown:hover{border-color:var(--accent);color:var(--text);}
+.mgdown:disabled{opacity:.5;cursor:default;}
+.mgbot .mgdown + .meta{margin-left:4px;}
 .mgbot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0 0 22px;}
 .mgbot select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
   background:var(--surface);font-size:12px;}
@@ -6199,6 +6204,7 @@ function mgRender(){
           <select data-f="year">${mgYearOptions(yearOf(d))}</select>
           <select data-f="month">${monthOptions(monthOf(d))}</select>
           <select data-f="week">${weekOptions(weekOf(d))}</select>
+          ${d.hasPdf ? '<button class="mgdown" title="PDF 원본을 이 기기에 파일로 내려받기">다운로드</button>' : ""}
           <span class="meta">${esc(mgMeta(d))}</span>
         </div>
       </div>`).join("")
@@ -6283,6 +6289,14 @@ $("#mglist").addEventListener("change", async e => {
 $("#mglist").addEventListener("click", async e => {
   const row = e.target.closest(".mgrow"); if(!row) return;
   const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
+
+  const down = e.target.closest(".mgdown");
+  if(down){
+    down.disabled = true;
+    try{ await downloadPdfOf(d); }
+    finally{ down.disabled = false; }
+    return;
+  }
 
   if(e.target.closest(".mgdetach")){
     if(!confirm(`'${d.title}' 의 PDF 원본만 비웁니다.\n요약·회의록·할 일·메모는 그대로 남습니다.\n같은 이름으로 다시 올리면 이어붙습니다.`)) return;
@@ -11033,6 +11047,23 @@ function downloadBlob(blob, name){
   a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+}
+
+/* 자료 하나의 PDF 원본을 파일로 내려받습니다. 이 기기에 없으면 동기화 저장소에서 가져옵니다. */
+async function downloadPdfOf(d){
+  try{
+    const rec = await dbGet("files", d.id);
+    let blob = rec && rec.blob;
+    if(!blob && await syncHasRemote("files", d.id)){
+      toast("원본을 저장소에서 가져오는 중…");
+      blob = await syncFetchBlob("files", d.id);
+    }
+    if(!blob){ toast("원본 파일을 찾을 수 없습니다"); return; }
+    const name = ((d.title || "자료").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim() || "자료") + ".pdf";
+    downloadBlob(blob.type === "application/pdf" ? blob : new Blob([blob], { type:"application/pdf" }), name);
+  }catch(err){
+    toast("내려받지 못했습니다 — " + (err.message || String(err)));
+  }
 }
 
 async function exportBackup(mode){
