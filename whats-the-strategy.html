@@ -3630,7 +3630,7 @@ const S = {
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"page",                           /* 기본은 One Page — 처음 열 때 쪽 전체가 한눈에 보이게 */
-  mFit:"width",                             /* 아이폰 화면의 맞춤 방식 — 기본은 폭 맞춤 */
+  mFit:"page",                              /* 아이폰 화면의 맞춤 방식 — 처음 열 때는 Whole page */
   aiBusy:null, aiErr:"", aiErrId:null, aiStep:"",   /* AI 요약 진행/오류 상태 */
   anBusy:null, anErr:"", anErrId:null,              /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
   asBusy:null, asErr:"", asErrId:null, asStep:"",   /* p별 AI 요약(Summary 탭) 진행/오류 상태 */
@@ -3837,7 +3837,9 @@ async function loadPdfFor(doc){
     S.page = 1;
     MS.jump = 1;                                          /* 아이폰 세로 이어 보기 — 첫 쪽 맨 위부터 */
     if(typeof window.drawLoadDoc === "function") await window.drawLoadDoc(doc.id);
-    await fitTo(S.fitPref);
+    /* 자료를 처음 열 때는 어느 기기에서든 항상 Whole page(100% 쪽 전체)로 맞춥니다 */
+    S.fitPref = "page"; S.mFit = "page";
+    await fitTo("page");
     buildThumbs();
   }catch(err){
     clearThumbs();
