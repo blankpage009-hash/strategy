@@ -316,7 +316,7 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 #tree,#projtree{padding:0 8px 20px;}
 /* 영역 고르기 줄 — 고른 쪽만 검은 바(--areabar)에 흰 글씨, 안 고른 쪽은 흰 바탕에 검은 글씨 */
 #areatabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--hairline);background:var(--panel);}
-#areatabs button{flex:1 1 50%;min-width:0;height:28px;display:flex;align-items:center;justify-content:center;gap:6px;
+#areatabs button{flex:1 1 50%;min-width:0;height:24px;display:flex;align-items:center;justify-content:center;gap:6px;
   padding:0 6px;border:none;border-radius:0;background:var(--surface);color:var(--text);
   font-size:12px;font-weight:800;letter-spacing:.04em;white-space:nowrap;cursor:pointer;}
 #areatabs button + button{border-left:1px solid var(--hairline);}
@@ -1979,7 +1979,13 @@ body.m #areatabs{background:var(--bg);border-bottom:var(--rule-w) solid var(--ru
 body.m #areatabs button{height:44px;font-size:14px;}
 body.m .fold.pf{padding:10px 16px;font-size:16px;}
 body.m .fold.pf ~ .doc{padding-left:30px;}
-body.area-proj.m .mhead-cats{display:none;}
+/* 프로젝트 영역 — 회의 종류 칩 대신 폴더 칩(켜고 끄면 목록에서 그 폴더가 보이거나 숨음) */
+#pfchips{display:none;}
+body.area-proj.m #cats{display:none;}
+body.area-proj.m #pfchips{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;overflow-y:hidden;
+  touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#pfchips::-webkit-scrollbar{display:none;}
+#pfchips:empty{display:none !important;}
 body.m .fold{min-height:44px;}
 body.m .fold.yr{padding:10px 16px;font-size:16px;}
 body.m .fold.mo{padding:9px 16px 9px 30px;font-size:14px;}
@@ -2406,7 +2412,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
             </button>
           </div>
         </div>
-        <div class="mhead-cats" id="mheadCats"></div>
+        <div class="mhead-cats" id="mheadCats"><div id="pfchips"></div></div>
       </div>
       <div class="side-head">Materials <span class="cnt" id="listcount"></span>
         <button id="btn-upload" title="PDF 자료 올리기">
@@ -3683,7 +3689,7 @@ const S = {
   /* 오른쪽 탭 : sum(회의자료 요약) · note(회의록) · task(할 일) · script(쪽별 발표 스크립트) */
   editA:false, editB:false, editS:false, editM:false, editP:false, focusSum:null,  /* 요약 상자 잠금 해제 여부 (저장하지 않습니다) */
   sumText:false,                            /* 구조 요약을 글상자로 볼지 */
-  offCats:new Set(), open:new Set(),
+  offCats:new Set(), offFolders:new Set(), open:new Set(),
   agYear:new Date().getFullYear(), agQ:"", agOff:new Set(),  /* 회의 Agenda 팝업 */
   /* 자료 내 검색 — 지금 열린 자료에서만. raw=친 그대로, q=검색 중이면 raw, Q=parseQuery 결과 */
   find:{ raw:"", q:"", Q:null, hits:[], i:-1, total:0 },
@@ -3805,8 +3811,22 @@ function newProjFolder(){
 }
 const PF_NEW_BTN = `<button type="button" class="pfnew" data-pfnew="1">+ 새 폴더</button>`;
 
+/* 아이폰 머리의 폴더 칩 — 켜진 폴더만 목록에 보입니다(기기별·메모리만) */
+function renderPfChips(){
+  $("#pfchips").innerHTML = projFolderList().map(f => `<button class="cat ${S.offFolders.has(f.id)?"":"on"}" data-pfchip="${esc(f.id)}"
+    title="${esc(f.name)} · 눌러서 켜고 끄기">${esc(f.name)}<span class="cnt">${projectDocs().filter(d => d.folder === f.id).length}</span></button>`).join("");
+}
+$("#pfchips").addEventListener("click", e => {
+  const b = e.target.closest("[data-pfchip]"); if(!b) return;
+  const id = b.dataset.pfchip;
+  S.offFolders.has(id) ? S.offFolders.delete(id) : S.offFolders.add(id);
+  renderTree();
+});
+
 function renderProjTree(){
-  const folders = projFolderList(), mob = isMobile();
+  const mob = isMobile();
+  renderPfChips();
+  const folders = projFolderList().filter(f => !mob || !S.offFolders.has(f.id));
   $("#listcount").textContent = projectDocs().length;
   if(!folders.length){
     $("#projtree").innerHTML = `<div class="emptybox">아직 프로젝트 자료가 없습니다.<br>
