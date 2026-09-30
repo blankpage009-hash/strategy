@@ -951,6 +951,9 @@ body.thumbs-off #thumbs{display:none;}
 #hl-layer .hl{position:absolute;background:#ffc4b8;}
 #hl-layer .hl.cur{box-shadow:inset 0 -2px var(--accent);}
 body.draw-on #stage{cursor:crosshair;}
+/* 마우스로 끌어 옮기기 — 끌 수 있으면 손바닥, 끄는 동안 움켜쥔 손 */
+#stage.pannable{cursor:grab;}
+body.panning, body.panning *{cursor:grabbing !important;-webkit-user-select:none;user-select:none;}
 body.draw-on .pagenav{display:none;}
 /* 그리는 동안 손바닥이 화면 다른 곳에 닿아도 글자가 선택되거나 길게 누르기 메뉴가 뜨지 않게 —
    글 입력란(메모·요약·검색)만 예외 */
@@ -6530,6 +6533,59 @@ $("#thumbs").addEventListener("keydown", e => {
     const place = () => { stage.scrollTop = down ? 0 : stage.scrollHeight; };
     place(); setTimeout(place, 120);
   }, { passive:false });
+})();
+
+/* 마우스로 잡고 끌어 보는 지점 옮기기 — 왼쪽 단추를 누른 채 움직이면 자료가 손에 잡힌 듯 따라옵니다.
+   (스크롤 막대를 직접 잡지 않아도 됩니다.) 그리기 막대가 펼쳐진 커서 도구에서는 같은 동작이
+   빨간 포인터이므로 양보하고, 그리기 도구가 켜져 있을 때도 하지 않습니다. 손가락은 브라우저가 밀어 줍니다. */
+(function dragPan(){
+  const stage = $("#stage");
+  let on = false, moved = false, x0 = 0, y0 = 0, sl0 = 0, st0 = 0;
+  const canPan = () => stage.scrollWidth > stage.clientWidth + 1 || stage.scrollHeight > stage.clientHeight + 1;
+  const allowed = () => {
+    const b = document.body.classList;
+    return !!S.pdf && !b.contains("draw-on") && b.contains("draw-collapsed");
+  };
+  const end = () => {
+    if(!on) return;
+    on = false;
+    document.body.classList.remove("panning");
+    document.removeEventListener("pointermove", move);
+  };
+  function move(e){
+    if(e.buttons === 0){ end(); return; }                /* 창 밖에서 단추를 놓은 경우 */
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if(!moved){
+      if(Math.hypot(dx, dy) < 4) return;                 /* 살짝 눌렀다 뗀 클릭은 그대로 둡니다 */
+      moved = true; document.body.classList.add("panning");
+    }
+    e.preventDefault();
+    stage.scrollLeft = sl0 - dx;
+    stage.scrollTop  = st0 - dy;
+  }
+  stage.addEventListener("pointerdown", e => {
+    if(e.button !== 0 || e.pointerType !== "mouse" || !allowed()) return;
+    if(e.target.closest(".pagenav, button, a, input, textarea, select, [contenteditable]")) return;
+    if(!canPan()) return;
+    /* 스크롤 막대(자료보다 바깥쪽)를 잡은 경우는 브라우저에 맡깁니다 */
+    if(e.clientX >= stage.getBoundingClientRect().left + stage.clientWidth ||
+       e.clientY >= stage.getBoundingClientRect().top  + stage.clientHeight) return;
+    on = true; moved = false;
+    x0 = e.clientX; y0 = e.clientY; sl0 = stage.scrollLeft; st0 = stage.scrollTop;
+    document.addEventListener("pointermove", move);
+  });
+  document.addEventListener("pointerup", end);
+  document.addEventListener("pointercancel", end);
+  window.addEventListener("blur", end);
+  /* 끌 수 있을 때만 손 모양 커서 */
+  stage.addEventListener("pointermove", e => {
+    if(e.buttons || e.pointerType !== "mouse") return;
+    stage.classList.toggle("pannable", allowed() && canPan());
+  }, { passive:true });
+  stage.addEventListener("pointerleave", () => stage.classList.remove("pannable"));
+  /* 끄는 도중 글자·그림이 끌려 선택되는 것을 막습니다 */
+  stage.addEventListener("selectstart", e => { if(on && moved) e.preventDefault(); });
+  stage.addEventListener("dragstart", e => { if(on) e.preventDefault(); });
 })();
 
 function setFull(on){
