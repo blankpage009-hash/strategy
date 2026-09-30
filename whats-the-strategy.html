@@ -1512,6 +1512,10 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .mgdown:hover{border-color:var(--accent);color:var(--text);}
 .mgdown:disabled{opacity:.5;cursor:default;}
 .mgbot .mgdown + .meta{margin-left:4px;}
+.mgmove,.mgmoveok,.mgmovecancel{flex:0 0 auto;height:28px;padding:0 9px;border:1px solid var(--line);border-radius:0;
+  background:var(--bg);color:var(--muted);font-size:11px;white-space:nowrap;}
+.mgmove:hover,.mgmovecancel:hover{border-color:var(--accent);color:var(--text);}
+.mgmoveok{border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
 .mgbot{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:6px 0 0 22px;}
 .mgbot select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
   background:var(--surface);font-size:12px;}
@@ -2841,13 +2845,17 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
     <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span> <button class="x" id="mgclose">✕</button></header>
     <div class="content">
       <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
-        이름·회의 종류·날짜는 <b>고치는 즉시 저장</b>됩니다.
+        이름·회의 종류·날짜·폴더는 <b>고치는 즉시 저장</b>됩니다.
         종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
+        프로젝트 자료는 <b>폴더</b>만 고르며, 줄 끝 단추로 회의 자료 ↔ 프로젝트를 옮길 수 있습니다.
       </div>
       <div id="mgfilters">
-        <div class="mgfgroup"><span class="mgflabel">종류</span><select class="mgfsel" id="mgfcat"></select></div>
-        <div class="mgfgroup"><span class="mgflabel">연도</span><select class="mgfsel" id="mgfyear"></select></div>
-        <div class="mgfgroup"><span class="mgflabel">월</span><select class="mgfsel" id="mgfmonth"></select></div>
+        <div class="mgfgroup"><span class="mgflabel">영역</span><select class="mgfsel" id="mgfarea">
+          <option value="">전체</option><option value="meet">회의 자료</option><option value="proj">프로젝트</option></select></div>
+        <div class="mgfgroup" id="mgg-folder"><span class="mgflabel">폴더</span><select class="mgfsel" id="mgffolder"></select></div>
+        <div class="mgfgroup" id="mgg-cat"><span class="mgflabel">종류</span><select class="mgfsel" id="mgfcat"></select></div>
+        <div class="mgfgroup" id="mgg-year"><span class="mgflabel">연도</span><select class="mgfsel" id="mgfyear"></select></div>
+        <div class="mgfgroup" id="mgg-month"><span class="mgflabel">월</span><select class="mgfsel" id="mgfmonth"></select></div>
       </div>
       <div id="mgtools">
         <input id="mgsearch" type="search" placeholder="이름으로 걸러내기" autocomplete="off">
@@ -6264,9 +6272,9 @@ function deleteCat(c){
 }
 
 /* 칩 위에서 오른쪽 단추(또는 길게 누르기) — 이름 바꾸기 · 삭제 쪽지 */
-function openCatMenu(cat, x, y){
+function openCatMenu(cat, x, y, pf){
   const m = $("#catmenu");
-  m.dataset.cat = cat;
+  m.dataset.cat = cat; m.dataset.pf = pf || "";   /* pf 가 있으면 프로젝트 폴더 메뉴 */
   m.innerHTML = `<button data-act="ren">이름 바꾸기</button><button data-act="del">삭제</button>`;
   m.classList.add("on");
   const r = m.getBoundingClientRect();
@@ -6292,13 +6300,60 @@ $("#cats").addEventListener("touchstart", e => {
 
 $("#catmenu").addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if(!b) return;
-  const c = $("#catmenu").dataset.cat;
+  const c = $("#catmenu").dataset.cat, pf = $("#catmenu").dataset.pf;
   closeCatMenu();
+  if(pf){ if(b.dataset.act === "ren") renameProjFolder(pf); else deleteProjFolder(pf); return; }
   if(b.dataset.act === "ren") renameCat(c); else deleteCat(c);
 });
 document.addEventListener("pointerdown", e => {
   if(!e.target.closest("#catmenu") && !e.target.closest(".cat")) closeCatMenu();
 }, true);
+
+/* ---- 프로젝트 폴더 — 오른쪽 단추(또는 길게 누르기) 메뉴 · 이름 바꾸기 · 빈 폴더만 삭제 ---- */
+$("#projtree").addEventListener("contextmenu", e => {
+  const row = e.target.closest(".fold.pf"); if(!row) return;
+  e.preventDefault();
+  openCatMenu("", e.clientX, e.clientY, row.dataset.pf);
+});
+let pfHold = null;
+$("#projtree").addEventListener("touchstart", e => {
+  const row = e.target.closest(".fold.pf"); if(!row) return;
+  const t = e.touches[0];
+  pfHold = setTimeout(() => { pfHold = null; openCatMenu("", t.clientX, t.clientY, row.dataset.pf); }, 600);
+}, {passive:true});
+["touchend","touchmove","touchcancel"].forEach(ev =>
+  $("#projtree").addEventListener(ev, () => { clearTimeout(pfHold); pfHold = null; }, {passive:true}));
+/* 길게 눌러 메뉴가 뜬 뒤 손을 떼며 생기는 클릭이 폴더를 접고 펴지 않게 막습니다 */
+$("#projtree").addEventListener("click", e => {
+  if($("#catmenu").classList.contains("on") && e.target.closest(".fold.pf")) e.stopImmediatePropagation();
+}, true);
+
+/* 폴더 이름 바꾸기 — 자료는 폴더 id 를 가리키므로 이름만 고치면 됩니다 */
+function renameProjFolder(id){
+  const cur = projFolderList().find(f => f.id === id); if(!cur) return;
+  const raw = prompt(`'${cur.name}' 폴더의 새 이름을 입력하세요.`, cur.name);
+  if(raw === null) return;
+  const name = raw.trim();
+  if(!name || name === cur.name) return;
+  if((KV.projFolders || []).some(f => f.id !== id && f.name === name)){ alert(`'${name}' 은(는) 이미 있는 폴더입니다.`); return; }
+  const list = (KV.projFolders || []).slice();
+  const f = list.find(x => x.id === id);
+  if(f) f.name = name; else list.push({ id, name });   /* 목록에 없던 폴더(이름 없는 폴더)도 이때 자리를 만듭니다 */
+  KV.projFolders = list; saveKV("projFolders");
+  renderTree(); renderRight(); if($("#managebg").classList.contains("on")) mgRender();
+  toast(`'${cur.name}' → '${name}' 으로 바꿨습니다`);
+}
+/* 폴더 삭제 — 자료가 든 폴더는 막습니다(결정 F) */
+function deleteProjFolder(id){
+  const cur = projFolderList().find(f => f.id === id); if(!cur) return;
+  const n = projectDocs().filter(d => d.folder === id).length;
+  if(n){ alert(`'${cur.name}' 안에 자료가 ${n}개 있습니다.\n폴더 안 자료를 먼저 옮기거나 지운 뒤에 폴더를 삭제할 수 있습니다.`); return; }
+  if(!confirm(`'${cur.name}' 폴더를 지울까요?`)) return;
+  KV.projFolders = (KV.projFolders || []).filter(f => f.id !== id); saveKV("projFolders");
+  if(S.open.delete(projOpenKey(id))){ KV.folders = Array.from(S.open); saveKV("folders"); }
+  renderTree(); if($("#managebg").classList.contains("on")) mgRender();
+  toast(`'${cur.name}' 폴더를 지웠습니다`);
+}
 
 /* 회의 종류 이름 바꾸기 —
    그 종류로 등록해 둔 자료와 회의록의 소속도 함께 옮깁니다.
@@ -6403,22 +6458,31 @@ function mgFilterSelects(){
     const el = $(id), cur = el.value;
     el.innerHTML = `<option value="">전체</option>` + list.map(v => sel(v, cur, label(v))).join("");
   };
+  fill("#mgffolder", projFolderList().map(f => f.id), v => (projFolderList().find(f => f.id === v) || {}).name || v);
   fill("#mgfcat",   mgCatList(),  v => v);
   fill("#mgfyear",  mgYearList(), v => v + "년");
   fill("#mgfmonth", Array.from({ length: 12 }, (_, i) => String(i + 1)), v => v + "월");
+  /* 영역에 맞는 거르기 칸만 보입니다 — 프로젝트는 폴더, 회의 자료는 종류·연도·월 */
+  const area = $("#mgfarea").value;
+  $("#mgg-folder").style.display = area === "meet" ? "none" : "";
+  ["cat","year","month"].forEach(k => $("#mgg-" + k).style.display = area === "proj" ? "none" : "");
 }
 
 function mgRows(){
   const q = ($("#mgsearch").value || "").trim().toLowerCase();
   const nopdf = $("#mgnopdf").checked;
   const fcat = $("#mgfcat").value, fyear = $("#mgfyear").value, fmonth = $("#mgfmonth").value;
+  const farea = $("#mgfarea").value, ffolder = $("#mgffolder").value;
   return DOCS
     .filter(d => !nopdf || !d.hasPdf)
+    .filter(d => !farea   || (farea === "proj") === isProj(d))
+    .filter(d => !ffolder || d.folder === ffolder)
     .filter(d => !fcat   || (d.cat || "") === fcat)
-    .filter(d => !fyear  || yearOf(d) === fyear)
-    .filter(d => !fmonth || String(monthOf(d)) === fmonth)
+    .filter(d => !fyear  || (!isProj(d) && yearOf(d) === fyear))
+    .filter(d => !fmonth || (!isProj(d) && String(monthOf(d)) === fmonth))
     .filter(d => !q || (d.title || "").toLowerCase().includes(q)
-                    || (d.cat   || "").toLowerCase().includes(q))
+                    || (d.cat   || "").toLowerCase().includes(q)
+                    || ((projFolderOf(d) || {}).name || "").toLowerCase().includes(q))
     .slice()
     .sort((a,b) => (b.date||"").localeCompare(a.date||"")   /* 최신 일자(년월주) 순 내림차순 */
                 || (a.title||"").localeCompare(b.title||""));
@@ -6439,6 +6503,33 @@ function mgSyncSel(){
   db.textContent = withPdf ? `선택 원본 비우기 (${withPdf}개)` : "선택 원본 비우기";
 }
 
+/* 영역 옮기기를 누른 자료 — 줄 아래가 「어디로 옮길지」 고르는 칸으로 바뀝니다 */
+const mgMoving = new Set();
+const mgFolderPick = () => `<select data-f="destfolder"><option value="">폴더 고르기</option>${folderOptions("")}</select>`;
+function mgBot(d){
+  const dl = d.hasPdf ? '<button class="mgdown" title="PDF 원본을 이 기기에 파일로 내려받기">다운로드</button>' : "";
+  const meta = `<span class="meta">${esc(mgMeta(d))}</span>`;
+  if(mgMoving.has(d.id)){
+    const now = new Date();
+    const dest = isProj(d)
+      ? `<select class="cat" data-f="destcat">${catOptions(KV.cats[0])}</select>
+         <select data-f="destyear">${yearOptions(now.getFullYear())}</select>
+         <select data-f="destmonth">${monthOptions(now.getMonth() + 1)}</select>
+         <select data-f="destweek">${weekOptions(weekOfDate(mkDate(now.getFullYear(), now.getMonth() + 1, 1)))}</select>`
+      : mgFolderPick();
+    return `<span class="meta" style="margin:0">${isProj(d) ? "회의 자료로 옮기기 —" : "프로젝트로 옮기기 —"}</span>${dest}
+      <button class="mgmoveok">옮기기</button><button class="mgmovecancel">취소</button>`;
+  }
+  if(isProj(d))
+    return `<select class="cat" data-f="folder" title="폴더">${folderOptions(d.folder)}</select>
+      <button class="mgmove" title="이 자료를 회의 자료(종류·연·월·주차)로 옮기기">회의 자료로</button>${dl}${meta}`;
+  return `<select class="cat" data-f="cat">${mgCatOptions(d.cat)}</select>
+    <select data-f="year">${mgYearOptions(yearOf(d))}</select>
+    <select data-f="month">${monthOptions(monthOf(d))}</select>
+    <select data-f="week">${weekOptions(weekOf(d))}</select>
+    <button class="mgmove" title="이 자료를 프로젝트 폴더로 옮기기">프로젝트로</button>${dl}${meta}`;
+}
+
 function mgRender(){
   mgFilterSelects();
   const rows = mgRows();
@@ -6452,14 +6543,7 @@ function mgRender(){
           ${d.hasPdf ? '<button class="mgdetach" title="PDF 원본만 비우기 — 요약·회의록·할 일은 그대로">원본 비우기</button>' : ""}
           <button class="mgdel" title="자료를 통째로 지우기">✕</button>
         </div>
-        <div class="mgbot">
-          <select class="cat" data-f="cat">${mgCatOptions(d.cat)}</select>
-          <select data-f="year">${mgYearOptions(yearOf(d))}</select>
-          <select data-f="month">${monthOptions(monthOf(d))}</select>
-          <select data-f="week">${weekOptions(weekOf(d))}</select>
-          ${d.hasPdf ? '<button class="mgdown" title="PDF 원본을 이 기기에 파일로 내려받기">다운로드</button>' : ""}
-          <span class="meta">${esc(mgMeta(d))}</span>
-        </div>
+        <div class="mgbot">${mgBot(d)}</div>
       </div>`).join("")
     : `<div id="mgempty">${ DOCS.length
         ? "찾는 이름의 자료가 없습니다."
@@ -6485,7 +6569,8 @@ async function mgSaveDoc(d){
 function openManage(){
   $("#mgsearch").value = "";
   $("#mgnopdf").checked = false;
-  $("#mgfcat").innerHTML = $("#mgfyear").innerHTML = $("#mgfmonth").innerHTML = "";
+  $("#mgfcat").innerHTML = $("#mgfyear").innerHTML = $("#mgfmonth").innerHTML = $("#mgffolder").innerHTML = "";
+  $("#mgfarea").value = ""; mgMoving.clear();
   mgRender();
   $("#managebg").classList.add("on");
 }
@@ -6502,6 +6587,8 @@ $("#managebg").addEventListener("click", e => { if(e.target.id === "managebg") c
 $("#mgsearch").addEventListener("input", mgRender);
 $("#mgnopdf").addEventListener("change", mgRender);
 $("#mgfcat").addEventListener("change", mgRender);
+$("#mgfarea").addEventListener("change", mgRender);
+$("#mgffolder").addEventListener("change", mgRender);
 $("#mgfyear").addEventListener("change", mgRender);
 $("#mgfmonth").addEventListener("change", mgRender);
 $("#mgall").onchange = () => {
@@ -6521,6 +6608,11 @@ $("#mglist").addEventListener("change", async e => {
     if(!v){ e.target.value = d.title; toast("이름은 비워 둘 수 없습니다"); return; }
     if(v === d.title) return;
     d.title = v;
+  }else if(f === "folder"){
+    const id = pickFolder(e.target.value);
+    if(!id || id === d.folder){ mgRender(); return; }   /* 새 폴더 만들기를 취소했거나 그대로면 칸만 원래대로 */
+    d.folder = id;
+    S.open.add(projOpenKey(id)); KV.folders = Array.from(S.open); saveKV("folders");
   }else if(f === "cat"){
     if(e.target.value === d.cat) return;
     d.cat = e.target.value;
@@ -6534,7 +6626,7 @@ $("#mglist").addEventListener("change", async e => {
   }else return;
 
   if(await mgSaveDoc(d)){
-    row.querySelector(".meta").textContent = mgMeta(d);   /* 회의록 연결이 바뀔 수 있습니다 */
+    if(f === "folder") mgRender(); else row.querySelector(".meta").textContent = mgMeta(d);   /* 회의록 연결이 바뀔 수 있습니다 */
     toast("저장했습니다");
   }
 });
@@ -6542,6 +6634,29 @@ $("#mglist").addEventListener("change", async e => {
 $("#mglist").addEventListener("click", async e => {
   const row = e.target.closest(".mgrow"); if(!row) return;
   const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
+
+  if(e.target.closest(".mgmove")){ mgMoving.add(d.id); mgRender(); return; }
+  if(e.target.closest(".mgmovecancel")){ mgMoving.delete(d.id); mgRender(); return; }
+  if(e.target.closest(".mgmoveok")){
+    if(isProj(d)){                                  /* 프로젝트 → 회의 자료 */
+      const cat = row.querySelector('[data-f="destcat"]').value;
+      if(!cat){ toast("먼저 설정에서 회의 종류를 만들어 주세요"); return; }
+      const y = +row.querySelector('[data-f="destyear"]').value, m = +row.querySelector('[data-f="destmonth"]').value,
+            w = +row.querySelector('[data-f="destweek"]').value;
+      delete d.folder; d.cat = cat; d.date = mkDate(y, m, w); d.week = w;
+    }else{                                          /* 회의 자료 → 프로젝트 */
+      const id = pickFolder(row.querySelector('[data-f="destfolder"]').value);
+      if(!id){ toast("폴더를 골라 주세요"); return; }
+      d.folder = id; d.cat = ""; delete d.week;      /* date 는 그대로 둡니다(화면에 안 보이는 내부용) */
+      S.open.add(projOpenKey(id)); KV.folders = Array.from(S.open); saveKV("folders");
+    }
+    mgMoving.delete(d.id);
+    if(await mgSaveDoc(d)){
+      if(S.sel === d.id){ revealDoc(d.id); renderTree(); }   /* 보고 있던 자료면 목록도 그 영역으로 따라갑니다 */
+      toast(isProj(d) ? "프로젝트로 옮겼습니다" : "회의 자료로 옮겼습니다");
+    }
+    mgRender(); return;
+  }
 
   const down = e.target.closest(".mgdown");
   if(down){
