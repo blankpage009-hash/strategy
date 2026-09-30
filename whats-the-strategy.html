@@ -1882,6 +1882,14 @@ body.m #mvtabs{grid-template-columns:repeat(5,minmax(0,1fr));}
 body.m #mvtabs button{padding:0 8px;}
 body.m #mvtabs button:first-child{padding-left:12px;}
 body.m #mvtabs .ko{font-size:13px;}
+/* 자료 관리 · 설정 · 할 일 창 머리 — 자료 목록 머리처럼 작은 WHAT'S THE STRATEGY? 위에 큰 제목 (데스크톱은 제목만) */
+.hd-k,.hd-m{display:none;}
+body.m .modal > header .hd-t{display:block;}
+body.m .modal > header .hd-k{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted);}
+body.m .modal > header .hd-n{display:block;margin-top:7px;font-size:26px;font-weight:800;letter-spacing:-.01em;color:var(--text);}
+body.m #alltasksbg .modal > header .hd-d{display:none;}
+body.m #alltaskscount{margin-left:auto;align-self:flex-end;padding-bottom:4px;}   /* "· 전체 n개" 는 머리 오른쪽 끝으로 */
+body.m #alltasksbg .modal > header .hd-m{display:inline;}
 /* 설정 — 창을 화면 가득(아래 탭 줄 위까지) 펼칩니다. 다른 창들은 지금처럼 탭 줄 위에 뜹니다 */
 body.m[data-mscr="settings"] #modalbg{bottom:var(--mtab);padding:0;padding-top:env(safe-area-inset-top);
   background:var(--bg);}
@@ -2136,10 +2144,13 @@ body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"] .taskchips{display
 /* "Tasks" 딱지는 시트 머리(TASKS · 완료 n/m)와 겹치니 이 블록만 숨깁니다(AI 후보 딱지는 남김) */
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"] .tasksblk > .skick{display:none;}
 .mtaskf{display:none;}
-body.m[data-mscr="view"][data-msheet="task"] .mtaskf{display:flex;gap:18px;margin:2px 0 10px;}
-.mtaskf button{padding:0 0 8px;border:none;border-bottom:3px solid transparent;background:none;
-  min-height:44px;font-size:13px;font-weight:700;color:var(--muted);}
-.mtaskf button.on{color:var(--text);border-bottom-color:var(--accent);}
+body.m[data-mscr="view"][data-msheet="task"] .mtaskf{display:flex;gap:6px;margin:2px 0 10px;}
+/* 남음·진행중·완료 — 점 + 이름 + 개수, 고른 칸은 검정 바탕(All Tasks 창의 상태 줄과 같은 모양) */
+.mtaskf button{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 8px;
+  border:none;background:none;font-size:13px;font-weight:700;color:var(--muted);}
+.mtaskf button .dot{flex:0 0 auto;width:9px;height:9px;}
+.mtaskf button b{font-size:11px;font-weight:600;opacity:.75;}
+.mtaskf button.on{background:var(--rule);color:var(--bg);}
 /* 체크(상태 바꾸기)·삭제 단추는 44px 손가락 영역으로, 행 글자도 조금 키웁니다 */
 body.m[data-mscr="view"][data-msheet="task"] .task{padding:6px 0;gap:8px;}
 body.m[data-mscr="view"][data-msheet="task"] .task .st{width:44px;height:44px;display:flex;align-items:center;justify-content:center;}
@@ -2782,7 +2793,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 <!-- 자료 관리 -->
 <div class="modalbg" id="managebg">
   <div class="modal wide" role="dialog" aria-label="자료 관리">
-    <header>자료 관리 <button class="x" id="mgclose">✕</button></header>
+    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span> <button class="x" id="mgclose">✕</button></header>
     <div class="content">
       <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
         이름·회의 종류·날짜는 <b>고치는 즉시 저장</b>됩니다.
@@ -2816,7 +2827,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 <!-- 모든 할 일 -->
 <div class="modalbg" id="alltasksbg">
   <div class="modal wide" role="dialog" aria-label="모든 할 일">
-    <header>All Tasks <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n"><span class="hd-d">All Tasks</span><span class="hd-m">할 일</span></span></span> <span id="alltaskscount" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
       <button class="x" id="alltasksclose">✕</button></header>
     <div class="content">
       <nav class="atnav" id="atnav"></nav>
@@ -2828,7 +2839,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 <!-- 설정 -->
 <div class="modalbg" id="modalbg">
   <div class="modal" role="dialog" aria-label="설정">
-    <header>설정 <button class="x" id="modalclose">✕</button></header>
+    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">설정</span></span> <button class="x" id="modalclose">✕</button></header>
     <div class="content">
       <!-- AI(제미나이) 자동 요약 — 현재 사용 안 함. 코드는 유지, 설정만 숨김. -->
       <div class="mrow" style="display:none">
@@ -4665,10 +4676,11 @@ function renderRight(){
 
   /* 아이폰 시트(8f) 전용 필터 탭 — 전체/진행 중(=완료 아님)/완료. 원래 배열 자리(i)는 그대로 두고
      보여 줄 것만 걸러 냅니다 — 체크·삭제 단추가 i 로 원본 배열을 찾기 때문입니다. */
-  const mTaskFilter = isMobile() ? (S.mTaskFilter || "all") : "all";
+  const mTaskFilter = isMobile() ? (S.mTaskFilter || "open") : "all";
   const idxTasks = tasks.map((t, i) => ({ t, i }));
   const visTasks = mTaskFilter === "done"  ? idxTasks.filter(x => x.t.s === 2)
-                 : mTaskFilter === "doing" ? idxTasks.filter(x => x.t.s !== 2)
+                 : mTaskFilter === "doing" ? idxTasks.filter(x => x.t.s === 1)
+                 : mTaskFilter === "open"  ? idxTasks.filter(x => x.t.s === 0)
                  : idxTasks;
   const taskRow = ({ t, i }) => {
     const cls = t.s===2 ? "done" : (t.s===1 ? "doing" : "");
@@ -4703,9 +4715,9 @@ function renderRight(){
         <button class="genmini" id="alltasks" title="모든 회의자료의 할 일을 한자리에서 봅니다">View All Tasks</button>
       </div>
       <div class="mtaskf">
-        <button type="button" class="${mTaskFilter === "all"   ? "on" : ""}" data-mtaskf="all">전체</button>
-        <button type="button" class="${mTaskFilter === "doing" ? "on" : ""}" data-mtaskf="doing">진행 중</button>
-        <button type="button" class="${mTaskFilter === "done"  ? "on" : ""}" data-mtaskf="done">완료</button>
+        <button type="button" class="${mTaskFilter === "open"  ? "on" : ""}" data-mtaskf="open"><i class="dot bad"></i>남음<b>${leftCnt}</b></button>
+        <button type="button" class="${mTaskFilter === "doing" ? "on" : ""}" data-mtaskf="doing"><i class="dot go"></i>진행중<b>${doingCnt}</b></button>
+        <button type="button" class="${mTaskFilter === "done"  ? "on" : ""}" data-mtaskf="done"><i class="dot warn"></i>완료<b>${doneCnt}</b></button>
       </div>
       <div id="tasklist">
         ${ !tasks.length ? `<div class="nonote">아직 할 일이 없습니다. 아래에 입력하거나, 회의록 문장 옆 + 를 눌러 추가하세요.</div>`
@@ -6430,7 +6442,7 @@ async function selectDoc(id){
   pushRecentDoc(id);                                         /* 최근 열람 문서 (Zero-state, 5단계) */
   S.editA = S.editB = S.editS = S.editM = S.editP = false;              /* 새 자료는 잠긴 채로 엽니다 */
   S.sumText = false;                                          /* 요약은 구조 보기로 시작합니다 */
-  S.mTaskFilter = "all";                                      /* 아이폰 할 일 필터도 새 자료마다 전체로 */
+  S.mTaskFilter = "open";                                     /* 아이폰 할 일 필터도 새 자료마다 남음으로 */
   if(S.aiErrId !== id){ S.aiErr = ""; S.aiErrId = null; }   /* 지난 오류 표시는 지웁니다 */
   if(S.anErrId !== id){ S.anErr = ""; S.anErrId = null; }   /* AI NOTE 지난 오류도 함께 */
   if(S.asErrId !== id){ S.asErr = ""; S.asErrId = null; }   /* p별 AI 요약 지난 오류도 함께 */
@@ -7565,8 +7577,8 @@ function addTask(text){
   const arr = KV.tasks[S.sel] || [];
   arr.push({ t, s:0 });
   KV.tasks[S.sel] = arr; saveKV("tasks");
-  /* 새로 넣은 항목은 늘 '남음' 이라, 아이폰에서 '완료' 필터를 보고 있었으면 안 보여 헷갈립니다 — 전체로 되돌립니다 */
-  if(S.mTaskFilter === "done") S.mTaskFilter = "all";
+  /* 새로 넣은 항목은 늘 '남음' 이라, 아이폰에서 '완료·진행중' 필터를 보고 있었으면 안 보여 헷갈립니다 — 남음으로 되돌립니다 */
+  if(S.mTaskFilter !== "open") S.mTaskFilter = "open";
   /* 다른 탭에서 넣었으면 어디로 갔는지 알려 줍니다 */
   if(S.rtab !== "task") toast("Tasks 탭에 추가했습니다");
   renderRight();
