@@ -2117,7 +2117,7 @@ body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] h4.aihead{margin
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="script"] .sum{width:auto;margin:0 20px;}   /* width:100% + 좌우 여백이면 화면 밖으로 40px 나갑니다 */
 
 /* ---------- 8f 할 일 시트 (PLAN-MOBILE.md 6단계) ----------
-   위 카운트 칩·View All Tasks(데스크톱 전용 모아보기 창)는 숨기고 — 완료 수는 시트 머리(#ms-kick)에서
+   위 카운트 칩·View All Tasks 줄은 숨기고(View All Tasks 는 시트 머리 오른쪽 #ms-act 로 옮김) — 완료 수는 시트 머리(#ms-kick)에서
    이미 보여 주므로 — 대신 전체/진행 중/완료 필터 탭만 남깁니다. 마감일·담당자는 데이터에 없어 시안의
    'D-3·담당팀' 줄은 만들지 않습니다(결정 없이 새 데이터를 지어내지 않음). */
 body.m[data-mscr="view"][data-msheet] #rbody[data-tab="task"]{padding:0 0 12px;}
@@ -2141,6 +2141,24 @@ body.m[data-mscr="view"][data-msheet="task"] #taskadd input{height:30px;padding:
   border:1px solid var(--line);border-bottom:1px solid var(--line);}   /* 16px 미만이면 iOS 사파리가 포커스 때 확대합니다 */
 body.m[data-mscr="view"][data-msheet="task"] #taskadd input:focus{border-color:var(--accent);}
 body.m[data-mscr="view"][data-msheet="task"] #taskadd button{height:30px;min-width:64px;padding:0 16px;font-size:13px;font-weight:800;}
+/* All Tasks 창 — 화면 전체로 덮어 펴고(닫기는 ✕ · Esc · 뒤로 손짓), 왼쪽 상태 목록은 위쪽 가로 줄로 눕힙니다.
+   날짜·분류 꼬리표는 폭이 모자라 할 일 글 아래 줄로 내립니다. */
+body.m #alltasksbg{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);z-index:90;background:var(--bg);}
+body.m #alltasksbg .modal{max-width:none;max-height:none;height:100%;border:none;box-shadow:none;}
+body.m #alltasksbg .modal > header{padding:14px 20px 12px;}
+body.m #alltasksclose{width:44px;height:44px;margin-right:-12px;font-size:16px;}
+body.m #alltasksbg .modal .content{flex-direction:column;}
+body.m .atnav{flex:0 0 auto;flex-direction:row;gap:6px;padding:10px 16px;overflow-x:auto;
+  border-right:none;border-bottom:var(--rule-w) solid var(--rule);}
+body.m .atnav-item{width:auto;flex:1 1 0;justify-content:center;height:40px;font-size:13px;}
+body.m .atnav-item .nm{flex:0 0 auto;}
+body.m #alltasksbody{padding:6px 20px 20px;}
+body.m #alltasksbody .task{flex-wrap:wrap;align-items:flex-start;padding:4px 0;gap:0 8px;}
+body.m #alltasksbody .task .st{width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-left:-12px;}
+body.m #alltasksbody .task .st .dot{width:14px;height:14px;}
+body.m #alltasksbody .task .tx{flex:1 1 0;min-width:0;font-size:14px;padding-top:12px;}
+body.m #alltasksbody .task .tagr{order:4;flex:1 0 100%;margin:0 0 8px 40px;white-space:normal;font-size:11px;}
+body.m #alltasksbody .task .rm{width:44px;height:44px;margin-right:-12px;font-size:16px;}
 
 /* ---------- 8h 메모 시트 (PLAN-MOBILE.md 7단계) ----------
    결정 2에 따라 KV.memos[자료 id] 글상자 하나 그대로 — AI 생성이 없어 sum·note·script 같은 .annote 블록도
@@ -12926,6 +12944,7 @@ window.addEventListener("popstate", e => {
   if($("#aiscriptbg").classList.contains("on")) closeAiScript();
   if($("#atvbg").classList.contains("on")) closeAtView();
   if($("#atbg").classList.contains("on")) closeAttach();
+  if($("#alltasksbg").classList.contains("on")) $("#alltasksbg").classList.remove("on");
   const st = e.state || {};
   mShow(st.mscr || "list");
   if(st.mscr === "view") mSheetDraw(st.sheet || null);   /* 시트가 있던 칸이면 열고, 없던 칸이면 닫습니다 */
@@ -13373,14 +13392,15 @@ function mSyncSheet(){
 
   /* 오른쪽 단추 — 요약·스크립트는 패널 안의 원래 생성 단추를 대신 누릅니다(덮어쓰기 확인 · 쪽 번호 그대로).
      회의록은 이미 만든 노트가 있으면(act="open") '보기'는 바닥 줄 전문 보기가 맡으므로 숨깁니다.
-     할 일에는 한 번에 만드는 단추가 없어(회의록 옆 + 로만 늘어납니다) 늘 숨깁니다. */
+     할 일은 한 번에 만드는 단추 대신 PC 의 View All Tasks(모든 자료의 할 일 모아보기)를 이 자리에 둡니다. */
   const act = $("#ms-act");
+  if(tab === "task"){ act.hidden = false; act.disabled = false; act.textContent = "View All Tasks"; }
   const gen = tab === "sum" ? $('#rbody .genmini[data-aisum="gen"]')
             : tab === "note" ? $('#rbody .annote .genmini:not(.up)')
             : tab === "script" ? $('#rbody .genmini[data-aiscript="open"]') : null;
   const genIsOpen = tab === "note" && gen && gen.dataset.annote === "open";
-  act.hidden = !gen || genIsOpen;
-  if(gen && !genIsOpen){
+  if(tab !== "task") act.hidden = !gen || genIsOpen;
+  if(tab !== "task" && gen && !genIsOpen){
     act.disabled = gen.disabled;
     const busyId = tab === "sum" ? S.asBusy : tab === "note" ? S.anBusy : tab === "script" ? S.sc.busy : null;
     const busy = d && busyId === d.id;
@@ -13423,6 +13443,7 @@ $("#mvtabs").addEventListener("click", e => {
 $("#msdoc").onclick = () => mSheet(null);
 $("#ms-act").onclick = () => {
   const tab = document.body.dataset.msheet;
+  if(tab === "task"){ openAllTasks(); return; }
   const sel = tab === "note" ? '#rbody .annote .genmini:not(.up)'
             : tab === "script" ? '#rbody .genmini[data-aiscript="open"]' : '#rbody .genmini[data-aisum="gen"]';
   const gen = $(sel);
