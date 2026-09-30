@@ -13575,7 +13575,7 @@ function mSyncView(){
   if(!isMobile()) return;
   const d = DOCS.find(x => x.id === S.sel);
   $("#mv-title").textContent = d ? d.title : "자료를 고르세요";
-  $("#mv-meta").textContent  = d ? `${d.cat} · ${d.date.slice(5).replace("-", ".")}` : "";
+  $("#mv-meta").textContent  = d ? (isProj(d) ? `프로젝트 · ${projFolderName(d)}` : `${d.cat} · ${d.date.slice(5).replace("-", ".")}`) : "";
   const last = S.pdf ? S.pdf.numPages : 1;
   $("#mpager").hidden = !S.pdf;
   $("#mp-cur").textContent = S.page;
