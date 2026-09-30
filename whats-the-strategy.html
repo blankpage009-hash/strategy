@@ -3573,6 +3573,8 @@ const KV_DEFAULT = {
   /* 「프로젝트」 영역의 폴더 목록 — [{ id, name }] (PLAN-PROJECT.md). 빈 폴더·이름 바꾸기도 남도록 따로 둡니다.
      동기화·백업에 들어갑니다. 폴더 순서는 이름 가나다순이라 따로 적지 않습니다. */
   projFolders:[],
+  /* 지운 프로젝트 폴더 id — 동기화에서 다른 기기의 목록과 합칠 때 되살아나지 않게 남겨 둡니다(늘기만 함) */
+  projFolderDel:[],
   /* 왼쪽 목록에서 지금 고른 영역 — "meet"(회의 자료) · "proj"(프로젝트). 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
   area:"meet"
 };
@@ -3587,6 +3589,7 @@ async function loadKV(){
   KV.drawcfg = Object.assign({}, KV.drawcfg);
   KV.scriptOpts = Object.assign({}, KV.scriptOpts);
   KV.projFolders = Array.isArray(KV.projFolders) ? KV.projFolders.map(f => Object.assign({}, f)) : [];
+  KV.projFolderDel = Array.isArray(KV.projFolderDel) ? KV.projFolderDel.slice() : [];
   if(KV.area !== "proj") KV.area = "meet";
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
@@ -3731,6 +3734,17 @@ function meetDocs(){ return DOCS.filter(d => !isProj(d)); }
 function projectDocs(){ return DOCS.filter(isProj); }
 function projFolderById(id){ return (KV.projFolders || []).find(f => f.id === id) || null; }
 function projFolderOf(d){ return isProj(d) ? projFolderById(d.folder) : null; }
+/* 폴더 목록 두 개를 합칩니다 — id 기준 합집합, 지운 폴더(del) 는 뺌, 이름이 다르면 나중에 고친 쪽(at) 이 이기고 같으면 b 쪽.
+   목록을 통째로 덮어쓰면 한 기기의 낡은 목록이 다른 기기에서 만든 폴더를 지워 버려서(2026-09-30) 동기화·백업 모두 이걸로 합칩니다 */
+function mergeProjFolders(a, b, del){
+  const gone = new Set(del || []), byId = new Map();
+  [a, b].forEach(list => (list || []).forEach(f => {
+    if(!f || !f.id || gone.has(f.id)) return;
+    const cur = byId.get(f.id);
+    if(!cur || (f.at || 0) >= (cur.at || 0)) byId.set(f.id, { id:f.id, name:String(f.name || ""), at:f.at || 0 });
+  }));
+  return Array.from(byId.values());
+}
 /* 폴더 열림 상태 열쇠 — 연("2026")·월("2026-09") 열쇠와 겹치지 않게 앞에 pf: 를 붙입니다 */
 const projOpenKey = id => "pf:" + id;
 
@@ -3805,7 +3819,7 @@ function newProjFolder(){
   if(!name) return null;
   const same = (KV.projFolders || []).find(f => f.name === name);
   if(same){ toast(`“${name}” 폴더가 이미 있어 그 폴더를 씁니다`); return same.id; }
-  const f = { id: uid(), name };
+  const f = { id: uid(), name, at: Date.now() };
   KV.projFolders = (KV.projFolders || []).concat([f]); saveKV("projFolders");
   return f.id;
 }
@@ -6380,7 +6394,7 @@ function renameProjFolder(id){
   if((KV.projFolders || []).some(f => f.id !== id && f.name === name)){ alert(`'${name}' 은(는) 이미 있는 폴더입니다.`); return; }
   const list = (KV.projFolders || []).slice();
   const f = list.find(x => x.id === id);
-  if(f) f.name = name; else list.push({ id, name });   /* 목록에 없던 폴더(이름 없는 폴더)도 이때 자리를 만듭니다 */
+  if(f){ f.name = name; f.at = Date.now(); } else list.push({ id, name, at: Date.now() });   /* 목록에 없던 폴더(이름 없는 폴더)도 이때 자리를 만듭니다 */
   KV.projFolders = list; saveKV("projFolders");
   renderTree(); renderRight(); if($("#managebg").classList.contains("on")) mgRender();
   toast(`'${cur.name}' → '${name}' 으로 바꿨습니다`);
@@ -6392,6 +6406,7 @@ function deleteProjFolder(id){
   if(n){ alert(`'${cur.name}' 안에 자료가 ${n}개 있습니다.\n폴더 안 자료를 먼저 옮기거나 지운 뒤에 폴더를 삭제할 수 있습니다.`); return; }
   if(!confirm(`'${cur.name}' 폴더를 지울까요?`)) return;
   KV.projFolders = (KV.projFolders || []).filter(f => f.id !== id); saveKV("projFolders");
+  KV.projFolderDel = Array.from(new Set((KV.projFolderDel || []).concat([id]))); saveKV("projFolderDel");
   if(S.open.delete(projOpenKey(id))){ KV.folders = Array.from(S.open); saveKV("folders"); }
   renderTree(); if($("#managebg").classList.contains("on")) mgRender();
   toast(`'${cur.name}' 폴더를 지웠습니다`);
@@ -11675,7 +11690,7 @@ async function exportBackup(mode){
   };
   if(!dataOnly){
     meta.kv = { cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts, memos:KV.memos,
-                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders };
+                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders, projFolderDel:KV.projFolderDel };
     meta.notes  = Object.values(NOTES);
     meta.ainote = Object.values(AINOTES);
   }
@@ -11801,14 +11816,12 @@ $("#importfile").addEventListener("change", async e => {
       if(data.kv.memos)  KV.memos  = Object.assign({}, KV.memos,  data.kv.memos);
       if(data.kv.agendas) KV.agendas = Object.assign({}, KV.agendas, data.kv.agendas);
       if(data.kv.catMap) KV.catMap = Object.assign({}, KV.catMap, data.kv.catMap);
-      /* 프로젝트 폴더 — 같은 id 는 백업 쪽 이름으로, 없던 폴더는 더합니다 */
-      if(Array.isArray(data.kv.projFolders)){
-        const byId = new Map((KV.projFolders || []).map(f => [f.id, f]));
-        data.kv.projFolders.forEach(f => { if(f && f.id) byId.set(f.id, { id: f.id, name: String(f.name || "") }); });
-        KV.projFolders = Array.from(byId.values());
-      }
+      /* 프로젝트 폴더 — 합집합(같은 id 는 나중에 고친 쪽, 같으면 백업 쪽 이름), 지운 폴더 기록도 합칩니다 */
+      if(Array.isArray(data.kv.projFolderDel))
+        KV.projFolderDel = Array.from(new Set((KV.projFolderDel || []).concat(data.kv.projFolderDel)));
+      KV.projFolders = mergeProjFolders(KV.projFolders, Array.isArray(data.kv.projFolders) ? data.kv.projFolders : [], KV.projFolderDel);
       saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("scripts"); saveKV("memos");
-      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders");
+      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders"); saveKV("projFolderDel");
     }
     await loadAll();
     renderAll(); updateUsage();
@@ -12034,7 +12047,47 @@ async function ghDelete(path, sha){
 }
 
 /* ---------- 저장소 경로 규칙 (1-2 표 그대로) ---------- */
-const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders"];
+const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders","projFolderDel"];
+/* 이 열쇠들은 통째로 덮어쓰지 않고 서버 것과 합칩니다 — 올리기 직전에 서버 것을 받아 합친 뒤 올리고, 받을 때도 합칩니다.
+   (2026-09-30 한 기기의 빈 폴더 목록이 아이폰에서 만든 폴더를 두 번이나 지워 버렸습니다) */
+const SYNC_MERGE_KV = ["projFolders","projFolderDel"];
+/* 서버 값 v 를 이 기기 KV 에 합칩니다. { remote: 합친 결과가 서버 값과 달라 올려야 하나, folders: 폴더 목록이 바뀌었나 } */
+function syncMergeKvValue(key, v){
+  const r = Array.isArray(v) ? v : [];
+  const norm = list => JSON.stringify(list.slice().sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const beforeFolders = norm(mergeProjFolders(KV.projFolders, [], []));
+  let remote;
+  if(key === "projFolderDel"){
+    KV.projFolderDel = Array.from(new Set((KV.projFolderDel || []).concat(r)));
+    KV.projFolders = mergeProjFolders(KV.projFolders, [], KV.projFolderDel);
+    remote = KV.projFolderDel.length !== new Set(r).size;
+  }else{
+    KV.projFolders = mergeProjFolders(KV.projFolders, r, KV.projFolderDel);
+    remote = norm(KV.projFolders) !== norm(mergeProjFolders([], r, []));
+  }
+  return { remote, folders: norm(KV.projFolders) !== beforeFolders };
+}
+/* 합친 값을 이 기기에 저장합니다(조용히 — dirty 는 부르는 쪽이 정합니다) */
+async function syncSaveMergeKv(){
+  for(const k of SYNC_MERGE_KV) await dbPutQuiet("kv", { k, v: KV[k] });
+}
+/* 서버 파일을 sha 로 받습니다 — 내용 주소라 방금 바뀐 파일도 예전 내용이 섞여 올 일이 없습니다 */
+async function ghGetBlob(sha){
+  return ghFetch("GET", `git/blobs/${sha}`, { raw:true });
+}
+/* 올리기 직전 — 서버의 지금 값을 받아 이 기기 값에 합치고, 그 sha 를 돌려줍니다(서버에 없으면 null) */
+async function syncMergeKvBeforePush(key, path){
+  const sha = (await ghTree())[path] || null;
+  if(!sha) return null;
+  const rv = (await syncDecodeRecord("kv", key, await ghGetBlob(sha))).v;
+  const m = syncMergeKvValue(key, rv);
+  await syncSaveMergeKv();
+  if(m.folders){
+    if(key === "projFolderDel") await syncMarkDirtyNoSchedule("kv", "projFolders");
+    syncRenderSoon();
+  }
+  return sha;
+}
 /* store 이름 → 저장소 폴더 이름. kv·notes 는 규칙이 달라 아래에서 따로 다룹니다 */
 const SYNC_STORE_PREFIX = { docs:"docs", files:"pdf", draw:"draw", ainote:"ainote", attach:"attach", attachfile:"attachfile" };
 const SYNC_PREFIX_STORE = {};
@@ -12322,6 +12375,19 @@ async function syncPush(opts){
           const found = idx.get(rec.path);
           const raw = found ? (found.store === "kv" ? { k: found.key, v: KV[found.key] } : await dbGet(found.store, found.key)) : null;
           if(!found || !raw){ await dbDelQuiet("sync", rec.path); continue; }   /* 알 수 없는 경로거나 이미 다른 길로 지워짐 */
+          if(found.store === "kv" && SYNC_MERGE_KV.includes(found.key)){
+            /* 합치는 열쇠 — 서버 것을 받아 합친 뒤 그 sha 로 올립니다. 그 사이 다른 기기가 또 고쳤으면(409/422) 다시 합칩니다 */
+            let sha;
+            for(let tries = 0; ; tries++){
+              const cur = await syncMergeKvBeforePush(found.key, rec.path);
+              const enc = await cryptoEncrypt(SYNC.key, await syncEncodeRecord("kv", { k: found.key, v: KV[found.key] }));
+              try{ sha = await ghPut(rec.path, enc, cur || undefined); break; }
+              catch(err){ if((err.status === 409 || err.status === 422) && tries < 2) continue; throw err; }
+            }
+            await dbPutQuiet("sync", { path:rec.path, sha, dirty:false, deleted:false, at:Date.now() });
+            result.pushed++;
+            continue;
+          }
           const bytes = await syncEncodeRecord(found.store, raw);
           if(bytes.length > SYNC_MAX_BYTES){
             result.tooBig++;
@@ -12466,6 +12532,16 @@ async function syncApplyRemote(g, changed){
     if(!rec && where.store === "files"){ changed.files.add(where.key); changed.any = true; }   /* "원본 없음" 으로 보고 있었다면 다시 열어 받게 */
     return;
   }
+  if(where.store === "kv" && SYNC_MERGE_KV.includes(where.key)){
+    /* 합치는 열쇠 — 덮어쓰지 않고 합칩니다. 이 기기에만 있던 폴더가 있으면 올릴 것으로 남겨 둡니다 */
+    const m = syncMergeKvValue(where.key, (await syncDecodeRecord("kv", where.key, await ghGetBlob(sha))).v);
+    await syncSaveMergeKv();
+    if(m.folders && where.key === "projFolderDel") await syncMarkDirtyNoSchedule("kv", "projFolders");
+    await dbPutQuiet("sync", { path, sha, dirty: m.remote, deleted:false, at:Date.now() });
+    if(m.remote) changed.push = true;
+    changed.kv.add(where.key); changed.any = true;
+    return;
+  }
   const out = await syncDecodeRecord(where.store, where.key, await ghGetRaw(path));
   await dbPutQuiet(where.store, out);
   if(where.store === "kv"){ KV[where.key] = out.v; changed.kv.add(where.key); }
@@ -12533,9 +12609,10 @@ async function syncPull(opts){
     const total = toGet.length + toDel.length, t0 = Date.now();
     let done = 0;
     const tick = () => { done++; if(opts.onProgress) opts.onProgress(done, total, Date.now() - t0); };
+    const failedPaths = new Set();   /* 받다가 실패한 것 — 아래에서 "기록 없는 이 기기 것" 으로 잘못 보고 올려 서버 것을 덮지 않게 */
     for(const g of toGet){
       try{ await syncApplyRemote(g, changed); result.got++; local.set(g.path, { sha:g.sha }); }
-      catch(err){ result.failed++; console.warn("syncPull", g.path, err); }
+      catch(err){ result.failed++; failedPaths.add(g.path); console.warn("syncPull", g.path, err); }
       finally{ tick(); }
     }
     for(const rec of toDel){
@@ -12547,10 +12624,10 @@ async function syncPull(opts){
        "서버 것을 받고, 이 기기 것 중 서버에 없는 것만 올림" 규칙이 이걸로 저절로 됩니다 */
     let marked = 0;
     for(const [path, where] of idx){
-      if(local.has(path) || changed.removedPaths.has(path)) continue;
+      if(local.has(path) || changed.removedPaths.has(path) || failedPaths.has(path)) continue;
       await syncMarkDirtyNoSchedule(where.store, where.key); marked++;
     }
-    if(marked) syncSchedulePush();
+    if(marked || changed.push) syncSchedulePush();
     SYNC.lastPullAt = Date.now();
     SYNC.lastErr = result.failed ? `받지 못한 항목 ${result.failed}개` : null;
     SYNC.authFailed = false;
