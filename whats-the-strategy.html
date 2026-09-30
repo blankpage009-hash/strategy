@@ -2214,12 +2214,17 @@ body.m #msearch #qmirror,body.m #msearch #search{height:40px;line-height:40px;fo
 body.m #msearch #search{border-bottom:none;}     /* 16px 미만이면 iOS 사파리가 포커스 때 확대합니다 */
 #msearch-cancel{flex:0 0 auto;height:44px;padding:0 2px;border:none;background:none;
   color:var(--text);font-size:15px;font-weight:700;}
-/* 필터 칩 — 전체/본문/회의록/파일명(+개수), 고른 칩은 검정 */
-.msrch-chips{flex:0 0 auto;display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto;}
-.msr-chip{flex:0 0 auto;display:flex;align-items:center;height:34px;padding:0 12px;
-  border:1px solid var(--line);background:none;color:var(--text);font-size:13px;font-weight:700;
-  white-space:nowrap;}
-.msr-chip.on{border-color:var(--rule);background:var(--rule);color:var(--bg);font-weight:800;}
+/* 필터 드롭다운 세 칸 — 회의자료(회의 종류) · 기간 · 본문/회의록. 기본은 모두 '전체'.
+   단추 모양 위에 투명한 <select> 를 덮어, 누르면 아이폰 고유의 고르개가 뜹니다.
+   <select> 글자가 16px 미만이면 iOS 사파리가 포커스 때 확대하므로 보이지 않아도 16px. 전체가 아니면 검정. */
+.msrch-chips{flex:0 0 auto;display:flex;gap:8px;padding:0 20px 12px;}
+.msr-dd{position:relative;flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;
+  border:1px solid var(--line);background:none;color:var(--text);font-size:13px;font-weight:700;}
+.msr-dd .v{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.msr-dd svg{flex:0 0 auto;}
+.msr-dd.on{border-color:var(--rule);background:var(--rule);color:var(--bg);font-weight:800;}
+.msr-dd select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:none;
+  -webkit-appearance:none;appearance:none;}
 /* 결과 목록 — 최근 기록·안내 문구는 검색 드롭다운(sd-zsec 등)과 같은 모양을 그대로 씁니다 */
 .msrch-list{flex:1 1 auto;min-height:0;overflow:auto;border-top:var(--rule-w) solid var(--rule);
   padding-bottom:env(safe-area-inset-bottom);}
@@ -2236,12 +2241,18 @@ body.m #msearch .sd-empty,body.m #msearch .sd-zhead{padding-left:20px;padding-ri
 .msr-doc.sel .msr-row1 .ttl mark{background:var(--surface);}
 .msr-meta{padding-left:28px;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;}
 .msr-doc.sel .msr-meta{color:var(--accent-ink);}
-.msr-ex{padding-left:28px;font-size:14px;line-height:1.55;color:var(--text);}
-.msr-ex mark{background:var(--accent-soft);color:inherit;font-weight:700;}
-.msr-chips{display:flex;flex-wrap:wrap;gap:6px;padding-left:28px;}
-.msr-chip2{display:flex;align-items:center;height:36px;padding:0 12px;border:1px solid var(--rule);
-  font-size:13px;font-weight:800;}
-.msr-doc.sel .msr-chip2{border:2px solid var(--accent);color:var(--accent-ink);}
+/* 적중 자리 한 줄씩 — 왼쪽 쪽 번호(또는 '회의록') · 오른쪽 검색어가 든 문구(두 줄까지). PC 드롭다운(.sd-hit)과 같은 모양.
+   세 곳까지만 보이고 나머지는 '+ n곳 더 보기' */
+.msr-hits{margin:2px 0 -6px 28px;}
+.msr-hit{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+.msr-hit .p{flex:0 0 auto;width:40px;font-size:13px;font-weight:800;line-height:1.55;color:var(--accent-ink);
+  font-variant-numeric:tabular-nums;}
+.msr-hit .s{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.55;color:var(--text);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+.msr-hit .s mark{background:var(--accent-soft);color:inherit;font-weight:700;}
+.msr-doc.sel .msr-hit{border-top-color:var(--accent-soft2);}
+.msr-doc.sel .msr-hit .s mark{background:var(--surface);}
+.msr-more{padding:8px 0 10px 50px;font-size:13px;font-weight:800;color:var(--accent-ink);}
 
 /* 7a 요약 카드 — 아이폰 글자 크기. 주요 수치는 2열 칸(짧은 값은 크게), 긴 글은 한 줄 전체(.wide) */
 body.m .aisum{border:none;font-size:15px;}
@@ -13093,24 +13104,27 @@ function msTitleHtml(d, R){
   });
   return html + esc(d.title.slice(at));
 }
-/* 결과 한 줄 — 번호 · 제목(강조) · 종류·쪽수·적중 수 · (제목이 안 걸렸으면) 본문·회의록 발췌 한 줄 · 쪽 칩 + 회의록 칩.
-   showPages/showNote 는 desktop sdDocBlockHtml 과 같은 규칙(S.srch.grp 필터) */
+/* 결과 한 건 — 번호 · 제목(강조) · 종류·쪽수·적중 수 · 걸린 쪽마다 문구 한 줄(쪽 번호 + 발췌, 회의록도 한 줄).
+   PC 드롭다운 sdDocBlockHtml 과 같은 규칙 — showPages/showNote 는 S.srch.grp 필터, 세 곳 넘으면 '더 보기'(S.srch.openBlocks) */
 function msDocRowHtml(r, i){
   const d = r.d, sel = S.sel === d.id;
   const showPages = S.srch.grp === "all" || S.srch.grp === "body";
   const showNote  = S.srch.grp === "all" || S.srch.grp === "note";
-  const pages = showPages ? r.pages : [];
-  const note  = showNote ? r.note : null;
-  const excerpt = r.title ? "" : pages.length ? cutSpans(d.pageTexts[pages[0].p - 1] || "", pages[0].spans)
-                : note ? cutSpans(noteTextOf(d), note.spans) : "";
-  const chips = pages.map(p => `<span class="msr-chip2" data-p="${p.p}">${p.p}p</span>`).join("")
-    + (note ? `<span class="msr-chip2" data-note="1">회의록</span>` : "");
+  const lines = (showPages ? r.pages.map(p => ({ p:p.p, spans:p.spans })) : [])
+    .concat(showNote && r.note ? [{ note:true, spans:r.note.spans }] : []);
+  const open = S.srch.openBlocks.has(d.id);
+  const hits = (open ? lines : lines.slice(0, 3)).map(l => {
+    const hay = l.note ? noteTextOf(d) : (d.pageTexts[l.p - 1] || "");
+    const snip = l.spans.length ? cutSpans(hay, l.spans) : esc(hay.slice(0, 90));
+    return `<div class="msr-hit" ${l.note ? `data-note="1"` : `data-p="${l.p}"`}>`
+      + `<span class="p">${l.note ? "회의록" : String(l.p).padStart(2, "0") + "p"}</span><span class="s">${snip}</span></div>`;
+  }).join("");
+  const more = lines.length > 3 && !open ? `<div class="msr-more" data-more="1">+ ${lines.length - 3}곳 더 보기</div>` : "";
   return `<div class="msr-doc ${sel ? "sel" : ""}" data-id="${d.id}">
     <div class="msr-row1"><span class="no">${String(i + 1).padStart(2, "0")}</span>
       <span class="ttl">${msTitleHtml(d, S.srch.R)}</span></div>
     <div class="msr-meta">${esc(d.cat)} · ${d.pages}p · 적중 ${r.hits}곳</div>
-    ${excerpt ? `<div class="msr-ex">${excerpt}</div>` : ""}
-    ${chips ? `<div class="msr-chips">${chips}</div>` : ""}
+    ${hits ? `<div class="msr-hits">${hits}${more}</div>` : ""}
   </div>`;
 }
 function mRenderSearch(){
@@ -13121,16 +13135,37 @@ function mRenderSearch(){
   if(!q || !queryHasTerms(Q)){ chipsEl.innerHTML = ""; listEl.innerHTML = msZeroHtml(); return; }
   const R = S.srch.R;
   if(!R || !R.docs.length){ chipsEl.innerHTML = ""; listEl.innerHTML = sdEmptyHtml(q, Q); return; }
-  const chip = (key, label, n) => `<button type="button" class="msr-chip ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">${label} ${n}</button>`;
-  chipsEl.innerHTML = chip("all", "전체", R.tot.hits) + chip("body", "본문", R.tot.body)
-    + chip("note", "회의록", R.tot.note) + chip("title", "파일명", R.tot.title);
+  /* 드롭다운 한 칸 — opts: [값, 이름, 개수]. 첫 칸('' = 전체)이 기본. 단추에는 고른 이름만(좁아서 개수는 목록에만) */
+  const dd = (key, label, cur, opts) => {
+    const on = opts.find(o => o[0] === cur && cur !== "");
+    return `<label class="msr-dd ${on ? "on" : ""}"><span class="v">${esc(on ? on[1] : label)}</span>${SD_ICO.chev}`
+      + `<select data-dd="${key}" aria-label="${esc(label)}">`
+      + opts.map(o => `<option value="${esc(o[0])}" ${o[0] === cur ? "selected" : ""}>${esc(o[1])}${o[2] != null ? ` (${o[2].toLocaleString()})` : ""}</option>`).join("")
+      + `</select></label>`;
+  };
+  /* 회의자료 — 적중 많은 종류부터(PC 레일 '회의 종류'와 같은 순서). 고른 종류가 결과에 없어도 목록에는 남겨 둡니다 */
+  const cats = Object.entries(R.byCat).sort((a, b) => b[1] - a[1]);
+  if(S.srch.cat && !R.byCat[S.srch.cat]) cats.push([S.srch.cat, 0]);
+  const bp = R.byPeriod || {}, mtd = bp.mtd || 0, ytd = mtd + (bp.ytdOnly || 0);
+  chipsEl.innerHTML =
+      dd("cat", "회의자료", S.srch.cat || "", [["", "전체", R.tot.hits]].concat(cats.map(([c, n]) => [c, c, n])))
+    + dd("mon", "기간", S.srch.mon && S.srch.mon !== "max" ? S.srch.mon : "",
+        [["", "전체", R.tot.hits], ["mtd", "MTD", mtd], ["ytd", "YTD", ytd]])
+    + dd("grp", "본문/회의록", S.srch.grp === "all" ? "" : S.srch.grp,
+        [["", "전체", R.tot.hits], ["body", "본문", R.tot.body], ["note", "회의록", R.tot.note], ["title", "파일명", R.tot.title]]);
   const docs = sdDocsFor(R);
   listEl.innerHTML = docs.length ? docs.map(msDocRowHtml).join("")
     : `<div class="sd-empty"><div class="et">이 조건에 맞는 자료가 없습니다.</div></div>`;
 }
-$("#msearchChips").addEventListener("click", e => {
-  const b = e.target.closest("[data-grp]");
-  if(b){ S.srch.grp = b.dataset.grp; mRenderSearch(); }
+$("#msearchChips").addEventListener("change", e => {
+  const sel = e.target.closest("select[data-dd]");
+  if(!sel) return;
+  const v = sel.value;
+  if(sel.dataset.dd === "cat") S.srch.cat = v || null;
+  else if(sel.dataset.dd === "mon") S.srch.mon = v || null;
+  else S.srch.grp = v || "all";
+  mRenderSearch();
+  $("#msearchList").scrollTop = 0;
 });
 $("#msearchList").addEventListener("click", async e => {
   const t = e.target;
@@ -13141,11 +13176,13 @@ $("#msearchList").addEventListener("click", async e => {
   if(zdoc){ await openHit({ id:zdoc.dataset.id }); return; }
   const zq = t.closest(".sd-zrow[data-q], .sd-sugg[data-q]");
   if(zq){ sdSetQuery(zq.dataset.q); mRenderSearch(); return; }
-  const chip2 = t.closest(".msr-chip2");
-  if(chip2){
-    const id = chip2.closest(".msr-doc").dataset.id;
-    if(chip2.dataset.note){ await openHit({ id, note:true }); mSheet("note"); }
-    else await openHit({ id, p:+chip2.dataset.p });
+  const more = t.closest(".msr-more");
+  if(more){ S.srch.openBlocks.add(more.closest(".msr-doc").dataset.id); mRenderSearch(); return; }
+  const hit = t.closest(".msr-hit");
+  if(hit){
+    const id = hit.closest(".msr-doc").dataset.id;
+    if(hit.dataset.note){ await openHit({ id, note:true }); mSheet("note"); }
+    else await openHit({ id, p:+hit.dataset.p });
     return;
   }
   const row1 = t.closest(".msr-row1");
