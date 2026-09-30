@@ -1949,10 +1949,20 @@ body.m .doc .mnow{color:var(--accent-ink);font-weight:800;}
 .mvhead,#mpager{display:none;}
 /* PC 툴바는 확대·축소·맞춤 단추만 남겨 머리 아래 한 줄로 씁니다 */
 body.m #viewbar{height:40px;justify-content:center;}
-body.m #viewbar > :not(#zoom-out):not(#zoomval):not(#zoom-in):not(#fit-width):not(#fit-page){display:none !important;}
-body.m #viewbar .vbtn{width:48px;}
+body.m #viewbar > :not(#zoom-out):not(#zoomval):not(#zoom-in):not(#fit-width):not(#fit-page):not(#drawbar){display:none !important;}
+/* 좁은 폰(360px 안팎)에서는 가로로 밀어야 하지 않게 단추가 조금씩 줄어듭니다 */
+body.m #viewbar .vbtn{flex:0 1 48px;width:48px;min-width:34px;}
+body.m #zoomval{flex:0 1 42px;min-width:36px;}
 body.m #viewbar #zoom-out{border-left:1px solid var(--hairline);}
 body.m #viewbar #fit-page{border-right:1px solid var(--hairline);}
+/* 그리기 — 형광펜 · 지우개 · 되돌리기만. 커서·펜 단추는 숨깁니다(도구는 같은 단추를 다시 눌러 끕니다).
+   '접힘'(draw-collapsed) · 좁은 막대(tight-bar) 규칙은 아이폰 화면에는 적용하지 않습니다 */
+body.m #drawbar:not([hidden]){display:flex !important;}
+body.m #drawbar #dw-cursor,body.m #drawbar #dw-pen{display:none;}
+body.m #drawbar .dwtool,body.m #drawbar #dw-eraser,body.m #drawbar .dwtool:last-child{
+  flex:0 1 44px;width:44px;min-width:34px;border-right:1px solid var(--hairline);}
+body.m #dwpop .dwseg button{height:38px;}
+body.m #dwpop .dwprev .dwdone{height:34px;}
 body.m .pagenav,body.m #btn-docclose{display:none !important;}
 body.m .mvhead{flex:0 0 auto;display:flex;align-items:center;gap:2px;min-height:52px;padding:4px 4px 4px 0;
   background:var(--bg);border-bottom:var(--rule-w) solid var(--rule);}
@@ -6654,7 +6664,8 @@ $("#topmodel").addEventListener("change", e => {
     const w = c.clientWidth;
     document.body.classList.toggle("hide-doctitle", w < 760);
     document.body.classList.toggle("tight-bar",     w < 560);
-    if(w < 560 && window.drawActive && window.drawActive()) window.drawExit();
+    /* 아이폰 화면은 늘 좁지만(600px 이하) 그리기 도구를 씁니다 — 끄지 않습니다 */
+    if(w < 560 && !isMobile() && window.drawActive && window.drawActive()) window.drawExit();
   };
   if(window.ResizeObserver) new ResizeObserver(apply).observe(c);
   window.addEventListener("resize", apply);
@@ -12875,7 +12886,10 @@ function mShow(scr){
   }else if(prev === "settings" && $("#modalbg").classList.contains("on")){
     $("#modalbg").classList.remove("on");
   }
-  if(scr !== "view") mSheetDraw(null);                    /* 뷰어를 떠나면 시트는 닫습니다 */
+  if(scr !== "view"){
+    mSheetDraw(null);                                     /* 뷰어를 떠나면 시트는 닫습니다 */
+    if(window.drawExit) window.drawExit();                /* 그리기 도구도 끕니다 (글자 선택 막힘 · 손가락 그리기가 남지 않게) */
+  }
   if(scr === "notes"){ setRtab("note"); mSyncNotesHead(); }
   if(scr === "search"){
     if(prev !== "search") mBeforeSearch = prev;           /* 취소를 누르면 이 화면(목록·뷰어)으로 */
@@ -13296,7 +13310,10 @@ const MS_HEAD = {
 function mSheetDraw(tab){
   tab = tab ? rtabOf(tab) : "";
   $("#msheet").style.transform = ""; $("#msheet").style.transition = "";
-  if(tab){ document.body.dataset.msheet = tab; setRtab(tab); }
+  if(tab){
+    document.body.dataset.msheet = tab; setRtab(tab);
+    if(window.drawExit) window.drawExit();                /* 시트 글을 고르고 누를 수 있게 그리기 도구는 끕니다 */
+  }
   else delete document.body.dataset.msheet;
   $$("#mvtabs [data-rtab]").forEach(b => {
     const on = b.dataset.rtab === tab;
