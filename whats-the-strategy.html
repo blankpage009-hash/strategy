@@ -12913,6 +12913,20 @@ window.addEventListener("resize", () => {
   clearTimeout(resizeT);
   resizeT = setTimeout(() => { if(S.pdf && S.fitMode !== "manual") fitTo(S.fitMode); }, 250);
 });
+/* 창 크기는 그대로인데 종이 자리(#stage)만 바뀌는 때 — 아이패드에서 처음 열 때 툴바가 줄바꿈되거나
+   패널이 펼쳐지며 자리가 늦게 정해지면, 먼저 잰 작은 자리에 맞춘 채로 남습니다. 자리가 바뀌면 다시 맞춥니다.
+   (테두리 상자로 재므로 스크롤 막대가 생기고 없어지는 것에는 반응하지 않습니다) */
+if(window.ResizeObserver){
+  let sw = 0, sh = 0, st = null;
+  new ResizeObserver(() => {
+    const el = $("#stage");
+    const w = el.offsetWidth, h = el.offsetHeight;
+    if(Math.abs(w - sw) < 2 && Math.abs(h - sh) < 2) return;
+    sw = w; sh = h;
+    clearTimeout(st);
+    st = setTimeout(() => { if(S.pdf && S.fitMode !== "manual") fitTo(S.fitMode); }, 120);
+  }).observe($("#stage"));
+}
 
 /* =========================================================
    15-1) 아이폰 화면 (PLAN-MOBILE.md 1단계 — 뼈대)
