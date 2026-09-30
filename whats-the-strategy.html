@@ -5552,6 +5552,15 @@ $("#hitbar").addEventListener("keydown", e => {
   if(e.key === "Enter"){ e.preventDefault(); stepNav(e.shiftKey ? -1 : 1); }
 });
 
+/* 아이폰·아이패드 — 검색창에서 Enter 를 치면 키보드를 내립니다(다른 Enter 처리가 끝난 뒤 blur) */
+document.addEventListener("keydown", e => {
+  if(e.key !== "Enter") return;
+  const t = e.target;
+  if(!t || t.tagName !== "INPUT" || t.type !== "search") return;
+  if(!window.matchMedia("(pointer: coarse)").matches) return;
+  setTimeout(() => t.blur(), 0);
+});
+
 /* ---- 하이라이트 층 --------------------------------------------------- */
 const HLC = { pdf:null, p:0, tc:null };            /* 마지막으로 뽑은 쪽의 글자 조각 — 확대·축소 때 다시 뽑지 않게 */
 function hlClear(){ const hl = $("#hl-layer"); if(hl) hl.innerHTML = ""; HLC.pdf = null; HLC.tc = null; }
