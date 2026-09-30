@@ -1773,6 +1773,12 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 .frow select[data-f=year]{width:78px;}
 .frow select[data-f=month]{width:68px;}
 .frow select[data-f=week]{width:78px;}
+.frow select[data-f=folder]{width:200px;}
+#bulkfolder{min-width:160px;}
+.pfnew{display:block;width:100%;margin:6px 0 0;padding:7px 8px;border:1px dashed var(--line);border-radius:0;
+  background:none;color:var(--muted);font-size:12px;font-weight:700;text-align:left;cursor:pointer;}
+.pfnew:hover{border-color:var(--accent);color:var(--accent-ink);}
+body.m .pfnew{width:auto;margin:8px 16px 0;padding:12px 10px;font-size:15px;}
 .frow select.need{border-color:var(--accent-line);background:var(--accent-soft);}
 .frow .rm{border:none;background:none;color:var(--line);font-size:13px;}
 .frow .rm:hover{color:var(--bad);}
@@ -2722,7 +2728,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 <!-- 자료 올리기 -->
 <div class="modalbg" id="uploadbg">
   <div class="modal wide" role="dialog" aria-label="자료 올리기">
-    <header>자료 올리기 <button class="x" id="upclose">✕</button></header>
+    <header><span id="uptitle">자료 올리기</span> <button class="x" id="upclose">✕</button></header>
     <div class="content">
       <div id="pickwrap">
         <div id="drop">
@@ -2738,6 +2744,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           <select id="bulkyear"><option value="">연도</option></select>
           <select id="bulkmonth"><option value="">월</option></select>
           <select id="bulkweek"><option value="">주차</option></select>
+          <select id="bulkfolder" style="display:none"><option value="">폴더</option></select>
           <button class="ghostbtn" id="bulkapply" style="height:30px">적용</button>
           <span style="margin-left:auto" id="bulkinfo"></span>
         </div>
@@ -3772,12 +3779,25 @@ function renderAreaTabs(){
   $("#projtree").style.display = proj ? "" : "none";
 }
 
+/* 새 프로젝트 폴더 — 이름을 물어서 만들고 id 를 돌려줍니다. 같은 이름이 이미 있으면 그 폴더를 씁니다.
+   취소하면 null. (왼쪽 목록의 「+ 새 폴더」와 올리기 창의 「새 폴더…」가 함께 씁니다) */
+function newProjFolder(){
+  const name = String(prompt("새 폴더 이름") || "").trim();
+  if(!name) return null;
+  const same = (KV.projFolders || []).find(f => f.name === name);
+  if(same){ toast(`“${name}” 폴더가 이미 있어 그 폴더를 씁니다`); return same.id; }
+  const f = { id: uid(), name };
+  KV.projFolders = (KV.projFolders || []).concat([f]); saveKV("projFolders");
+  return f.id;
+}
+const PF_NEW_BTN = `<button type="button" class="pfnew" data-pfnew="1">+ 새 폴더</button>`;
+
 function renderProjTree(){
   const folders = projFolderList(), mob = isMobile();
   $("#listcount").textContent = projectDocs().length;
   if(!folders.length){
     $("#projtree").innerHTML = `<div class="emptybox">아직 프로젝트 자료가 없습니다.<br>
-      <b>Upload</b> 로 PDF를 올리면 폴더별로 모입니다.</div>`;
+      <b>Upload</b> 로 PDF를 올리면 폴더별로 모입니다.</div>` + PF_NEW_BTN;
     return;
   }
   let html = "";
@@ -3796,7 +3816,7 @@ function renderProjTree(){
       </div>`;
     });
   });
-  $("#projtree").innerHTML = html;
+  $("#projtree").innerHTML = html + PF_NEW_BTN;
 }
 
 function renderTree(){
@@ -6602,6 +6622,12 @@ async function closeDoc(){
 $("#btn-docclose").onclick = closeDoc;
 
 function onTreeClick(e){
+  if(e.target.closest("[data-pfnew]")){
+    const id = newProjFolder(); if(!id) return;
+    S.open.add(projOpenKey(id));
+    KV.folders = Array.from(S.open); saveKV("folders");
+    renderTree(); return;
+  }
   const fold = e.target.closest(".fold");
   if(fold){
     const k = fold.dataset.k;
@@ -10490,8 +10516,17 @@ $("#ainotebg").addEventListener("click", e => {
 /* =========================================================
    13) 자료 올리기
    ========================================================= */
-let pending = [];   // {file, cat, date, title}
+let pending = [];   // 회의 자료 {file, title, cat, year, month, week} · 프로젝트 {file, title, folder}
 let uploading = false, cancelUpload = false;
+/* 올리기 창을 연 순간의 영역 — "meet"(회의 자료) / "proj"(프로젝트). 창이 열린 동안은 바뀌지 않습니다 */
+let upMode = "meet";
+let upLastFolder = "";   /* 이번에 마지막으로 고른 프로젝트 폴더 — 다음 파일의 기본값 */
+const upProj = () => upMode === "proj";
+/* 오늘 날짜(이 기기 시각 기준) — 프로젝트 자료의 date(올린 날, 화면에는 안 보임) */
+const todayYmd = () => {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+};
 
 /* 파일명에서 연도·월·주차를 짐작합니다.
    날짜(예: 20260731)만 있으면 그 날이 몇 주차인지 계산합니다. */
@@ -10552,6 +10587,12 @@ function shortTitle(title){
 
 function openUpload(){
   pending = []; cancelUpload = false;
+  upMode = KV.area === "proj" ? "proj" : "meet";
+  const proj = upProj();
+  $("#uptitle").textContent = proj ? "자료 올리기 · 프로젝트" : "자료 올리기 · 회의 자료";
+  ["#bulkcat","#bulkyear","#bulkmonth","#bulkweek"].forEach(s => $(s).style.display = proj ? "none" : "");
+  $("#bulkfolder").style.display = proj ? "" : "none";
+  $("#bulkfolder").innerHTML = `<option value="">폴더</option>` + folderOptions("");
   $("#pickwrap").style.display = "";
   $("#progwrap").style.display = "none";
   $("#bulkrow").style.display = "none";
@@ -10607,12 +10648,26 @@ const weekOptions  = cur => {
   const out = []; for(let w = 1; w <= WEEK_MAX; w++) out.push(sel(w, cur, w + "주차"));
   return out.join("");
 };
+/* 프로젝트 폴더 고르기 — 가나다순 + 맨 끝에 '새 폴더…'(고르면 이름을 묻습니다) */
+const PF_NEW = "__new__";
+const folderOptions = cur =>
+  projFolderList().map(f => sel(f.id, cur, f.name)).join("") + sel(PF_NEW, "", "새 폴더…");
+/* 폴더 칸에서 고른 값 → 폴더 id. '새 폴더…'면 이름을 물어 만듭니다(취소하면 "") */
+function pickFolder(v){
+  if(v !== PF_NEW) return v || "";
+  return newProjFolder() || "";
+}
 
 function addFiles(files){
   files = files.filter(f => /\.pdf$/i.test(f.name) || f.type === "application/pdf");
   if(!files.length){ toast("PDF 파일만 올릴 수 있습니다"); return; }
+  /* 프로젝트 기본 폴더 — 이번에 마지막으로 고른 폴더, 없으면 폴더가 하나뿐일 때 그 폴더 */
+  const fs = projFolderList();
+  const defFolder = (upLastFolder && fs.some(f => f.id === upLastFolder)) ? upLastFolder
+                  : fs.length === 1 ? fs[0].id : "";
   files.forEach(f => {
     const title = f.name.replace(/\.pdf$/i, "");
+    if(upProj()){ pending.push({ file:f, title, folder:defFolder }); return; }
     const g = guessYMW(title);
     pending.push({ file:f, title, cat:guessCat(title), year:g.year, month:g.month, week:g.week });
   });
@@ -10630,24 +10685,35 @@ function addFiles(files){
    여러 개면 원본이 비어 있는 것을 먼저 고릅니다.
    taken 에 든 자료는 같은 목록의 앞줄이 이미 차지한 것이라 건너뜁니다. */
 function findRelink(p, taken){
-  if(!p.title || !p.cat || !p.year || !p.month || !p.week) return null;
-  const date = mkDate(p.year, p.month, p.week);
-  const same = DOCS.filter(d => d.title === p.title && d.cat === p.cat && d.date === date
-                             && !(taken && taken.has(d.id)));
+  let same;
+  if(upProj()){
+    /* 프로젝트 — 같은 폴더·같은 제목 */
+    if(!p.title || !p.folder) return null;
+    same = DOCS.filter(d => isProj(d) && d.folder === p.folder && d.title === p.title
+                          && !(taken && taken.has(d.id)));
+  }else{
+    if(!p.title || !p.cat || !p.year || !p.month || !p.week) return null;
+    const date = mkDate(p.year, p.month, p.week);
+    same = DOCS.filter(d => !isProj(d) && d.title === p.title && d.cat === p.cat && d.date === date
+                          && !(taken && taken.has(d.id)));
+  }
   if(!same.length) return null;
   return same.find(d => !d.hasPdf) || same[0];
 }
-/* 손으로 고를 수 있는 자료 — 원본이 비어 있는 자료 전부 (+ 지금 걸려 있는 것) */
+/* 손으로 고를 수 있는 자료 — 지금 영역(회의 자료/프로젝트)에서 원본이 비어 있는 자료 전부 (+ 지금 걸려 있는 것).
+   다른 영역 자료에 붙으면 올린 파일이 엉뚱한 영역에 가 있게 되므로 영역을 가릅니다. */
 function relinkCands(p){
-  const out = DOCS.filter(d => !d.hasPdf);
+  const inArea = d => isProj(d) === upProj();
+  const out = DOCS.filter(d => !d.hasPdf && inArea(d));
   for(const id of [p.relinkId, p.rlAuto, p.rlPrev]){
     const d = id && DOCS.find(x => x.id === id);
-    if(d && out.indexOf(d) < 0) out.push(d);
+    if(d && inArea(d) && out.indexOf(d) < 0) out.push(d);
   }
   return out.sort((a,b) => (b.date + (b.addedAt||"")).localeCompare(a.date + (a.addedAt||"")));
 }
-const relinkLabel = d =>
-  `${d.title} · ${d.cat} · ${d.date}${d.week ? " " + d.week + "주차" : ""}`;
+const relinkLabel = d => isProj(d)
+  ? `${d.title} · 폴더 ${(projFolderOf(d) || {}).name || "(이름 없는 폴더)"}`
+  : `${d.title} · ${d.cat} · ${d.date}${d.week ? " " + d.week + "주차" : ""}`;
 
 /* 줄 아래에 붙는 '이어붙임' 표시줄 */
 function relinkLine(p){
@@ -10700,24 +10766,27 @@ function syncRelink(){
 function renderPending(){
   syncRelink();
   $("#bulkrow").style.display = pending.length ? "" : "none";
+  const proj = upProj();
   $("#filelist").innerHTML = pending.map((p,i) => `
     <div class="fitem" data-i="${i}">
       <div class="frow">
         <div class="fn">${esc(p.title)}<small>${fmtSize(p.file.size)}</small></div>
+        ${proj ? `
+        <select data-f="folder" class="${p.folder?"":"need"}"><option value="">폴더</option>${folderOptions(p.folder)}</select>` : `
         <select data-f="cat"   class="${p.cat?"":"need"}"><option value="">종류</option>${catOptions(p.cat)}</select>
         <select data-f="year"  class="${p.year?"":"need"}"><option value="">연도</option>${yearOptions(p.year)}</select>
         <select data-f="month" class="${p.month?"":"need"}"><option value="">월</option>${monthOptions(p.month)}</select>
-        <select data-f="week"  class="${p.week?"":"need"}"><option value="">주차</option>${weekOptions(p.week)}</select>
+        <select data-f="week"  class="${p.week?"":"need"}"><option value="">주차</option>${weekOptions(p.week)}</select>`}
         <button class="rm" data-x="${i}" title="목록에서 빼기">✕</button>
       </div>
       ${relinkLine(p)}
     </div>`).join("");
-  const full = p => p.cat && p.year && p.month && p.week;
+  const full = p => proj ? !!p.folder : (p.cat && p.year && p.month && p.week);
   const bad = pending.filter(p => !full(p)).length;
   const rl  = pending.filter(p => p.relinkId).length;
   $("#upstart").disabled = !pending.length || bad > 0;
   $("#bulkinfo").textContent = pending.length
-    ? (bad ? `${bad}개는 종류·연도·월·주차를 채워야 합니다`
+    ? (bad ? `${bad}개는 ${proj ? "폴더를 골라야" : "종류·연도·월·주차를 채워야"} 합니다`
            : `${pending.length}개 준비됨${rl ? ` · ${rl}개는 기존 자료에 이어붙입니다` : ""}`)
     : "";
 }
@@ -10733,6 +10802,11 @@ $("#filelist").addEventListener("change", e => {
   }else if(f === "rlpick"){
     p.rlSet = true; p.relinkId = v || null; p.rlPrev = p.relinkId;
     claimRelink(p, p.relinkId);
+  }else if(f === "folder"){
+    p.folder = pickFolder(v);   /* '새 폴더…'면 이름을 물어 만듭니다 */
+    if(p.folder) upLastFolder = p.folder;
+    p.rlSet = false;            /* 폴더가 바뀌면 이어붙일 자료를 다시 찾습니다 */
+    if(v === PF_NEW) $("#bulkfolder").innerHTML = `<option value="">폴더</option>` + folderOptions("");
   }else{
     p[f] = (f === "cat") ? v : (v ? +v : "");
     p.rlSet = false;            /* 종류·날짜가 바뀌면 이어붙일 자료를 다시 찾습니다 */
@@ -10743,7 +10817,22 @@ $("#filelist").addEventListener("click", e => {
   const x = e.target.closest("[data-x]"); if(!x) return;
   pending.splice(+x.dataset.x, 1); renderPending();
 });
+/* 일괄 지정 폴더 칸에서 '새 폴더…'를 고르면 바로 이름을 묻고, 만든 폴더를 골라 둡니다 */
+$("#bulkfolder").addEventListener("change", e => {
+  if(e.target.value !== PF_NEW) return;
+  const id = pickFolder(PF_NEW);
+  e.target.innerHTML = `<option value="">폴더</option>` + folderOptions(id);
+  renderPending();              /* 줄마다 있는 폴더 칸에도 새 폴더가 보이게 */
+});
 $("#bulkapply").onclick = () => {
+  if(upProj()){
+    const fo = $("#bulkfolder").value;
+    if(!fo || fo === PF_NEW){ toast("폴더를 먼저 고르세요"); return; }
+    upLastFolder = fo;
+    pending.forEach(p => { p.folder = fo; p.rlSet = false; });
+    renderPending();
+    return;
+  }
   const c = $("#bulkcat").value,  y = $("#bulkyear").value;
   const mo = $("#bulkmonth").value, w = $("#bulkweek").value;
   if(!c && !y && !mo && !w){ toast("종류·연도·월·주차 중 하나는 먼저 고르세요"); return; }
@@ -10798,7 +10887,11 @@ $("#upstart").onclick = async () => {
   uploading = false;
 
   DOCS.sort((a,b) => (b.date+b.addedAt).localeCompare(a.date+a.addedAt));
-  if(DOCS.length && !S.sel){
+  if(upProj()){
+    /* 프로젝트 — 올린 폴더를 모두 열어 새 자료가 바로 보이게 합니다 */
+    pending.forEach(p => { if(p.folder) S.open.add(projOpenKey(p.folder)); });
+    KV.folders = Array.from(S.open); saveKV("folders");
+  }else if(DOCS.length && !S.sel){
     const list = activeDocs();                 /* 오름차순이므로 맨 뒤가 가장 최근 자료입니다 */
     const newest = list[list.length - 1];
     if(newest){ S.open.add(newest.date.slice(0,4)); S.open.add(newest.date.slice(0,7)); }
@@ -10823,12 +10916,17 @@ function log(msg, kind){
 /* 등록 한 건. 알려 줄 말이 있으면 문자열로 돌려줍니다 (없으면 빈 값) */
 async function ingest(p){
   const warns = [];
-  const date  = mkDate(p.year, p.month, p.week);
+  /* 프로젝트 자료는 종류·주차가 없고, date 는 올린 날입니다(정렬·내부용 — 화면에 안 보임) */
+  const proj  = upProj();
+  if(proj && !p.folder) throw new Error("폴더를 골라 주세요.");
+  const date  = proj ? todayYmd() : mkDate(p.year, p.month, p.week);
   /* 이어붙일 자료가 있으면 새 id 를 만들지 않고 그 자료의 원본만 다시 채웁니다 */
   const old = p.relinkId ? DOCS.find(d => d.id === p.relinkId) : null;
   if(p.relinkId && !old)
     throw new Error("이어붙일 자료가 사라졌습니다. 목록에서 다시 골라 주세요.");
-  if(!old && DOCS.some(d => d.title === p.title && d.cat === p.cat && d.date === date))
+  if(!old && proj && DOCS.some(d => isProj(d) && d.folder === p.folder && d.title === p.title))
+    warns.push("같은 폴더에 같은 이름의 자료가 이미 있습니다");
+  if(!old && !proj && DOCS.some(d => !isProj(d) && d.title === p.title && d.cat === p.cat && d.date === date))
     warns.push("같은 이름·같은 회의의 자료가 이미 있습니다");
 
   let buf;
@@ -10861,7 +10959,12 @@ async function ingest(p){
   if(old) return await relinkDoc(old, p, buf, pages, pageTexts, warns);
 
   let keepPdf = KV.storeMode !== "light";
-  const doc = indexDoc({
+  const doc = indexDoc(proj ? {
+    id: uid(), title: p.title, cat: "", folder: p.folder,
+    date,                                    /* 올린 날 */
+    pages, pageTexts,
+    hasPdf: keepPdf, size: p.file.size, addedAt: new Date().toISOString()
+  } : {
     id: uid(), title: p.title, cat: p.cat,
     date,                                    /* 주차의 첫날 — 정렬·회의록 연결용 */
     week: p.week,
@@ -10923,7 +11026,10 @@ async function relinkDoc(d, p, buf, pages, pageTexts, warns){
   /* '글자와 요약만 저장' 인데 전에 원본이 있던 자료라면, 남은 원본을 치웁니다 */
   if(!keepPdf && had.hasPdf) await dbDel("files", d.id).catch(() => {});
 
-  if(p.title !== d.title || p.cat !== d.cat || p.week !== d.week)
+  if(isProj(d)){
+    if(p.title !== d.title || p.folder !== d.folder)
+      warns.push(`기존 자료의 이름·폴더(${relinkLabel(d)})를 그대로 씁니다`);
+  }else if(p.title !== d.title || p.cat !== d.cat || p.week !== d.week)
     warns.push(`기존 자료의 이름·종류·주차(${d.title} · ${d.cat} · ${d.week}주차)를 그대로 씁니다`);
   const dw = await trimDraw(d, had.pages, pages);
   if(dw) warns.push(dw);
