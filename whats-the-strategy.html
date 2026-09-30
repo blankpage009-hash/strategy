@@ -1944,7 +1944,12 @@ body.m .doc .mnow{color:var(--accent-ink);font-weight:800;}
    PC 툴바(#viewbar)·넘김 단추·닫기 단추는 숨기고, 머리(‹ · 제목 · ⌕) · 쪽 이동 줄 · 가로 미리보기 띠 ·
    아래 5칸 탭으로 바꿉니다. 미리보기 띠(#thumbs)와 무대(#stage)는 PC 와 같은 것을 순서만 바꿔 씁니다. */
 .mvhead,#mpager{display:none;}
-body.m #viewbar{display:none;}
+/* PC 툴바는 확대·축소·맞춤 단추만 남겨 머리 아래 한 줄로 씁니다 */
+body.m #viewbar{height:40px;justify-content:center;}
+body.m #viewbar > :not(#zoom-out):not(#zoomval):not(#zoom-in):not(#fit-width):not(#fit-page){display:none !important;}
+body.m #viewbar .vbtn{width:48px;}
+body.m #viewbar #zoom-out{border-left:1px solid var(--hairline);}
+body.m #viewbar #fit-page{border-right:1px solid var(--hairline);}
 body.m .pagenav,body.m #btn-docclose{display:none !important;}
 body.m .mvhead{flex:0 0 auto;display:flex;align-items:center;gap:2px;min-height:52px;padding:4px 4px 4px 0;
   background:var(--bg);border-bottom:var(--rule-w) solid var(--rule);}
@@ -3572,6 +3577,7 @@ const S = {
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
   fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"page",                           /* 기본은 One Page — 처음 열 때 쪽 전체가 한눈에 보이게 */
+  mFit:"width",                             /* 아이폰 화면의 맞춤 방식 — 기본은 폭 맞춤 */
   aiBusy:null, aiErr:"", aiErrId:null, aiStep:"",   /* AI 요약 진행/오류 상태 */
   anBusy:null, anErr:"", anErrId:null,              /* AI NOTE(회의록 한 장 정리) 진행/오류 상태 */
   asBusy:null, asErr:"", asErrId:null, asStep:"",   /* p별 AI 요약(Summary 탭) 진행/오류 상태 */
@@ -3881,6 +3887,8 @@ function scrollbarW(){
 
 async function fitTo(mode){
   if(!S.pdf) return;
+  /* 아이폰 화면은 따로 기억한 방식(S.mFit — 기본 폭 맞춤)을 씁니다. PC 쪽 방식(S.fitPref)은 그대로 둡니다 */
+  if(isMobile()) mode = S.mFit;
   S.fitMode = mode;
   /* 아이폰 세로 이어 보기는 모든 쪽을 1쪽 폭에 맞춥니다(pageScale) — 기준도 1쪽 */
   const page = await S.pdf.getPage(isMobile() ? 1 : S.page);
@@ -3889,9 +3897,7 @@ async function fitTo(mode){
   const pad = parseFloat(getComputedStyle(st).paddingLeft) || 0;   /* 무대 여백 (좁은 화면은 8px) */
   let availW   = st.clientWidth  - pad * 2;
   const availH = st.clientHeight - pad * 2;
-  /* 아이폰 화면은 늘 폭 맞춤입니다 — 기억해 둔 방식(S.fitMode · S.fitPref)은 그대로 두어
-     PC·아이패드 폭으로 돌아가면 원래 방식으로 맞춰집니다 (PLAN-MOBILE.md 3단계) */
-  if(mode === "page" && !isMobile()){
+  if(mode === "page"){
     S.baseScale = Math.min(availW / vp1.width, availH / vp1.height);
   }else{
     /* 폭 맞춤은 대개 세로로 넘칩니다. 아직 세로 막대가 없다면 그 폭을 미리 빼야
@@ -6444,8 +6450,12 @@ function zoomBy(dz){
 $("#zoom-in").onclick  = () => zoomBy(+0.15);
 $("#zoom-out").onclick = () => zoomBy(-0.15);
 /* 직접 고른 방식은 기억해 두었다가, 패널을 다시 열 때 그대로 돌아갑니다 */
-$("#fit-width").onclick = () => { S.fitPref = "width"; fitTo("width"); };
-$("#fit-page").onclick  = () => { S.fitPref = "page";  fitTo("page");  };
+$("#fit-width").onclick = () => { isMobile() ? S.mFit = "width" : S.fitPref = "width"; fitTo("width"); };
+/* 아이폰은 한 쪽 전체가 보이도록 지금 쪽 맨 위로 굴려 줍니다 */
+$("#fit-page").onclick  = () => {
+  if(isMobile()){ S.mFit = "page"; if(S.pdf) MS.jump = S.page; } else S.fitPref = "page";
+  fitTo("page");
+};
 
 $("#nav-prev").onclick = () => goPage(S.page - 1);
 $("#nav-next").onclick = () => goPage(S.page + 1);
