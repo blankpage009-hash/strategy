@@ -74,6 +74,8 @@
   --accent-soft2:#ffc4b8; /* 가장 중요한 수치 하이라이트 */
   --accent-line:#ff9783; /* 선택 상태의 배지 테두리 */
   --warn:#9b9797; --ok:#605d5d; --bad:#ae1800;
+  --areabar:#201e1d;     /* 왼쪽 목록 영역 고르기 — 고른 쪽 바 */
+  --areabar-ink:#ffffff; /* 그 위의 글자 */
   --shadow:0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
   /* 오른쪽 칸은 화면의 절반 정도까지 넓게 씁니다 */
   --left-w:268px; --right-w:clamp(420px, 30vw, 720px); --rail:26px; --thumb-w:132px;
@@ -104,6 +106,8 @@
   --accent-soft2:#6b2a1e;
   --accent-line:#b8452f;
   --warn:#7d7878; --ok:#b3aeae; --bad:#ff7a63;
+  --areabar:#0b0a0a;
+  --areabar-ink:#ffffff;
   --shadow:0 3px 12px rgba(0,0,0,.55);
   color-scheme:dark;
 }
@@ -309,7 +313,19 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 #btn-manage svg{display:block;}
 .divider{height:1px;background:var(--line);margin:10px 0 0;}
 
-#tree{padding:0 8px 20px;}
+#tree,#projtree{padding:0 8px 20px;}
+/* 영역 고르기 줄 — 고른 쪽만 검은 바(--areabar)에 흰 글씨, 안 고른 쪽은 흰 바탕에 검은 글씨 */
+#areatabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--hairline);background:var(--panel);}
+#areatabs button{flex:1 1 50%;min-width:0;height:34px;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:0 6px;border:none;border-radius:0;background:var(--surface);color:var(--text);
+  font-size:12px;font-weight:800;letter-spacing:.04em;white-space:nowrap;cursor:pointer;}
+#areatabs button + button{border-left:1px solid var(--hairline);}
+#areatabs button:hover{background:var(--panel2);}
+#areatabs button.on,#areatabs button.on:hover{background:var(--areabar);color:var(--areabar-ink);}
+#areatabs .cnt{font-size:11px;font-weight:500;letter-spacing:0;opacity:.7;}
+/* 프로젝트 폴더 한 줄 — 연 폴더와 같은 모양, 자료는 그 아래 */
+.fold.pf{padding:7px 8px;font-size:12px;font-weight:800;}
+.fold.pf + .doc,.fold.pf ~ .doc{padding-left:30px;}
 .fold{display:flex;align-items:center;gap:6px;border-radius:0;cursor:pointer;user-select:none;white-space:nowrap;}
 .fold:hover{background:var(--panel2);}
 .fold .caret{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
@@ -1948,7 +1964,12 @@ body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-botto
 
 /* 자료 목록 — PC 와 같은 연/월 접기 트리(손가락 크기로 키움). 행은 W 태그 + 제목(굵게) + 아래 종류·쪽수·날짜,
    열람 중은 연분홍 배경 + 왼쪽 빨간 선 */
-body.m #tree{padding:6px 0 20px;}
+body.m #tree,body.m #projtree{padding:6px 0 20px;}
+body.m #areatabs{background:var(--bg);border-bottom:var(--rule-w) solid var(--rule);}
+body.m #areatabs button{height:44px;font-size:14px;}
+body.m .fold.pf{padding:10px 16px;font-size:16px;}
+body.m .fold.pf ~ .doc{padding-left:30px;}
+body.area-proj.m .mhead-cats{display:none;}
 body.m .fold{min-height:44px;}
 body.m .fold.yr{padding:10px 16px;font-size:16px;}
 body.m .fold.mo{padding:9px 16px 9px 30px;font-size:14px;}
@@ -2390,8 +2411,14 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           </svg>
         </button>
         <button class="closebtn" data-close="left" title="접기">«</button></div>
+      <!-- 「회의 자료」 / 「프로젝트」 영역 고르기 — 고른 쪽은 검은 바탕 흰 글씨 (PLAN-PROJECT.md 2단계) -->
+      <div id="areatabs" role="tablist" aria-label="자료 영역">
+        <button type="button" role="tab" data-area="meet" id="areatab-meet">회의 자료<span class="cnt"></span></button>
+        <button type="button" role="tab" data-area="proj" id="areatab-proj">프로젝트<span class="cnt"></span></button>
+      </div>
       <div class="side-scroll">
         <div id="tree"></div>
+        <div id="projtree" style="display:none"></div>
       </div>
     </div>
   </aside>
@@ -3721,12 +3748,65 @@ const NOTE_MARK = `<span class="tag" title="회의록 있음"><svg width="12" he
   fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
   aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>`;
 
+/* 프로젝트 폴더 — 이름 가나다순. 목록에 없는데 자료가 가리키는 폴더도 빠뜨리지 않고 보여 줍니다(동기화 순서 어긋남 대비) */
+function projFolderList(){
+  const fs = (KV.projFolders || []).map(f => ({ id:f.id, name:f.name }));
+  const known = new Set(fs.map(f => f.id));
+  projectDocs().forEach(d => { if(!known.has(d.folder)){ known.add(d.folder); fs.push({ id:d.folder, name:"(이름 없는 폴더)" }); } });
+  return fs.sort((a,b) => a.name.localeCompare(b.name, "ko", { numeric:true }));
+}
+/* 프로젝트 자료 — 제목 내림차순(고친 이름 기준) */
+const projTitleDesc = (a,b) => String(b.title).localeCompare(String(a.title), "ko", { numeric:true });
+
+/* 영역 고르기 줄 — 고른 쪽을 검게, 개수는 영역별 */
+function renderAreaTabs(){
+  const proj = KV.area === "proj";
+  $("#areatab-meet .cnt").textContent = activeDocs().length;
+  $("#areatab-proj .cnt").textContent = projectDocs().length;
+  [["meet", !proj], ["proj", proj]].forEach(([a, on]) => {
+    const b = $("#areatab-" + a);
+    b.classList.toggle("on", on); b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.body.classList.toggle("area-proj", proj);
+  $("#tree").style.display = proj ? "none" : "";
+  $("#projtree").style.display = proj ? "" : "none";
+}
+
+function renderProjTree(){
+  const folders = projFolderList(), mob = isMobile();
+  $("#listcount").textContent = projectDocs().length;
+  if(!folders.length){
+    $("#projtree").innerHTML = `<div class="emptybox">아직 프로젝트 자료가 없습니다.<br>
+      <b>Upload</b> 로 PDF를 올리면 폴더별로 모입니다.</div>`;
+    return;
+  }
+  let html = "";
+  folders.forEach(f => {
+    const docs = projectDocs().filter(d => d.folder === f.id).sort(projTitleDesc);
+    const open = S.open.has(projOpenKey(f.id));
+    html += `<div class="fold pf ${open?"":"shut"}" data-k="${esc(projOpenKey(f.id))}" data-pf="${esc(f.id)}">${caretSvg(12)}
+      <span class="nm">${esc(f.name)}</span><span class="cnt">${docs.length}</span></div>`;
+    if(!open) return;
+    docs.forEach(d => {
+      if(mob){ html += docRowMobile(d); return; }
+      html += `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
+          title="${esc(d.title)}&#10;${esc(f.name)}">
+        <span class="nm">${esc(d.title)}</span>
+        ${d.hasPdf ? "" : '<span class="nopdf" title="원본 없이 글자만 저장됨">글자만</span>'}
+      </div>`;
+    });
+  });
+  $("#projtree").innerHTML = html;
+}
+
 function renderTree(){
+  renderAreaTabs();
+  if(KV.area === "proj"){ renderProjTree(); return; }
   const list = activeDocs();
   $("#listcount").textContent = list.length;
 
-  if(!DOCS.length){
-    $("#tree").innerHTML = `<div class="emptybox">아직 등록된 자료가 없습니다.<br>
+  if(!meetDocs().length){
+    $("#tree").innerHTML = `<div class="emptybox">아직 등록된 회의 자료가 없습니다.<br>
       왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 를 눌러<br>PDF를 등록해 보세요.</div>`;
     return;
   }
@@ -3777,6 +3857,13 @@ function renderTree(){
 /* 아이폰 화면(8a) — PC 와 같은 연/월 접기 트리에, 행만 W 태그 + 제목(굵게) + 아래 종류·쪽수·날짜 */
 function docRowMobile(d){
   const now = S.sel === d.id;
+  if(isProj(d)){
+    const f = projFolderOf(d);
+    return `<div class="doc ${now?"sel":""}" data-id="${d.id}" title="${esc(d.title)}">
+      <span class="mtx"><span class="nm">${esc(d.title)}</span>
+      <span class="mmeta">${esc(f ? f.name : "")} · ${d.pages||1}p${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span></span>
+    </div>`;
+  }
   const date = d.date.slice(5).replace("-", ".");
   return `<div class="doc ${now?"sel":""}" data-id="${d.id}"
       title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
@@ -6514,7 +6601,7 @@ async function closeDoc(){
 }
 $("#btn-docclose").onclick = closeDoc;
 
-$("#tree").addEventListener("click", e => {
+function onTreeClick(e){
   const fold = e.target.closest(".fold");
   if(fold){
     const k = fold.dataset.k;
@@ -6524,6 +6611,14 @@ $("#tree").addEventListener("click", e => {
   }
   const row = e.target.closest(".doc");
   if(row) selectDoc(row.dataset.id);
+}
+$("#tree").addEventListener("click", onTreeClick);
+$("#projtree").addEventListener("click", onTreeClick);
+/* 회의 자료 / 프로젝트 영역 바꾸기 — 고른 영역은 이 기기에만 기억합니다 */
+$("#areatabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-area]"); if(!b || KV.area === b.dataset.area) return;
+  KV.area = b.dataset.area; saveKV("area");
+  renderTree();
 });
 
 /* =========================================================
