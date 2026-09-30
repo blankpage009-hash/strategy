@@ -3410,6 +3410,8 @@ const weekOf  = d => d && d.week ? d.week : weekOfDate(d && d.date);
 const monthOf = d => parseInt(String(d && d.date || "").slice(5,7), 10) || 1;
 const yearOf  = d => String(d && d.date || "").slice(0,4);
 /* 2026년 7월 1주차 */
+/* AI 요청문용 — 회의 자료 "종류 · 연월주차", 프로젝트 자료 "프로젝트 · 폴더" */
+const docWhen = d => isProj(d) ? `프로젝트 · ${projFolderName(d)}` : `${d.cat} · ${fmtYMW(d)}`;
 const fmtYMW  = d => `${yearOf(d)}년 ${monthOf(d)}월 ${weekOf(d)}주차`;
 /* 26.07 1주차 (좁은 곳에서 씀) */
 const fmtYMWShort = d => `${String(d.date).slice(2,4)}.${String(d.date).slice(5,7)} ${weekOf(d)}주차`;
@@ -7931,7 +7933,7 @@ function renderAllTasks(){
   const list = items.filter(({t}) => t.s === cur.val);
 
   $("#alltasksbody").innerHTML = list.length ? list.map(({d,t,i}) => {
-    const tag = (d.date ? fmtYMW(d) : "") + (d.cat ? " · " + d.cat : "");
+    const tag = isProj(d) ? "프로젝트 · " + projFolderName(d) : (d.date ? fmtYMW(d) : "") + (d.cat ? " · " + d.cat : "");
     return `<div class="task">
       <button class="st" data-doc="${d.id}" data-ti="${i}" title="상태 바꾸기 (지금 ${cur.label})"
         ><i class="dot ${cur.dot}"></i></button>
@@ -8744,7 +8746,7 @@ ${ORG_TEXT}
 - 같은 내용을 두 곳에 반복해서 적지 않는다.
 
 --- 회의 정보 ---
-${doc.cat} · ${fmtYMW(doc)} · 제목: ${doc.title}
+${docWhen(doc)} · 제목: ${doc.title}
 
 --- 회의자료 ---
 ${docText || "(글자를 뽑지 못했습니다)"}
@@ -9078,7 +9080,7 @@ ${AN_SHAPE}
 - 회의록 원문이 이미 잘 정리된 글이면 굳이 뒤집지 말고, 문체만 고르게 다듬어 그대로 옮긴다.
 
 --- 회의 정보 ---
-${doc.cat} · ${fmtYMW(doc)} · 제목: ${doc.title}
+${docWhen(doc)} · 제목: ${doc.title}
 ${ag ? `\n--- 회의 Agenda (참고 — 이 주에 다루기로 한 안건입니다. 원문의 조각이 어느 안건 이야기인지 판단할 때 쓰고, Agenda 에만 있고 회의에서 다루지 않은 내용은 회의록에 넣지 마세요.) ---\n${ag}\n` : ""}
 --- 회의록 원문 ---
 ${body || "(회의록이 비어 있습니다)"}`;
@@ -9367,7 +9369,7 @@ ${AI_NUM_RULES}
 ${AS_EXAMPLES}
 
 --- 자료 정보 ---
-${doc.cat} · ${fmtYMW(doc)} · 제목: ${doc.title} · ${pageNo}p / ${doc.pages || 1}p
+${docWhen(doc)} · 제목: ${doc.title} · ${pageNo}p / ${doc.pages || 1}p
 
 --- 이 쪽의 글자 ---
 ${body || "(이 쪽에서는 글자를 뽑지 못했습니다. 그림만 보고 읽어 주세요)"}`;
@@ -9780,7 +9782,7 @@ function aiScriptPrompt(doc, pages, opts, imgPageNos, meta){
     : `분량은 ${minutes}분 발표, 약 ${tgt.total}자(공백 포함, 분당 ${SC_CPM}자 기준)입니다.`;
 
   return `당신은 회사 전략담당자의 발표 스크립트 작성 비서입니다.
-아래는 회의자료 "${doc.title}" (${doc.cat} · ${fmtYMW(doc)} · 전체 ${total}p) 가운데 ${rangeTxt} 에서 뽑은 글자${
+아래는 회의자료 "${doc.title}" (${docWhen(doc)} · 전체 ${total}p) 가운데 ${rangeTxt} 에서 뽑은 글자${
   imgSet.size ? `이고, 같은 쪽의 그림도 함께 보냈습니다 (그림이 붙은 쪽: ${[...imgSet].map(p => p + "p").join("·")})` : "입니다"}.
 발표자가 청중에게 이 자료를 발표할 때 쪽마다 실제로 입으로 말할 스크립트를 한국어로 쓰세요.
 결과는 JSON 하나만 출력합니다. JSON 밖에는 인사말·설명·코드펜스를 쓰지 않습니다.
@@ -12845,7 +12847,7 @@ const TUT = [
       <div class="tutmap-key">
         <div><span class="n">1</span><b>상단바</b> — 검색창과 오른쪽 끝 세 단추(Agenda · 설명서 · 설정)</div>
         <div><span class="n">2</span><b>Filter 막대</b> — 회의 종류를 켜고 꺼서 목록을 걸러냅니다</div>
-        <div><span class="n">3</span><b>MATERIALS</b> — 연·월·주차 폴더로 묶인 자료 목록</div>
+        <div><span class="n">3</span><b>MATERIALS</b> — 맨 위 두 단추로 <b>회의 자료</b>(연·월·주차 폴더)와 <b>프로젝트</b>(폴더별, 제목 내림차순)를 오가는 자료 목록</div>
         <div><span class="n">4</span><b>뷰어</b> — 고른 자료가 펼쳐지는 곳. 위에 뷰어 툴바가 있습니다</div>
         <div><span class="n">5</span><b>오른쪽 칸</b> — SUMMARY · NOTE · TASKS · SCRIPT · MEMO 다섯 탭</div>
       </div>` },
@@ -12868,6 +12870,8 @@ const TUT = [
     { h:"알아두기", type:"note", html:
       "파일 이름에 날짜가 들어 있으면 <b>연·월·주차를 알아서 채웁니다</b>. <b>20260731</b> · <b>2026년 7월 31일</b> 같은 날짜는 그 날이 몇 주차인지 계산하고, <b>8월 1주차</b> 처럼 주차가 적혀 있으면 그것을 씁니다." },
     { h:"", type:"note", html:
+      "왼쪽 목록에서 <b>프로젝트</b> 를 고른 채 <b>Upload</b> 하면 회의 종류·날짜 대신 <b>폴더</b> 한 칸만 고릅니다(<b>새 폴더…</b> 로 바로 만들 수 있습니다). 같은 폴더에 같은 제목이면 이어붙입니다. 나중에 <b>자료 관리</b> 에서 회의 자료 ↔ 프로젝트로 옮길 수 있습니다." },
+    { h:"", type:"note", html:
       "설정에서 <b>파일 이름 → 자료 종류</b> 규칙을 만들어 두면 회의 종류까지 자동으로 정해집니다. 예를 들어 <b>본부장회의</b> 라는 말이 든 파일은 모두 <b>임원회의</b> 로 — <b>11) 설정</b> 참고." },
     { h:"", type:"note", html:
       "아이패드에서는 <b>파일</b> 앱 · iCloud Drive에서 바로 고를 수 있습니다. 아이패드라면 설정에서 <b>글자와 요약만 저장</b> 을 골라 두는 편이 가볍습니다." }
@@ -12879,7 +12883,7 @@ const TUT = [
   secs:[
     { h:"네 가지 찾기", type:"table", head:["방법","찾는 범위","이럴 때"], rows:[
       ["<b>Filter 막대</b> 의 회의 종류 칩","목록에 보일 회의 종류","임원회의 것만 보고 싶을 때"],
-      ["왼쪽 <b>MATERIALS</b> 목록","연 · 월 · 주차 폴더","언제 회의였는지 알 때"],
+      ["왼쪽 <b>MATERIALS</b> 목록","회의 자료는 연 · 월 · 주차 폴더, 프로젝트는 폴더","언제 회의였는지, 어느 프로젝트인지 알 때"],
       ["상단바 <b>검색창</b>","자료 이름 + PDF 본문 + 회의록 — 그룹별로, 몇 쪽에서 걸렸는지","어느 자료였는지 기억나지 않을 때"],
       ["뷰어 툴바의 <b>이 자료에서 찾기</b>","지금 열어 둔 자료 안에서만","이 문서 몇 쪽에 있었는지 찾을 때"]
     ]},
