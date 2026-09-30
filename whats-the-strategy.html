@@ -3419,8 +3419,10 @@ function periodKeys(){
   const now = new Date();
   return { ym: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`, y: String(now.getFullYear()) };
 }
-/* 자료 하나가 어느 배타적 구간에 드는지 — 집계용(칸끼리 겹치지 않게 나눔) */
+/* 자료 하나가 어느 배타적 구간에 드는지 — 집계용(칸끼리 겹치지 않게 나눔).
+   프로젝트 자료의 date 는 올린 날(내부용)이라 이번 달·올해로 세지 않고 MAX 에만 넣습니다 */
 function periodBucketOf(d){
+  if(isProj(d)) return "other";
   const { ym, y } = periodKeys();
   const k = String(d && d.date || "");
   if(k.slice(0, 7) === ym) return "mtd";
@@ -3429,6 +3431,7 @@ function periodBucketOf(d){
 }
 /* 기간 버튼을 눌렀을 때 걸러 쓰는 판정 — 버튼 자체는 누적 범위 */
 function inPeriod(d, key){
+  if(isProj(d) && key !== "max") return false;   /* 프로젝트 자료는 MTD·YTD 에서 빠집니다 */
   const { ym, y } = periodKeys();
   const k = String(d && d.date || "");
   if(key === "mtd") return k.slice(0, 7) === ym;
@@ -5022,7 +5025,8 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
    문법(parseQuery)·조각 매칭(termHits)은 sqz() 옆에 있습니다.
 
    runSearch(Q, opt) → R   (모양은 PLAN-SEARCH.md 1-3 절)
-     · 대상 = activeDocs() (커맨드바에서 끈 종류는 저절로 빠짐) ∩ #태그 · year:
+     · 대상 = searchDocs() — 회의 자료(activeDocs, 커맨드바에서 끈 종류는 저절로 빠짐) + 프로젝트 자료 ∩ #태그 · year:
+       (프로젝트 자료는 회의 종류·회의 날짜가 없어 #태그 · year: 를 쓰면 빠집니다)
      · 1차: 자료 걸러내기(싸게) — 모든 조각이 (대안 중 하나라도) 자료 어딘가(제목+본문 또는 회의록)에는
        있어야 하고, 제외 조각은 하나도 없어야. 아직 후보일 뿐 — '아토믹스+쿠팡'처럼 AND 로 묶은 조각들이
        서로 다른 쪽에 흩어져 있어도 여기는 통과함(값싸게 미리 거르는 용도)
@@ -5031,6 +5035,14 @@ $("#backdrop").onclick = () => { toggleSide("left", false); toggleSide("right", 
        (제목·쪽·회의록 어디에도 다 같이 걸린 자리가 없으면 자료째 제외)
      · 원문 자리(spans)는 opt.spansFor 에 든 자료만
      · 점수 = 파일명 ×5 + 회의록 ×2 + 본문 ×1. 같으면 최신 자료 먼저. opt.sort:"date" 면 최신순 */
+/* 검색 대상 — 회의 자료(커맨드바 Filter 적용) + 프로젝트 자료(Filter 와 상관없이 늘 포함) */
+function searchDocs(){ return activeDocs().concat(projectDocs()); }
+/* 검색 결과의 '회의 종류' 칸에서 프로젝트 자료를 한데 묶는 열쇠 — 회의 종류 이름과 겹치지 않게 기호로 감쌉니다 */
+const SRCH_PROJ = "@@project@@";
+const srchCatOf = d => isProj(d) ? SRCH_PROJ : d.cat;
+const srchCatLabel = c => c === SRCH_PROJ ? "프로젝트" : c;
+/* 프로젝트 자료가 든 폴더 이름 (목록에 없는 폴더면 "(이름 없는 폴더)") */
+function projFolderName(d){ const f = projFolderOf(d); return f ? f.name : "(이름 없는 폴더)"; }
 function runSearch(Q, opt){
   opt = opt || {};
   const spansFor = opt.spansFor || null;
@@ -5045,9 +5057,9 @@ function runSearch(Q, opt){
   }
   const has = (str, alt) => alt.kind === "fuzzy" ? bitap(str, alt.nq, fuzzyK(alt.nq)).length > 0 : hasHit(str, alt.nq);
 
-  activeDocs().forEach(d => {
+  searchDocs().forEach(d => {
     if(cats && !cats.has(d.cat)) return;
-    if(Q.year && yearOf(d) !== Q.year) return;
+    if(Q.year && (isProj(d) || yearOf(d) !== Q.year)) return;
     if(!d._allSq) indexDoc(d);                       /* 옛 자료도 색인을 만들어 둡니다 */
     const noteText = noteTextOf(d);
     const noteQ    = sqzQ(noteText);
@@ -5093,7 +5105,8 @@ function runSearch(Q, opt){
 
     /* ③ 집계 — 모두 적중 수 기준 */
     R.tot.docs++; R.tot.hits += hits; R.tot.title += title ? 1 : 0; R.tot.body += body; R.tot.note += nn;
-    R.byCat[d.cat] = (R.byCat[d.cat] || 0) + hits;
+    const ck = srchCatOf(d);
+    R.byCat[ck] = (R.byCat[ck] || 0) + hits;
     const pk = periodBucketOf(d);
     R.byPeriod[pk] = (R.byPeriod[pk] || 0) + hits;
   });
@@ -5124,7 +5137,7 @@ function suggestFix(Q){
   if(alt.kind === "fuzzy" || alt.nq.length < 3) return null;
   const pat = alt.nq.slice(0, 31), m = pat.length, k = fuzzyK(pat);
   const cnt = new Map();
-  activeDocs().slice(0, 300).forEach(d => {
+  searchDocs().slice(0, 300).forEach(d => {
     if(!d._allSq) indexDoc(d);
     const t = d._allSq;
     bitap(t, pat, k).forEach(e => {
@@ -5210,7 +5223,7 @@ function sdDocsFor(R){
   let docs = R.docs;
   if(S.srch.sort === "date")
     docs = docs.slice().sort((a, b) => (b.d.date + b.d.addedAt).localeCompare(a.d.date + a.d.addedAt));
-  if(S.srch.cat) docs = docs.filter(r => r.d.cat === S.srch.cat);
+  if(S.srch.cat) docs = docs.filter(r => srchCatOf(r.d) === S.srch.cat);
   if(S.srch.mon) docs = docs.filter(r => inPeriod(r.d, S.srch.mon));
   if(S.srch.grp === "title") docs = docs.filter(r => r.title);
   else if(S.srch.grp === "body") docs = docs.filter(r => r.pages.length);
@@ -5255,13 +5268,13 @@ function sdRailHtml(R){
   const cats = Object.entries(R.byCat).sort((a, b) => b[1] - a[1]);
   const maxCat = cats.length ? cats[0][1] : 1;
   const bars = cats.map(([c, n], i) => `<button class="sd-bar ${S.srch.cat === c ? "on" : ""}" data-cat="${esc(c)}">`
-    + `<span class="t">${esc(c)}</span><span class="track"><em style="width:${Math.max(6, Math.round(n / maxCat * 100))}%;${i === 0 ? "background:var(--accent)" : ""}"></em></span>`
+    + `<span class="t">${esc(srchCatLabel(c))}</span><span class="track"><em style="width:${Math.max(6, Math.round(n / maxCat * 100))}%;${i === 0 ? "background:var(--accent)" : ""}"></em></span>`
     + `<span class="n">${n}</span></button>`).join("");
   return `<div class="sd-rail">
     <div class="sd-rlbl">어디에서 걸렸나</div>
     ${grpRow("all", "", "전체", R.tot.hits)}${grpRow("title", SD_ICO.file, "파일명", R.tot.title)}${grpRow("body", SD_ICO.body, "본문", R.tot.body)}${grpRow("note", SD_ICO.note, "회의록", R.tot.note)}
     <div class="sd-rsep"></div>
-    <div class="sd-rlbl">회의 종류</div>
+    <div class="sd-rlbl">${R.byCat[SRCH_PROJ] ? "회의 종류 · 프로젝트" : "회의 종류"}</div>
     <div class="sd-rbars">${bars}</div>
     ${sdPeriodHtml(R)}
   </div>`;
@@ -5281,7 +5294,9 @@ function sdDocBlockHtml(r){
       + `<span class="sd-p">${label}</span><span class="sd-s">${snip}</span></div>`;
   }).join("");
   const more = lines.length > 3 && !open ? `<div class="sd-more" data-row data-more="${d.id}">+ ${lines.length - 3}곳 더 보기</div>` : "";
-  const meta = isNarrow()                                    /* 좁은 화면은 연도 대신 회의 종류로 축약(5단계) */
+  const meta = isProj(d)                                     /* 프로젝트 자료는 날짜 대신 폴더 이름 */
+    ? `${esc(projFolderName(d))} · ${d.pages}p`
+    : isNarrow()                                             /* 좁은 화면은 연도 대신 회의 종류로 축약(5단계) */
     ? `${esc(d.cat)} · ${String(monthOf(d)).padStart(2, "0")} W${weekOf(d)} · ${d.pages}p`
     : `${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p`;
   const src = r.title ? `<span class="src">📄 파일명 일치</span>` : "";
@@ -5289,7 +5304,7 @@ function sdDocBlockHtml(r){
   return `<div class="sd-doc ${sel ? "sel" : ""}" data-id="${d.id}">
     <div class="sd-title" data-row data-id="${d.id}">
       <span class="t">${esc(d.title)}</span>
-      <span class="tag ${S.srch.cat === d.cat ? "on" : ""}" data-cat="${esc(d.cat)}">${esc(d.cat)}</span>
+      <span class="tag ${S.srch.cat === srchCatOf(d) ? "on" : ""}" data-cat="${esc(srchCatOf(d))}">${esc(srchCatLabel(srchCatOf(d)))}</span>
     </div>
     <div class="sd-meta"><span>${meta}</span>${src}${counts ? `<b>${counts}</b>` : ""}</div>
     ${hitHtml}${more}
@@ -5307,7 +5322,7 @@ function sdZeroHtml(){
   if(rd.length){
     html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">📂 최근 열람 문서</span></div>`
       + rd.map(d => `<div class="sd-zdoc" data-row data-id="${d.id}"><span class="t">${esc(d.title)}</span>`
-        + `<span class="m">${esc(d.cat)} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p</span></div>`).join("")
+        + `<span class="m">${esc(docMetaLine(d))}</span></div>`).join("")
       + `</div>`;
   }
   html += `<div class="sd-zhint" style="display:flex;align-items:center">`
@@ -5395,6 +5410,13 @@ function renderSdrop(){
   placeSdrop();
 }
 
+/* 최근 열람 줄·결과 이동 막대의 한 줄 설명 — 회의 자료 "종류 · 연 · 월 · W주 · 쪽", 프로젝트 자료 "프로젝트 · 폴더 · 쪽".
+   p 를 주면 그 쪽 번호, 없으면 전체 쪽수 */
+function docMetaLine(d, p){
+  const pg = (p || d.pages) + "p";
+  return isProj(d) ? `프로젝트 · ${projFolderName(d)} · ${pg}`
+    : `${d.cat} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${pg}`;
+}
 /* 최근 검색어·최근 열람 자료 — 기기별(KV_DEFAULT.recentQ/recentDocs), 5단계 */
 function pushRecentQ(raw){
   const q = String(raw || "").trim(); if(!q) return;
@@ -5651,9 +5673,7 @@ function renderHitbar(){
   bar.hidden = false;
   $("#hit-q").textContent = `‘${q.raw}’`;
   $("#hit-pos").innerHTML = `${i >= 0 ? i + 1 : "–"} <em>/ ${list.length}</em>`;
-  $("#hit-meta").textContent = d
-    ? `${d.cat} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${cur ? cur.p : S.page}p`
-    : "";
+  $("#hit-meta").textContent = d ? docMetaLine(d, cur ? cur.p : S.page) : "";
   $("#hit-prev").disabled = !list.length || i === 0;
   $("#hit-next").disabled = !list.length || i === list.length - 1;
 }
@@ -13438,7 +13458,7 @@ function msZeroHtml(){
   if(rd.length){
     html += `<div class="sd-zsec"><div class="sd-zhead"><span class="lbl">📂 최근 열람 문서</span></div>`
       + rd.map(d => `<div class="sd-zdoc" data-id="${d.id}"><span class="t">${esc(d.title)}</span>`
-        + `<span class="m">${esc(d.cat)} · ${yearOf(d)} · ${String(monthOf(d)).padStart(2, "0")} · W${weekOf(d)} · ${d.pages}p</span></div>`).join("")
+        + `<span class="m">${esc(docMetaLine(d))}</span></div>`).join("")
       + `</div>`;
   }
   return html || `<div class="sd-empty"><div class="et">최근 기록이 없습니다. 찾을 말을 입력하세요.</div></div>`;
@@ -13476,7 +13496,7 @@ function msDocRowHtml(r, i){
   return `<div class="msr-doc ${sel ? "sel" : ""}" data-id="${d.id}">
     <div class="msr-row1"><span class="no">${String(i + 1).padStart(2, "0")}</span>
       <span class="ttl">${msTitleHtml(d, S.srch.R)}</span></div>
-    <div class="msr-meta">${esc(d.cat)} · ${d.pages}p · 적중 ${r.hits}곳</div>
+    <div class="msr-meta">${isProj(d) ? `프로젝트 · ${esc(projFolderName(d))}` : esc(d.cat)} · ${d.pages}p · 적중 ${r.hits}곳</div>
     ${hits ? `<div class="msr-hits">${hits}${more}</div>` : ""}
   </div>`;
 }
@@ -13496,12 +13516,13 @@ function mRenderSearch(){
       + opts.map(o => `<option value="${esc(o[0])}" ${o[0] === cur ? "selected" : ""}>${esc(o[1])}${o[2] != null ? ` (${o[2].toLocaleString()})` : ""}</option>`).join("")
       + `</select></label>`;
   };
-  /* 회의자료 — 적중 많은 종류부터(PC 레일 '회의 종류'와 같은 순서). 고른 종류가 결과에 없어도 목록에는 남겨 둡니다 */
+  /* 회의자료 — 적중 많은 종류부터(PC 레일 '회의 종류'와 같은 순서, 프로젝트 자료는 '프로젝트' 한 칸).
+     고른 종류가 결과에 없어도 목록에는 남겨 둡니다 */
   const cats = Object.entries(R.byCat).sort((a, b) => b[1] - a[1]);
   if(S.srch.cat && !R.byCat[S.srch.cat]) cats.push([S.srch.cat, 0]);
   const bp = R.byPeriod || {}, mtd = bp.mtd || 0, ytd = mtd + (bp.ytdOnly || 0);
   chipsEl.innerHTML =
-      dd("cat", "회의자료", S.srch.cat || "", [["", "전체", R.tot.hits]].concat(cats.map(([c, n]) => [c, c, n])))
+      dd("cat", "회의자료", S.srch.cat || "", [["", "전체", R.tot.hits]].concat(cats.map(([c, n]) => [c, srchCatLabel(c), n])))
     + dd("mon", "기간", S.srch.mon && S.srch.mon !== "max" ? S.srch.mon : "",
         [["", "전체", R.tot.hits], ["mtd", "MTD", mtd], ["ytd", "YTD", ytd]])
     + dd("grp", "본문/회의록", S.srch.grp === "all" ? "" : S.srch.grp,
