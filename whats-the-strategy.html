@@ -3516,7 +3516,12 @@ const KV_DEFAULT = {
   /* 저장소가 실수로 공개로 바뀌었는지 하루 한 번만 확인하기 위한 날짜("YYYY-MM-DD") */
   syncPrivChecked:"",
   /* 최근 검색어·최근 열람 자료 — 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
-  recentQ:[], recentDocs:[]
+  recentQ:[], recentDocs:[],
+  /* 「프로젝트」 영역의 폴더 목록 — [{ id, name }] (PLAN-PROJECT.md). 빈 폴더·이름 바꾸기도 남도록 따로 둡니다.
+     동기화·백업에 들어갑니다. 폴더 순서는 이름 가나다순이라 따로 적지 않습니다. */
+  projFolders:[],
+  /* 왼쪽 목록에서 지금 고른 영역 — "meet"(회의 자료) · "proj"(프로젝트). 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
+  area:"meet"
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -3528,6 +3533,8 @@ async function loadKV(){
   KV.memos   = Object.assign({}, KV.memos);
   KV.drawcfg = Object.assign({}, KV.drawcfg);
   KV.scriptOpts = Object.assign({}, KV.scriptOpts);
+  KV.projFolders = Array.isArray(KV.projFolders) ? KV.projFolders.map(f => Object.assign({}, f)) : [];
+  if(KV.area !== "proj") KV.area = "meet";
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
   if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
@@ -3557,13 +3564,14 @@ function storeErrMsg(err){
 /* =========================================================
    2) 자료 목록 (메모리)
    ========================================================= */
-let DOCS = [];    // {id,title,short,cat,date,pages,pageTexts[],hasPdf,size,addedAt}
+let DOCS = [];    // {id,title,short,cat,date,pages,pageTexts[],hasPdf,size,addedAt, folder?}
+                  // folder 가 있으면 「프로젝트」 자료입니다 — cat 은 빈 값, date 는 올린 날(화면에 안 보이는 내부용)
 let NOTES = {};   // key -> {key,cat,date,text,updatedAt}
 let ATTACH = [];  // [{id,docId,tab,name,size,addedAt}] — 원본은 attachfile 저장소에 따로 둡니다
                   // tab: "sum"(SUMMARY) · "note"(NOTE) — 탭마다 체온 목록이 따로 있습니다
 
 function noteKey(cat, date){ return cat + "|" + date; }
-function noteOf(d){ return d ? NOTES[noteKey(d.cat, d.date)] : null; }
+function noteOf(d){ return d && !isProj(d) ? NOTES[noteKey(d.cat, d.date)] : null; }
 /* 검색이 보는 '회의록' 글자 — 오른쪽 NOTE 탭에 직접 적은 회의록(KV.sums[id].b, 태그를 뺀 순수 글자)입니다.
    화면(#sumB)과 같은 데이터라 회의록 적중을 열면 그 자리로 곧장 갑니다. 거기에 아무것도 없으면
    옛 notes 스토어(NOTES, 백업 복원으로만 들어옴)를 대신 봅니다. */
@@ -3579,7 +3587,7 @@ function noteTextOf(d){
 const SEP = "\u0001";
 function indexDoc(d){
   d.pageTexts = d.pageTexts || [];
-  if(!d.week) d.week = weekOfDate(d.date);   /* 옛 자료도 주차를 알아냅니다 */
+  if(!d.week && !isProj(d)) d.week = weekOfDate(d.date);   /* 옛 자료도 주차를 알아냅니다(프로젝트 자료는 주차 없음) */
   d.short = shortTitle(d.title) || d.cat || d.title;
   /* 띄어쓰기를 무시하고 찾기 위한 색인 — 자료 목록 전체 검색에서 씁니다 */
   d._allSq = sqzQ((d.title||"") + SEP + d.pageTexts.join(SEP));
@@ -3662,11 +3670,22 @@ let AINOTES = {};
 /* =========================================================
    4) 왼쪽 — 회의 종류 · 폴더 목록
    ========================================================= */
+/* ---- 「회의 자료」 / 「프로젝트」 두 영역 (PLAN-PROJECT.md) ----
+   프로젝트 자료 = folder(폴더 id)가 적힌 자료. 적히지 않은 자료는 모두 회의 자료입니다.
+   회의 종류·연·월·주차로 묶는 곳(회의 종류 개수·Agenda·연도 목록 등)은 회의 자료만 봅니다. */
+function isProj(d){ return !!(d && d.folder); }
+function meetDocs(){ return DOCS.filter(d => !isProj(d)); }
+function projectDocs(){ return DOCS.filter(isProj); }
+function projFolderById(id){ return (KV.projFolders || []).find(f => f.id === id) || null; }
+function projFolderOf(d){ return isProj(d) ? projFolderById(d.folder) : null; }
+/* 폴더 열림 상태 열쇠 — 연("2026")·월("2026-09") 열쇠와 겹치지 않게 앞에 pf: 를 붙입니다 */
+const projOpenKey = id => "pf:" + id;
+
 /* 왼쪽 목록은 연도·월이 내림차순(최근이 위) — 26년→25년, 12월→11월.
    한 달 안에서는 주차 오름차순(1주차 → 5주차)으로 보입니다 */
 function activeDocs(){
   return DOCS
-    .filter(d => !S.offCats.has(d.cat))
+    .filter(d => !isProj(d) && !S.offCats.has(d.cat))
     .sort((a,b) => (a.date+a.addedAt).localeCompare(b.date+b.addedAt));
 }
 
@@ -3683,7 +3702,7 @@ function renderBulkCats(){
 
 function renderCats(){
   $("#cats").innerHTML = KV.cats.map(c => {
-    const n = DOCS.filter(d => d.cat === c).length;
+    const n = DOCS.filter(d => !isProj(d) && d.cat === c).length;
     const on = !S.offCats.has(c);
     return `<button class="cat ${on?"on":""}" data-cat="${esc(c)}"
       title="${esc(c)} · 눌러서 켜고 끄기 (오른쪽 단추 또는 길게 누르면 이름 바꾸기·삭제)"
@@ -3770,7 +3789,10 @@ function docRowMobile(d){
 
 function revealDoc(id){
   const d = DOCS.find(x => x.id === id); if(!d) return;
-  S.open.add(d.date.slice(0,4)); S.open.add(d.date.slice(0,7));
+  const area = isProj(d) ? "proj" : "meet";
+  if(KV.area !== area){ KV.area = area; saveKV("area"); }
+  if(isProj(d)) S.open.add(projOpenKey(d.folder));
+  else { S.open.add(d.date.slice(0,4)); S.open.add(d.date.slice(0,7)); }
   KV.folders = Array.from(S.open); saveKV("folders");
 }
 
@@ -5871,7 +5893,7 @@ function closeDocFind(){
    ========================================================= */
 function agYears(){
   const ys = new Set([new Date().getFullYear()]);
-  DOCS.forEach(d => { const y = +yearOf(d); if(y) ys.add(y); });
+  meetDocs().forEach(d => { const y = +yearOf(d); if(y) ys.add(y); });
   Object.keys(KV.agendas || {}).forEach(k => {
     const y = +String(k.split("|")[1] || "").slice(0, 4); if(y) ys.add(y);
   });
@@ -5882,7 +5904,7 @@ function agActiveCats(){ return KV.cats.filter(c => !S.agOff.has(c)); }
 function agEntry(cat, y, m, w){
   const key  = noteKey(cat, mkDate(y, m, w));
   const text = String((KV.agendas || {})[key] || "").trim();
-  const docs = DOCS.filter(d => d.cat === cat && +yearOf(d) === y && monthOf(d) === m && weekOf(d) === w);
+  const docs = DOCS.filter(d => !isProj(d) && d.cat === cat && +yearOf(d) === y && monthOf(d) === m && weekOf(d) === w);
   return { key, text, docs };
 }
 
@@ -6118,7 +6140,7 @@ let catsWasDragged = false;
 })();
 
 function deleteCat(c){
-  const n = DOCS.filter(d => d.cat === c).length;
+  const n = DOCS.filter(d => !isProj(d) && d.cat === c).length;
   if(n){ alert(`'${c}' 안에 자료가 ${n}개 있습니다.\n자료를 먼저 옮기거나 지운 뒤에 종류를 삭제할 수 있습니다.`); return; }
   if(!confirm(`'${c}' 종류를 지울까요?`)) return;
   KV.cats = KV.cats.filter(x => x !== c); saveKV("cats");
@@ -6181,7 +6203,7 @@ async function renameCat(oldName){
   if(!name || name === oldName) return;
   if(KV.cats.includes(name)){ alert(`'${name}' 은(는) 이미 있는 종류입니다.`); return; }
 
-  const docs  = DOCS.filter(d => d.cat === oldName);
+  const docs  = DOCS.filter(d => !isProj(d) && d.cat === oldName);
   const notes = Object.values(NOTES).filter(n => n.cat === oldName);
   if(docs.length + notes.length > 20 &&
      !confirm(`자료 ${docs.length}개와 회의록 ${notes.length}개의 소속도 함께 바뀝니다.\n계속할까요?`)) return;
@@ -6261,12 +6283,12 @@ const mgMeta = d =>
 /* ---- 상단 필터 드롭다운 — 종류 · 연도 · 월 (하나씩 고릅니다, 기본은 전체) ---- */
 function mgCatList(){
   const set = new Set(KV.cats);
-  DOCS.forEach(d => { if(d.cat) set.add(d.cat); });
+  DOCS.forEach(d => { if(d.cat && !isProj(d)) set.add(d.cat); });
   return Array.from(set);
 }
 function mgYearList(){
   const ys = new Set();
-  DOCS.forEach(d => { const y = yearOf(d); if(y) ys.add(y); });
+  meetDocs().forEach(d => { const y = yearOf(d); if(y) ys.add(y); });
   return Array.from(ys).sort((a, b) => b.localeCompare(a));
 }
 function mgFilterSelects(){
@@ -11295,7 +11317,7 @@ async function exportBackup(mode){
   };
   if(!dataOnly){
     meta.kv = { cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts, memos:KV.memos,
-                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap };
+                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders };
     meta.notes  = Object.values(NOTES);
     meta.ainote = Object.values(AINOTES);
   }
@@ -11421,8 +11443,14 @@ $("#importfile").addEventListener("change", async e => {
       if(data.kv.memos)  KV.memos  = Object.assign({}, KV.memos,  data.kv.memos);
       if(data.kv.agendas) KV.agendas = Object.assign({}, KV.agendas, data.kv.agendas);
       if(data.kv.catMap) KV.catMap = Object.assign({}, KV.catMap, data.kv.catMap);
+      /* 프로젝트 폴더 — 같은 id 는 백업 쪽 이름으로, 없던 폴더는 더합니다 */
+      if(Array.isArray(data.kv.projFolders)){
+        const byId = new Map((KV.projFolders || []).map(f => [f.id, f]));
+        data.kv.projFolders.forEach(f => { if(f && f.id) byId.set(f.id, { id: f.id, name: String(f.name || "") }); });
+        KV.projFolders = Array.from(byId.values());
+      }
       saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("scripts"); saveKV("memos");
-      saveKV("agendas"); saveKV("catMap");
+      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders");
     }
     await loadAll();
     renderAll(); updateUsage();
@@ -11648,7 +11676,7 @@ async function ghDelete(path, sha){
 }
 
 /* ---------- 저장소 경로 규칙 (1-2 표 그대로) ---------- */
-const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap"];
+const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders"];
 /* store 이름 → 저장소 폴더 이름. kv·notes 는 규칙이 달라 아래에서 따로 다룹니다 */
 const SYNC_STORE_PREFIX = { docs:"docs", files:"pdf", draw:"draw", ainote:"ainote", attach:"attach", attachfile:"attachfile" };
 const SYNC_PREFIX_STORE = {};
@@ -13692,9 +13720,10 @@ async function loadAll(){
 }
 
 function defaultFolders(){
-  if(!DOCS.length) return [];
-  const years = Array.from(new Set(DOCS.map(d => d.date.slice(0,4))));
-  const newest = DOCS.map(d => d.date).sort().pop();
+  const docs = meetDocs();
+  if(!docs.length) return [];
+  const years = Array.from(new Set(docs.map(d => d.date.slice(0,4))));
+  const newest = docs.map(d => d.date).sort().pop();
   return years.concat([newest.slice(0,7)]);
 }
 
