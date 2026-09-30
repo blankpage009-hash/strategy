@@ -1959,7 +1959,16 @@ body.m .mvhead{flex:0 0 auto;display:flex;align-items:center;gap:2px;min-height:
 .mv-ttl .meta:empty{display:none;}
 /* 무대 → 쪽 이동 줄 → 미리보기 띠 순서로 세로로 쌓습니다 */
 body.m #stagewrap{flex-direction:column;}
-body.m #stage{order:1;padding:12px 14px;}
+body.m #stage{order:1;padding:12px 14px;justify-content:flex-start;}
+/* 세로로 이어 보기 — 쪽마다 자리(.mpg)를 미리 잡아 두고 위아래로 굴려 넘깁니다.
+   지금 쪽 자리에는 원래 종이(#canvaswrap: 그림·하이라이트 포함)를 옮겨 얹고,
+   이웃 쪽은 가벼운 그림(.mpc)만 — 지금 쪽 그림이 새로 그려지는 동안에도 이것이 비쳐 보입니다 */
+#mpages{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:12px;
+  width:max-content;min-width:100%;transform-origin:top center;}
+.mpg{flex:0 0 auto;position:relative;background:var(--card);box-shadow:var(--shadow);line-height:0;}
+.mpc{position:absolute;left:0;top:0;width:100%;height:100%;}
+.mpg #canvaswrap{margin:0;background:transparent;box-shadow:none;}
+body.m.mquiet #spin{display:none;}
 body.m #mpager{order:2;flex:0 0 auto;display:block;padding:6px 14px 0;background:var(--panel2);}
 body.m #mpager[hidden]{display:none;}
 .mp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -3705,6 +3714,7 @@ if(window.pdfjsLib){
 }
 
 function showViewer(on){
+  if(!on) mStripClear();                                  /* 아이폰 세로 이어 보기 자리도 걷어 냅니다 */
   $("#canvaswrap").style.display = on ? "" : "none";
   $("#novideo").style.display    = on ? "none" : "";
 }
@@ -3720,6 +3730,7 @@ async function loadPdfFor(doc){
   /* 이전 문서 정리 */
   if(S.renderTask){ try{ S.renderTask.cancel(); }catch(e){} S.renderTask = null; }
   clearThumbs();
+  mStripClear();
   if(S.pdf){ try{ S.pdf.destroy(); }catch(e){} S.pdf = null; }
   hlClear();
 
@@ -3765,6 +3776,7 @@ async function loadPdfFor(doc){
     if(seq !== S.renderSeq){ try{ S.pdf.destroy(); }catch(e){} return; }
     showViewer(true);
     S.page = 1;
+    MS.jump = 1;                                          /* 아이폰 세로 이어 보기 — 첫 쪽 맨 위부터 */
     if(typeof window.drawLoadDoc === "function") await window.drawLoadDoc(doc.id);
     await fitTo(S.fitPref);
     buildThumbs();
@@ -3792,6 +3804,15 @@ function outScale(vp){
   return Math.max(1, s);
 }
 
+/* 화면에 놓이는 배율 — 아이폰 세로 이어 보기는 쪽마다 폭이 같도록(1쪽 폭 기준) 맞춥니다.
+   세로 장표 사이에 가로 장표가 끼어 있어도 화면 폭을 넘지 않습니다 */
+function pageScale(p){
+  const s = S.baseScale * S.zoom;
+  if(!isMobile() || !MS.sz || MS.szFor !== S.pdf) return s;
+  const a = MS.sz[0], b = MS.sz[p - 1];
+  return a && b ? s * a[0] / b[0] : s;
+}
+
 /* anchor = { fx, fy, cx, cy } — 종이의 (fx, fy) 비율 지점이 화면의 (cx, cy) 에 그대로 남도록
    크기를 바꾼 직후 무대 스크롤을 옮깁니다 (보고 있는 곳을 기준으로 확대·축소) */
 async function renderPage(anchor){
@@ -3802,7 +3823,13 @@ async function renderPage(anchor){
   try{
     const page = await S.pdf.getPage(S.page);
     if(seq !== S.renderSeq) return;
-    const vp  = page.getViewport({ scale: S.baseScale * S.zoom });
+    /* 아이폰 — 쪽 자리를 모두 잡고(쪽마다 크기가 다를 수 있어 처음 한 번 다 재 둡니다) 종이를 지금 쪽 자리로 */
+    if(isMobile()){
+      MS.sz = await mStripSizes();
+      if(seq !== S.renderSeq) return;
+      mStripLayout();
+    }
+    const vp  = page.getViewport({ scale: pageScale(S.page) });
     const ss  = outScale(vp);
     const cv  = $("#pdfcanvas");
     cv.width  = Math.round(vp.width  * ss);
@@ -3814,7 +3841,8 @@ async function renderPage(anchor){
     const hl = $("#hl-layer");
     hl.style.width = cv.style.width; hl.style.height = cv.style.height; hl.innerHTML = "";
     if(anchor){
-      const st = $("#stage"), r = cv.getBoundingClientRect();
+      /* 아이폰 세로 이어 보기는 이웃 쪽 자리가 기준일 수 있습니다(mAnchor) */
+      const st = $("#stage"), r = (anchor.el && anchor.el.isConnected ? anchor.el : cv).getBoundingClientRect();
       st.scrollLeft += r.left + anchor.fx * r.width  - anchor.cx;
       st.scrollTop  += r.top  + anchor.fy * r.height - anchor.cy;
     }
@@ -3828,11 +3856,12 @@ async function renderPage(anchor){
     await S.renderTask.promise;
     S.renderTask = null;
     if(seq === S.renderSeq && S.hlQ) await paintHl(page, vp, seq);
+    if(seq === S.renderSeq && isMobile()) mStripFill();   /* 위아래 이웃 쪽 그림 */
   }catch(err){
     if(err && err.name === "RenderingCancelledException") return;
     console.warn(err);
   }finally{
-    if(seq === S.renderSeq) document.body.classList.remove("rendering");
+    if(seq === S.renderSeq) document.body.classList.remove("rendering", "mquiet");
     updateBars();
     if(seq === S.renderSeq && typeof window.drawSync === "function") window.drawSync();
   }
@@ -3853,7 +3882,8 @@ function scrollbarW(){
 async function fitTo(mode){
   if(!S.pdf) return;
   S.fitMode = mode;
-  const page = await S.pdf.getPage(S.page);
+  /* 아이폰 세로 이어 보기는 모든 쪽을 1쪽 폭에 맞춥니다(pageScale) — 기준도 1쪽 */
+  const page = await S.pdf.getPage(isMobile() ? 1 : S.page);
   const vp1 = page.getViewport({ scale: 1 });
   const st  = $("#stage");
   const pad = parseFloat(getComputedStyle(st).paddingLeft) || 0;   /* 무대 여백 (좁은 화면은 8px) */
@@ -3870,8 +3900,13 @@ async function fitTo(mode){
     if(sbNow === 0 && vp1.height * (availW / vp1.width) > availH) availW -= scrollbarW();
     S.baseScale = availW / vp1.width;
   }
+  /* 아이폰 세로 이어 보기 — 폭이 바뀌어(가로로 돌리기 등) 쪽 자리가 커지고 작아져도
+     화면 맨 위에 보이던 종이 지점이 그대로 맨 위에 남게 합니다 */
+  const sr = st.getBoundingClientRect();
+  const anc = isMobile() && $("#mpages") && !MS.jump
+    ? mAnchor(sr.left + st.clientLeft + st.clientWidth / 2, sr.top + st.clientTop) : null;
   S.zoom = 1;
-  await renderPage();
+  await renderPage(anc);
 }
 
 function updateBars(){
@@ -5517,7 +5552,7 @@ async function repaintHl(){
   try{
     const page = await S.pdf.getPage(S.page);
     if(seq !== S.renderSeq) return;
-    const vp = page.getViewport({ scale: S.baseScale * S.zoom });
+    const vp = page.getViewport({ scale: pageScale(S.page) });
     await paintHl(page, vp, seq);
   }catch(e){ /* 쪽을 못 얻으면 그냥 둠 */ }
 }
@@ -6419,6 +6454,7 @@ function goPage(n){
   if(!S.pdf) return;
   const p = Math.min(S.pdf.numPages, Math.max(1, n|0));
   if(p === S.page){ updateBars(); repaintHl(); return; }
+  if(isMobile()) MS.jump = p;                             /* 아이폰 세로 이어 보기 — 그 쪽 맨 위로 굴려 줍니다 */
   S.page = p; renderPage();
 }
 /* 스크립트 탭에서 쪽 옮기기 — PDF가 있으면 뷰어까지 같이 넘어가고,
@@ -6458,7 +6494,7 @@ $("#thumbs").addEventListener("keydown", e => {
   const stage = $("#stage");
   let until = 0;                                        /* 한 번 굴릴 때 여러 장이 넘어가지 않게 막습니다 */
   stage.addEventListener("wheel", e => {
-    if(!S.pdf) return;
+    if(!S.pdf || isMobile()) return;                     /* 아이폰 화면은 세로로 이어 굴립니다 */
     if(document.body.classList.contains("draw-on")) return;   /* 그리는 중엔 휠로 장 넘기지 않음 */
     if(e.ctrlKey || e.metaKey) return;                   /* 확대/축소(Ctrl+휠)는 그대로 둡니다 */
     const dy = e.deltaY; if(!dy) return;
@@ -6561,15 +6597,19 @@ $("#topmodel").addEventListener("change", e => {
 
 /* 아이패드 — 손가락으로 벌리고 오므려 확대/축소 */
 (function pinch(){
-  const stage = $("#stage"), wrap = $("#canvaswrap");
+  const stage = $("#stage");
+  let wrap = $("#canvaswrap");
   let d0 = 0, z0 = 1, live = 1, anc = null;
   const dist = t => Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
   stage.addEventListener("touchstart", e => {
     if(e.touches.length === 2 && S.pdf){
       d0 = dist(e.touches); z0 = S.zoom; live = 1;
+      /* 아이폰 세로 이어 보기는 위아래 이웃 쪽까지 한 덩어리로 키웁니다 */
+      wrap = (isMobile() && $("#mpages")) || $("#canvaswrap");
       /* 두 손가락 사이 지점을 기준으로 — 그 자리가 손가락 아래에 그대로 남습니다 */
       const t = e.touches;
-      anc = paperAnchor((t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2);
+      const mx = (t[0].clientX + t[1].clientX) / 2, my = (t[0].clientY + t[1].clientY) / 2;
+      anc = isMobile() && $("#mpages") ? mAnchor(mx, my) : paperAnchor(mx, my);
       const r = wrap.getBoundingClientRect();
       wrap.style.transformOrigin = anc ? `${anc.cx - r.left}px ${anc.cy - r.top}px` : "";
     }
@@ -6610,19 +6650,8 @@ $("#topmodel").addEventListener("change", e => {
     const t = e.changedTouches[0]; if(!t) return;
     const dx = t.clientX - x0, dy = t.clientY - y0;
     const adx = Math.abs(dx), ady = Math.abs(dy);
-    /* 아이폰 화면 — 폭 맞춤이라 세로로 긴 쪽은 위아래로 굴려 봐야 하므로, 장 넘김은 좌우로 합니다
-       (왼쪽으로 밀면 다음 장). 확대해서 옆으로 남는 곳이 있으면 먼저 옆으로 움직입니다 */
-    if(isMobile()){
-      if(adx < 55 || adx < ady * 1.6) return;
-      if(Date.now() - t0 > 800) return;
-      const roomX = stage.scrollWidth - stage.clientWidth;
-      if(roomX > 24){
-        if(dx < 0 && stage.scrollLeft < roomX - 4) return;
-        if(dx > 0 && stage.scrollLeft > 4)         return;
-      }
-      mPage(S.page + (dx < 0 ? 1 : -1));
-      return;
-    }
+    /* 아이폰 화면 — 쪽이 위아래로 이어져 있어 그냥 굴리면 넘어갑니다(mStripScan). 좌우 밀기는 쓰지 않습니다 */
+    if(isMobile()) return;
     if(ady < 55 || ady < adx * 1.6) return;             /* 세로로 확실히 민 것만 */
     if(Date.now() - t0 > 800) return;                    /* 너무 느린 동작은 무시 */
     /* 확대해서 자료가 화면보다 길 때는 먼저 위아래로 움직이고, 끝에 닿으면 그때 넘깁니다 */
@@ -12991,8 +13020,196 @@ function mPage(n){
   goPage(p);
   /* 그림이 다 그려지기를 기다리지 않고 쪽 번호 · 시트 글부터 바로 바꿉니다 */
   syncScriptPane(); mSyncView();
-  const st = $("#stage");
-  st.scrollTop = 0; setTimeout(() => { st.scrollTop = 0; }, 120);
+  /* 그 쪽 맨 위로 굴리는 일은 goPage → renderPage → mStripLayout 이 합니다 (MS.jump) */
+}
+
+/* ---- 세로로 이어 보기 ----
+   쪽마다 자리(#mpages > .mpg)를 크기대로 미리 잡아 두어, 위아래로 굴리면 앞뒤 쪽이 이어 보입니다.
+   • 지금 쪽 자리에는 원래 종이(#canvaswrap — 선명한 그림 · 그리기 판 · 검색 하이라이트)를 옮겨 얹습니다.
+     PC 쪽 코드(renderPage · 그리기 · 하이라이트 · 확대)는 그 한 장만 알면 되고 달라지지 않습니다.
+   • 이웃 쪽은 가벼운 그림(.mpc)만 — 보이는 쪽과 그 앞뒤 두 쪽까지만 그리고, 멀어지면 지워
+     아이폰 사파리의 그림판 메모리 한도를 넘지 않게 합니다.
+   • 굴려서 화면 위쪽 1/3 선에 걸린 쪽이 바뀌면 그 쪽이 '지금 쪽'이 됩니다(쪽 번호 · 시트 글도 따라감).
+   • 단추 · 미리보기 · 쪽 번호 · 검색으로 옮길 때(goPage)는 그 쪽 맨 위로 굴려 줍니다(MS.jump). */
+const MS = {
+  sz:null, szP:null, szFor:null,   /* 쪽마다 크기(배율 1) — 자료마다 한 번 잽니다 */
+  key:"",                          /* 자리 크기를 맞춘 배율 */
+  jump:0, jumpTop:null,            /* 이 쪽 맨 위로 굴리기 / 그렇게 굴린 자리(그 스크롤은 쪽 바꿈으로 안 셉니다) */
+  vis:null, t:0, raf:0,            /* 보이는 쪽 [처음, 끝] · 쪽 바꿈 지연 · 스크롤 한 번에 한 번만 */
+  seq:0, task:null, busy:false, again:false
+};
+function mStripSizes(){
+  if(MS.szFor === S.pdf && MS.szP) return MS.szP;
+  const pdf = S.pdf;
+  MS.szFor = pdf; MS.sz = null;
+  MS.szP = (async () => {
+    const out = [];
+    for(let i = 1; i <= pdf.numPages; i++){
+      try{
+        const v = (await pdf.getPage(i)).getViewport({ scale: 1 });
+        out.push([v.width, v.height]);
+      }catch(e){ out.push(out[i - 2] || [595, 842]); }
+    }
+    return out;
+  })();
+  return MS.szP;
+}
+function mStripClear(){
+  MS.seq++;
+  if(MS.task){ try{ MS.task.cancel(); }catch(e){} MS.task = null; }
+  clearTimeout(MS.t);
+  MS.key = ""; MS.vis = null; MS.jumpTop = null;
+  const box = $("#mpages");
+  if(!box) return;
+  $("#stage").insertBefore($("#canvaswrap"), $("#novideo"));   /* 원래 자리로 */
+  box.querySelectorAll(".mpc").forEach(c => { c.width = 0; c.height = 0; });
+  box.remove();
+}
+/* renderPage 가 새 종이 크기를 정하기 직전에 부릅니다 — 자리 크기 · 종이 위치 · (있으면) 맨 위로 굴리기 */
+function mStripLayout(){
+  const st = $("#stage"), wrap = $("#canvaswrap"), n = S.pdf.numPages, sz = MS.sz;
+  let box = $("#mpages");
+  if(!box || box.children.length !== n){
+    if(box){ st.insertBefore(wrap, $("#novideo")); box.remove(); }
+    box = document.createElement("div");
+    box.id = "mpages";
+    let html = "";
+    for(let p = 1; p <= n; p++) html += `<div class="mpg" data-p="${p}"></div>`;
+    box.innerHTML = html;
+    st.insertBefore(box, $("#novideo"));
+    MS.key = "";
+  }
+  const key = (S.baseScale * S.zoom).toFixed(5);
+  if(MS.key !== key){
+    MS.key = key;
+    /* renderPage 가 종이에 쓰는 것과 똑같은 값(toFixed(2)) — 종이를 옮겨 얹어도 자리가 흔들리지 않습니다 */
+    Array.prototype.forEach.call(box.children, (el, i) => {
+      const [w, h] = sz[i] || sz[0], sc = pageScale(i + 1);
+      el.style.width  = (w * sc).toFixed(2) + "px";
+      el.style.height = (h * sc).toFixed(2) + "px";
+    });
+  }
+  const slot = box.children[S.page - 1];
+  if(wrap.parentNode !== slot) slot.appendChild(wrap);
+  if(MS.jump === S.page && st.clientHeight){            /* 화면이 가려져 있으면(목록 화면) 뷰어로 올 때 합니다 */
+    MS.jump = 0;
+    clearTimeout(MS.t);
+    const pad = parseFloat(getComputedStyle(st).paddingTop) || 0;
+    st.scrollTop += slot.getBoundingClientRect().top - st.getBoundingClientRect().top - st.clientTop - pad;
+    MS.jumpTop = st.scrollTop;
+  }
+}
+/* 화면의 (cx, cy) 에 놓인 쪽 자리와 그 안의 비율 지점 — paperAnchor 의 세로 이어 보기판.
+   지금 쪽이 아닌 이웃 쪽 위에서 벌려도 그 자리가 손가락 아래에 남습니다 (쪽 사이 틈이면 가까운 쪽) */
+function mAnchor(cx, cy){
+  const box = $("#mpages");
+  if(!box || !box.children.length) return paperAnchor(cx, cy);
+  let el = null, best = Infinity;
+  for(const x of box.children){
+    const q = x.getBoundingClientRect();
+    const d = cy < q.top ? q.top - cy : cy > q.bottom ? cy - q.bottom : 0;
+    if(d < best){ best = d; el = x; }
+    if(d === 0 || q.top > cy) break;
+  }
+  const r = el.getBoundingClientRect();
+  if(!r.width || !r.height) return null;
+  const f = (v, a, n) => Math.min(1, Math.max(0, (v - a) / n));
+  return { el, fx: f(cx, r.left, r.width), fy: f(cy, r.top, r.height), cx, cy };
+}
+/* 스크롤할 때 — 보이는 쪽을 세고, 화면 위쪽 1/3 선에 걸린 쪽을 지금 쪽으로 */
+function mStripScan(){
+  MS.raf = 0;
+  const st = $("#stage"), box = $("#mpages");
+  if(!box || !S.pdf || !isMobile()) return;
+  const r = st.getBoundingClientRect();
+  const top = r.top + st.clientTop, bot = top + st.clientHeight, line = top + st.clientHeight / 3;
+  let a = 0, b = 0, cur = 0;
+  for(const el of box.children){
+    const q = el.getBoundingClientRect();
+    if(q.bottom < top) continue;
+    if(q.top > bot) break;
+    const p = +el.dataset.p;
+    if(!a) a = p;
+    b = p;
+    if(!cur && q.bottom >= line) cur = p;
+  }
+  if(!a) return;
+  MS.vis = [a, b];
+  /* 맨 끝까지 내리면 마지막 쪽 — 가로로 긴 장표는 끝의 몇 쪽이 한 화면에 같이 들어와 선에 안 걸립니다 */
+  if(st.scrollTop > 2 && st.scrollTop >= st.scrollHeight - st.clientHeight - 2) cur = b;
+  if(!cur) cur = b;
+  const byJump = MS.jumpTop !== null && Math.abs(st.scrollTop - MS.jumpTop) < 2;
+  MS.jumpTop = null;
+  clearTimeout(MS.t);
+  /* 굴리는 동안 쪽마다 선명한 그림을 새로 그리면 버벅이므로, 잠깐 멈추면 넘깁니다 */
+  if(!byJump && cur !== S.page) MS.t = setTimeout(() => mStripSwitch(cur), 120);
+  mStripFill();
+}
+function mStripSwitch(p){
+  if(!S.pdf || !isMobile() || p === S.page || p < 1 || p > S.pdf.numPages) return;
+  document.body.classList.add("mquiet");                /* 이웃 그림이 이미 보이므로 '그리는 중' 표시는 숨깁니다 */
+  S.page = p;
+  renderPage();
+  syncScriptPane(); mSyncView(); syncThumbs(false);
+}
+$("#stage").addEventListener("scroll", () => {
+  if(!isMobile() || MS.raf) return;
+  MS.raf = requestAnimationFrame(mStripScan);
+}, { passive:true });
+/* 그릴 쪽 — 지금 쪽 → 보이는 쪽 → 앞뒤로 두 쪽씩 (이 밖의 그림은 지웁니다) */
+function mStripWant(){
+  const n = S.pdf.numPages, [a, b] = MS.vis || [S.page, S.page], out = [];
+  const add = p => { if(p >= 1 && p <= n && !out.includes(p)) out.push(p); };
+  add(S.page);
+  for(let p = a; p <= b; p++) add(p);
+  add(b + 1); add(a - 1); add(b + 2); add(a - 2);
+  return out;
+}
+/* 이웃 쪽 그림 — 한 장씩 차례로 (종이 폭 × 기기 배율, 최대 2배 · 4백만 점) */
+async function mStripFill(){
+  if(MS.busy){ MS.again = true; return; }
+  MS.busy = true;
+  try{
+    do{
+      MS.again = false;
+      const box = $("#mpages");
+      if(!box || !S.pdf) return;
+      const seq = MS.seq, pdf = S.pdf, want = mStripWant();
+      box.querySelectorAll(".mpc").forEach(c => {
+        if(!want.includes(+c.parentNode.dataset.p)){ c.width = 0; c.height = 0; c.remove(); }
+      });
+      for(const p of want){
+        if(MS.again || seq !== MS.seq || pdf !== S.pdf) break;
+        const slot = box.children[p - 1];
+        const cw = slot ? parseFloat(slot.style.width) : 0, ch = slot ? parseFloat(slot.style.height) : 0;
+        if(!cw || !ch) continue;
+        const tw = Math.round(Math.min(cw * Math.min(window.devicePixelRatio || 1, 2), cw * Math.sqrt(4e6 / (cw * ch))));
+        const old = slot.querySelector(".mpc");
+        if(old && Math.abs(old.width - tw) < tw * 0.2) continue;   /* 배율이 크게 바뀐 게 아니면 그대로 늘려 씁니다 */
+        try{
+          const page = await pdf.getPage(p);
+          if(seq !== MS.seq || pdf !== S.pdf) break;
+          const v1 = page.getViewport({ scale: 1 });
+          const vp = page.getViewport({ scale: tw / v1.width });
+          const cv = document.createElement("canvas");
+          cv.className = "mpc";
+          cv.width  = Math.max(1, Math.round(vp.width));
+          cv.height = Math.max(1, Math.round(vp.height));
+          MS.task = page.render({ canvasContext: cv.getContext("2d"), viewport: vp });
+          await MS.task.promise;
+          MS.task = null;
+          if(seq !== MS.seq || pdf !== S.pdf || !slot.isConnected){ cv.width = 0; cv.height = 0; break; }
+          if(!mStripWant().includes(p)){ cv.width = 0; cv.height = 0; continue; }   /* 그리는 사이 멀어졌으면 버립니다 */
+          const prev = slot.querySelector(".mpc");
+          if(prev){ prev.width = 0; prev.height = 0; prev.remove(); }
+          slot.insertBefore(cv, slot.firstChild);           /* 종이(#canvaswrap)보다 아래에 깔립니다 */
+        }catch(err){
+          MS.task = null;
+          if(!(err && err.name === "RenderingCancelledException")) console.warn(err);
+        }
+      }
+    }while(MS.again);
+  }finally{ MS.busy = false; }
 }
 $("#mp-prev").onclick = () => mPage(S.page - 1);
 $("#mp-next").onclick = () => mPage(S.page + 1);
@@ -13231,8 +13448,13 @@ function applyMobile(){
     history.replaceState({ mscr:mScr }, "");
     mShow(mScr);
   }
-  /* 아이폰은 폭 맞춤 · 가로 띠, PC·아이패드는 원래 방식 · 세로 띠로 다시 맞춥니다 */
-  if(S.pdf) requestAnimationFrame(() => { autoFit(); syncThumbs(true); });
+  /* 아이폰은 폭 맞춤 · 가로 띠 · 세로로 이어 보기, PC·아이패드는 원래 방식 · 세로 띠 · 한 장씩으로 다시 맞춥니다 */
+  if(!on) mStripClear();
+  else if(S.pdf) MS.jump = S.page;
+  if(S.pdf) requestAnimationFrame(() => {
+    if(S.fitMode === "manual") renderPage(); else autoFit();   /* 배율을 직접 만졌어도 자리는 새로 잡습니다 */
+    syncThumbs(true);
+  });
 }
 applyMobile();   /* 시작 그리기(renderAll · PDF 읽기)보다 먼저 — 서랍 모양이 잠깐 비치지 않도록 */
 if(MQ_M.addEventListener) MQ_M.addEventListener("change", applyMobile);
