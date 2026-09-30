@@ -1874,6 +1874,10 @@ body.m .mtabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0
 .mtabs button.on .en{color:var(--muted);}
 /* 뷰어에서는 3칸 대신 5칸(요약·회의록·할 일·스크립트·메모)이 아래를 차지합니다 */
 body.m[data-mscr="view"] #mtabbar{display:none;}
+/* 아래 탭 줄은 4칸(자료 목록 · 자료 관리 · 할 일 · 설정)이라 좌우 여백을 조금 줄입니다 */
+body.m #mtabbar{grid-template-columns:repeat(4,minmax(0,1fr));}
+body.m #mtabbar button{padding:0 10px;}
+body.m #mtabbar button:first-child{padding-left:16px;}
 body.m #mvtabs{grid-template-columns:repeat(5,minmax(0,1fr));}
 body.m #mvtabs button{padding:0 8px;}
 body.m #mvtabs button:first-child{padding-left:12px;}
@@ -1883,6 +1887,12 @@ body.m[data-mscr="settings"] #modalbg{bottom:var(--mtab);padding:0;padding-top:e
   background:var(--bg);}
 body.m[data-mscr="settings"] #modalbg .modal{max-width:none;max-height:none;height:100%;
   border:none;box-shadow:none;}
+/* 자료 관리 · 할 일 탭 — 설정처럼 창을 팝업 대신 화면 가득(아래 탭 줄 위까지) 펼칩니다 */
+body.m[data-mscr="manage"] #managebg,body.m[data-mscr="tasks"] #alltasksbg{bottom:var(--mtab);padding:0;
+  padding-top:env(safe-area-inset-top);background:var(--bg);}
+body.m[data-mscr="manage"] #managebg .modal{max-width:none;max-height:none;height:100%;border:none;box-shadow:none;}
+body.m[data-mscr="manage"] #mgclose,body.m[data-mscr="manage"] #mgdone,
+body.m[data-mscr="tasks"] #alltasksclose{display:none;}
 /* 설정 화면 손가락 손질(9단계) — 줄이 빽빽한 목록(모델·자료 종류·규칙)이라 높이만 44px 로 키우고
    (너비는 그대로라 줄바꿈 없음), 글자 입력칸은 16px 로(그 미만이면 iOS 사파리가 포커스 때 확대합니다). */
 body.m[data-mscr="settings"] #modalclose{width:32px;height:32px;font-size:16px;}
@@ -1898,7 +1908,8 @@ body.m #toast{bottom:calc(var(--mtab) + 16px);}
 
 /* ---------- 8a 자료 목록 머리 · 행 (PLAN-MOBILE.md 2단계) ----------
    데스크톱 머리(.side-head)는 숨기고, #left 안에 이미 있던 .mhead 를 대신 보여줍니다.
-   #cats · #btn-upload · #btn-manage 는 새로 만들지 않고 JS(mMountHeader)가 그 자리로 옮겨 옵니다. */
+   #cats · #btn-upload 는 새로 만들지 않고 JS(mMountHeader)가 그 자리로 옮겨 옵니다.
+   자료 관리(#btn-manage)는 머리에 두지 않고 아래 '자료 관리' 탭이 대신합니다(숨은 .side-head 에 그대로 남음). */
 .mhead{display:none;}
 body.m #left .side-head{display:none;}
 body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-bottom:var(--rule-w) solid var(--rule);background:var(--bg);}
@@ -1909,7 +1920,6 @@ body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-botto
 .mhead-actions #btn-upload{height:36px;min-width:36px;margin-left:0;padding:0;justify-content:center;}
 .mhead-actions #btn-upload .up-lbl{display:none;}
 .mhead-actions #btn-upload svg{width:16px;height:16px;}
-.mhead-actions #btn-manage{width:36px;height:36px;border-width:2px;}
 .mhead-search{width:36px;height:36px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
   border:2px solid var(--line);background:none;border-radius:0;color:var(--text);padding:0;}
 .mhead-search:hover{border-color:var(--accent);color:var(--accent-ink);}
@@ -2584,8 +2594,9 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 
 <!-- 아이폰 화면(폭 600px 이하)에서만 보이는 아래 탭 줄 — PLAN-MOBILE.md 1단계 -->
 <nav id="mtabbar" class="mtabs" aria-label="화면 바꾸기">
-  <button type="button" data-mscr="list"><span class="ko">자료</span><span class="en">Materials</span></button>
-  <button type="button" data-mscr="notes"><span class="ko">AI 노트</span><span class="en">Notes</span></button>
+  <button type="button" data-mscr="list"><span class="ko">자료 목록</span><span class="en">List</span></button>
+  <button type="button" data-mscr="manage"><span class="ko">자료 관리</span><span class="en">Manage</span></button>
+  <button type="button" data-mscr="tasks"><span class="ko">할 일</span><span class="en">Tasks</span></button>
   <button type="button" data-mscr="settings"><span class="ko">설정</span><span class="en">Settings</span></button>
 </nav>
 
@@ -12874,7 +12885,8 @@ window.addEventListener("resize", () => {
 /* =========================================================
    15-1) 아이폰 화면 (PLAN-MOBILE.md 1단계 — 뼈대)
       폭 600px 이하에서만 <body> 에 m 클래스를 붙이고, 한 번에 한 화면만 보여 줍니다.
-        list : 자료 목록   view : 뷰어   notes : AI 노트(회의록)   settings : 설정 창
+        list : 자료 목록   view : 뷰어   notes : AI 노트(회의록 — 아래 탭에서는 뺐음)   settings : 설정 창
+        manage : 자료 관리 창   tasks : 모든 할 일(All Tasks) 창 — 설정처럼 창을 화면 가득 펼쳐 씁니다
       모양은 CSS(body.m …)가 맡고, 여기서는 "지금 어느 화면인가" 와 뒤로가기만 챙깁니다.
       뒤로가기는 한 층뿐입니다 — 목록이 바닥이고, 다른 화면은 모두 그 위 한 칸에 올라갑니다.
       그래서 휴대폰의 뒤로 손짓(또는 사파리 ‹)을 하면 언제나 목록으로 돌아옵니다.
@@ -12883,7 +12895,13 @@ window.addEventListener("resize", () => {
 const MQ_M = window.matchMedia("(max-width: 600px)");
 function isMobile(){ return document.body.classList.contains("m"); }
 let mScr = "list";          /* 지금 화면 */
-let mBeforeSet = "list";    /* 설정을 열기 전 화면 — 설정을 닫으면 그리로 돌아갑니다 */
+let mBeforeSet = "list";    /* 창 화면(설정·자료 관리·할 일)을 열기 전 화면 — 창을 닫으면 그리로 돌아갑니다 */
+/* 창을 화면 하나로 쓰는 탭들 — 여는 법 · 닫는 법 · 창 요소 */
+const M_MODAL_SCR = {
+  settings:{ bg:"#modalbg",    open:() => $("#btn-settings").click(), close:() => $("#modalbg").classList.remove("on") },
+  manage:  { bg:"#managebg",   open:() => openManage(),               close:() => closeManage() },
+  tasks:   { bg:"#alltasksbg", open:() => openAllTasks(),             close:() => $("#alltasksbg").classList.remove("on") },
+};
 let mBeforeSearch = "list"; /* 검색을 열기 전 화면(목록 또는 뷰어) — 취소를 누르면 그리로 돌아갑니다 (8단계) */
 
 /* 화면을 그립니다 — 방문 기록은 건드리지 않습니다 (mGo · 뒤로가기가 부릅니다) */
@@ -12898,11 +12916,11 @@ function mShow(scr){
     if(on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   if(scr !== "view" && document.body.classList.contains("full")) setFull(false);
-  if(scr === "settings"){
-    if(prev !== "settings") mBeforeSet = prev;
-    if(!$("#modalbg").classList.contains("on")) $("#btn-settings").click();
-  }else if(prev === "settings" && $("#modalbg").classList.contains("on")){
-    $("#modalbg").classList.remove("on");
+  const pm = M_MODAL_SCR[prev], nm = M_MODAL_SCR[scr];
+  if(pm && prev !== scr && $(pm.bg).classList.contains("on")) pm.close();
+  if(nm){
+    if(!M_MODAL_SCR[prev]) mBeforeSet = prev;
+    if(!$(nm.bg).classList.contains("on")) nm.open();
   }
   if(scr !== "view"){
     mSheetDraw(null);                                     /* 뷰어를 떠나면 시트는 닫습니다 */
@@ -12955,15 +12973,17 @@ $("#mtabbar").addEventListener("click", e => {
   mGo(b.dataset.mscr);
 });
 
-/* 설정 창은 닫는 길이 여럿입니다(✕ · 바깥 누르기 · Esc · 저장 뒤 닫기).
-   어느 길로 닫혀도 여기서 알아채고 설정 전 화면으로 돌아갑니다. */
-new MutationObserver(() => {
-  if(mScr !== "settings" || $("#modalbg").classList.contains("on")) return;
-  if(isMobile()) mGo(mBeforeSet === "settings" ? "list" : mBeforeSet);
+/* 창 화면(설정·자료 관리·할 일)은 닫는 길이 여럿입니다(✕ · 바깥 누르기 · Esc · 저장 뒤 닫기).
+   어느 길로 닫혀도 여기서 알아채고 창을 열기 전 화면으로 돌아갑니다. */
+const mModalObs = new MutationObserver(() => {
+  const m = M_MODAL_SCR[mScr];
+  if(!m || $(m.bg).classList.contains("on")) return;
+  if(isMobile()) mGo(M_MODAL_SCR[mBeforeSet] ? "list" : mBeforeSet);
   else mScr = "list";
-}).observe($("#modalbg"), { attributes:true, attributeFilter:["class"] });
+});
+Object.values(M_MODAL_SCR).forEach(m => mModalObs.observe($(m.bg), { attributes:true, attributeFilter:["class"] }));
 
-/* 8a 자료 목록 머리 — #cats · #btn-upload · #btn-manage 는 복제하지 않고, 아이폰 화면일 때만
+/* 8a 자료 목록 머리 — #cats · #btn-upload 는 복제하지 않고, 아이폰 화면일 때만
    #left 안의 .mhead 로 옮겨 두었다가(모양은 body.m CSS 가 담당) PC/아이패드로 돌아가면 제자리로 되돌립니다. */
 const mCatsHome   = { parent: $("#cmdbar"), before: $("#addcat") };
 const mUploadHome = { parent: $(".side-head"), before: $(".side-head .closebtn") };
@@ -12973,13 +12993,11 @@ function mMountHeader(on){
   if(on){
     $("#mheadCats").appendChild($("#cats"));
     $("#mheadActions").insertBefore($("#btn-upload"), $("#mbtn-search"));
-    $("#mheadActions").insertBefore($("#btn-manage"), $("#mbtn-search"));
     $("#msmodel").appendChild($("#topmodel"));        /* 바텀시트의 AI Model 칸 (4단계) */
     $("#msearchBox").appendChild($("#searchwrap"));   /* 8d 검색 화면 (8단계) */
   }else{
     mCatsHome.parent.insertBefore($("#cats"), mCatsHome.before);
     mUploadHome.parent.insertBefore($("#btn-upload"), mUploadHome.before);
-    mUploadHome.parent.insertBefore($("#btn-manage"), mUploadHome.before);
     mModelHome.parent.appendChild($("#topmodel"));
     mSearchHome.parent.insertBefore($("#searchwrap"), mSearchHome.before);
   }
