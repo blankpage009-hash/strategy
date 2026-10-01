@@ -1493,6 +1493,14 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 #mgsearch{flex:1 1 180px;min-width:0;height:32px;padding:0 9px;border:1px solid var(--line);
   border-radius:0;background:var(--panel);font-size:13px;}
 #mgsearch:focus{border-color:var(--accent);}
+#mghintbtn{display:none;}
+body.m #managebg .modal > header{position:relative;}
+body.m #mghintbtn{display:block;position:absolute;right:16px;bottom:7px;margin:0;width:20px;height:20px;padding:0;border:1.5px solid var(--muted);
+  border-radius:50%;background:transparent;color:var(--muted);font:italic 700 12px/17px Georgia,serif;cursor:pointer;}
+body.m #mghintbtn[aria-expanded="true"]{background:var(--ink,#222);color:var(--surface,#fff);border-color:var(--ink,#222);}
+body.m #mghint{display:none;}
+body.m #mghint.open{display:block;}
+body.m #mgsearch{border:2px solid var(--ink,#222);}
 #mgtools .cnt{font-size:12px;color:var(--muted);margin-left:auto;}
 .mgrow{border:none;border-bottom:1px solid var(--hairline);border-radius:0;background:none;padding:10px 2px;}
 .mgrow.gone{opacity:.45;}
@@ -2848,9 +2856,10 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 <!-- 자료 관리 -->
 <div class="modalbg" id="managebg">
   <div class="modal wide" role="dialog" aria-label="자료 관리">
-    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span> <button class="x" id="mgclose">✕</button></header>
+    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span> <button class="x" id="mgclose">✕</button>
+<button type="button" id="mghintbtn" aria-label="설명 보기" aria-expanded="false" title="설명 보기">i</button></header>
     <div class="content">
-      <div class="hint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
+      <div class="hint" id="mghint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
         이름·회의 종류·날짜·폴더는 <b>고치는 즉시 저장</b>됩니다.
         종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
         프로젝트 자료는 <b>폴더</b>만 고르며, 줄 끝 단추로 회의 자료 ↔ 프로젝트를 옮길 수 있습니다.
@@ -3763,8 +3772,10 @@ function renderBulkCats(){
   const allOff = has && KV.cats.every(c =>  S.offCats.has(c));
   $("#selall").classList.toggle("on", !!allOn);
   $("#deselall").classList.toggle("on", !!allOff);
-  $("#mbtn-allcats").classList.toggle("on", !!allOn);
-  $("#mbtn-allcats").setAttribute("aria-pressed", allOn ? "true" : "false");
+  const pf = projFolderList();
+  const mAllOn = allOn && pf.every(f => !S.offFolders.has(f.id));
+  $("#mbtn-allcats").classList.toggle("on", !!mAllOn);
+  $("#mbtn-allcats").setAttribute("aria-pressed", mAllOn ? "true" : "false");
 }
 
 function renderCats(){
@@ -3829,6 +3840,7 @@ const PF_NEW_BTN = `<button type="button" class="pfnew" data-pfnew="1">+ 새 폴
 function renderPfChips(){
   $("#pfchips").innerHTML = projFolderList().map(f => `<button class="cat ${S.offFolders.has(f.id)?"":"on"}" data-pfchip="${esc(f.id)}"
     title="${esc(f.name)} · 눌러서 켜고 끄기">${esc(f.name)}<span class="cnt">${projectDocs().filter(d => d.folder === f.id).length}</span></button>`).join("");
+  renderBulkCats();
 }
 $("#pfchips").addEventListener("click", e => {
   const b = e.target.closest("[data-pfchip]"); if(!b) return;
@@ -6642,6 +6654,10 @@ $("#mgclose").onclick    = closeManage;
 $("#mgdone").onclick     = closeManage;
 $("#managebg").addEventListener("click", e => { if(e.target.id === "managebg") closeManage(); });
 $("#mgsearch").addEventListener("input", mgRender);
+$("#mghintbtn").addEventListener("click", () => {
+  const open = $("#mghint").classList.toggle("open");
+  $("#mghintbtn").setAttribute("aria-expanded", open ? "true" : "false");
+});
 $("#mgnopdf").addEventListener("change", mgRender);
 $("#mgfcat").addEventListener("change", mgRender);
 $("#mgfarea").addEventListener("change", mgRender);
@@ -13535,8 +13551,13 @@ function mMountHeader(on){
 }
 $("#mbtn-search").addEventListener("click", () => mGo("search"));
 /* 전체 단추 — 모두 켜져 있으면 모두 끄고, 아니면 모두 켭니다(PC 의 #selall · #deselall 동작을 그대로 씀) */
-$("#mbtn-allcats").addEventListener("click", () =>
-  $($("#mbtn-allcats").classList.contains("on") ? "#deselall" : "#selall").click());
+/* 회의자료 종류와 프로젝트 폴더 칩을 함께 켜고 끕니다 */
+$("#mbtn-allcats").addEventListener("click", () => {
+  const turnOff = $("#mbtn-allcats").classList.contains("on");
+  $(turnOff ? "#deselall" : "#selall").click();
+  S.offFolders = turnOff ? new Set(projFolderList().map(f => f.id)) : new Set();
+  renderTree();
+});
 
 /* =========================================================
    8d 검색 화면 (PLAN-MOBILE.md 8단계) — 데스크톱 검색 드롭다운(#sdrop)과 같은 데이터
