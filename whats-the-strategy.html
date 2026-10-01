@@ -228,7 +228,7 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
 
 /* ---------- 커맨드 바 — 회의 종류 거르개 ---------- */
 #cmdbar{
-  flex:0 0 auto;height:40px;display:flex;align-items:center;gap:8px;padding:0 20px;
+  flex:0 0 auto;height:34px;display:flex;align-items:center;gap:8px;padding:0 20px 0 0;
   border-bottom:var(--rule-w) solid var(--rule);background:var(--panel2);
 }
 .cmdlabel{flex:0 0 auto;margin-right:4px;font-size:10px;font-weight:800;
@@ -255,13 +255,13 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
   border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);}
 #addcat:hover{border-color:var(--accent);color:var(--accent-ink);}
 #addcat svg{display:block;}
-/* 전체 선택 · 해제 단추 */
+/* 전체 선택 · 해제 한 단추 */
 .cmdsep{flex:0 0 auto;width:2px;height:20px;background:var(--line);margin:0 6px;}
-#bulkcats{flex:0 0 auto;display:flex;align-items:center;gap:6px;}
-#bulkcats button{height:24px;padding:0 10px;border:2px solid var(--line);border-radius:0;
-  background:none;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.03em;white-space:nowrap;}
-#bulkcats button:hover{border-color:var(--accent);color:var(--accent-ink);}
-#bulkcats button.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
+#allcats{flex:0 0 auto;width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);border-radius:0;background:none;color:var(--muted);}
+#allcats:hover{border-color:var(--accent);color:var(--accent-ink);}
+#allcats.on,#allcats.on:hover{background:var(--rule);border-color:var(--rule);color:var(--bg);}
+#allcats svg{display:block;}
 /* 칩을 오른쪽 단추(또는 길게 누르기)로 열면 나오는 쪽지 */
 #catmenu{position:fixed;z-index:60;display:none;flex-direction:column;min-width:132px;
   background:var(--bg);border:var(--rule-w) solid var(--rule);box-shadow:var(--shadow);}
@@ -274,7 +274,8 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
 #workspace{flex:1 1 auto;display:flex;min-height:0;position:relative;}
 aside{position:relative;background:var(--panel);display:flex;min-height:0;flex:0 0 auto;
   overflow:hidden;transition:width .16s ease;}
-#left{width:var(--left-w);border-right:var(--rule-w) solid var(--rule);}
+/* 테두리까지 넣어 제목 칸(#brand) · Filter 왼쪽 칸과 오른쪽 선이 똑같이 맞습니다 */
+#left{width:calc(var(--left-w) + var(--rule-w));border-right:var(--rule-w) solid var(--rule);}
 #right{width:var(--right-w);border-left:var(--rule-w) solid var(--rule);}
 body.left-closed #left{width:var(--rail);}
 body.right-closed #right{width:var(--rail);}
@@ -288,7 +289,7 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 
 .side-inner{width:var(--left-w);display:flex;flex-direction:column;min-height:0;flex:1 1 auto;}
 #right .side-inner{width:var(--right-w);}
-.side-head{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:14px 16px 10px;
+.side-head{flex:0 0 auto;height:36px;display:flex;align-items:center;gap:8px;padding:0 16px;
   font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
   border-bottom:1px solid var(--hairline);background:var(--panel);}
 .side-head .cnt{font-size:11px;font-weight:500;letter-spacing:0;color:var(--muted2);}
@@ -323,6 +324,10 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 #areatabs button:hover{background:var(--panel2);}
 #areatabs button.on,#areatabs button.on:hover{background:var(--areabar);color:var(--areabar-ink);}
 #areatabs .cnt{font-size:11px;font-weight:500;letter-spacing:0;opacity:.7;}
+/* Filter 막대 왼쪽 칸 — 제목 칸(#brand)과 같은 폭으로 고정. 왼쪽 패널을 접어도 그대로 둡니다 */
+#cmdbar #areatabs{align-self:stretch;width:calc(var(--left-w) + var(--rule-w));box-sizing:border-box;
+  margin-right:6px;border-bottom:none;border-right:var(--rule-w) solid var(--rule);}
+#cmdbar #areatabs button{height:auto;}
 /* 프로젝트 폴더 한 줄 — 연 폴더와 같은 모양, 자료는 그 아래 */
 .fold.pf{padding:7px 8px;font-size:12px;font-weight:800;}
 .fold.pf + .doc,.fold.pf ~ .doc{padding-left:30px;}
@@ -678,7 +683,7 @@ table.tuttable td b{font-weight:800;}
 /* ---------- 가운데 ---------- */
 #center{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel2);}
 /* 뷰어 툴바 — 칸이 맞닿는 44px 줄. 칸 사이는 1px, 묶음 사이는 2px 로 나눕니다 */
-#viewbar{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
+#viewbar{flex:0 0 auto;height:36px;display:flex;align-items:stretch;
   background:var(--bg);border-bottom:var(--rule-w) solid var(--rule);white-space:nowrap;
   overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;}
 #viewbar::-webkit-scrollbar{display:none;}
@@ -1025,7 +1030,7 @@ body.rendering #spin{display:block;}
 #rbody[data-tab="sum"][data-mode="text"],#rbody[data-tab="note"],#rbody[data-tab="script"]{padding:12px 12px 28px;}
 /* 탭 줄은 스크롤과 상관없이 위에 붙어 있습니다.
    고른 탭만 이름과 함께 넓게 펴지고, 나머지는 아이콘 칸으로 접힙니다. */
-#rtop{flex:0 0 auto;height:44px;display:flex;align-items:stretch;
+#rtop{flex:0 0 auto;height:36px;display:flex;align-items:stretch;
   background:var(--panel);border-bottom:var(--rule-w) solid var(--rule);}
 .rtab{flex:0 0 auto;width:52px;display:flex;align-items:center;justify-content:center;gap:8px;
   padding:0;border:none;border-right:1px solid var(--hairline);border-radius:0;
@@ -1853,7 +1858,8 @@ body.m .pfnew{width:auto;margin:8px 16px 0;padding:12px 10px;font-size:15px;}
   #brand{display:none;}
   /* 좁은 화면에서는 커맨드 바가 통째로 옆으로 밀립니다 —
      칩 안에서만 밀면 주차 고르개가 화면 밖으로 나가 버립니다 */
-  #cmdbar{padding:0 10px;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  #cmdbar{padding:0 10px 0 0;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  #cmdbar #areatabs{width:200px;flex:0 0 auto;}
   #cmdbar::-webkit-scrollbar{display:none;}
   #cats{flex:0 0 auto;overflow:visible;}
   .cmdlabel{display:none;}
@@ -2379,12 +2385,19 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 </header>
 
 <div id="cmdbar">
-  <span class="cmdlabel">Filter</span>
-  <div id="bulkcats">
-    <button id="selall" type="button" title="모든 회의 종류 선택">Select All</button>
-    <button id="deselall" type="button" title="모든 회의 종류 해제">Deselect All</button>
+  <!-- 「회의 자료」 / 「프로젝트」 영역 고르기 — 고른 쪽은 검은 바탕 흰 글씨 (PLAN-PROJECT.md 2단계).
+       PC·아이패드는 Filter 막대 왼쪽 칸(제목 칸과 같은 폭으로 고정), 아이폰 화면에서는 mMountHeader() 가 자료 목록 위로 옮깁니다 -->
+  <div id="areatabs" role="tablist" aria-label="자료 영역">
+    <button type="button" role="tab" data-area="meet" id="areatab-meet">회의자료<span class="cnt"></span></button>
+    <button type="button" role="tab" data-area="proj" id="areatab-proj">프로젝트<span class="cnt"></span></button>
   </div>
-  <div class="cmdsep" id="leftsep"></div>
+  <!-- 전체 선택/해제 한 단추 — 모두 켜져 있으면 검은 바탕(누르면 모두 끔), 아니면 흰 바탕(누르면 모두 켬) -->
+  <button type="button" id="allcats" title="모든 회의 종류 선택 · 해제" aria-label="모든 회의 종류 선택 · 해제" aria-pressed="false">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
+    </svg>
+  </button>
   <div id="cats"></div>
   <button id="addcat" title="회의 종류 추가" aria-label="회의 종류 추가">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2447,11 +2460,6 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           </svg>
         </button>
         <button class="closebtn" data-close="left" title="접기">«</button></div>
-      <!-- 「회의 자료」 / 「프로젝트」 영역 고르기 — 고른 쪽은 검은 바탕 흰 글씨 (PLAN-PROJECT.md 2단계) -->
-      <div id="areatabs" role="tablist" aria-label="자료 영역">
-        <button type="button" role="tab" data-area="meet" id="areatab-meet">회의자료<span class="cnt"></span></button>
-        <button type="button" role="tab" data-area="proj" id="areatab-proj">프로젝트<span class="cnt"></span></button>
-      </div>
       <div class="side-scroll">
         <div id="tree"></div>
         <div id="projtree" style="display:none"></div>
@@ -3784,13 +3792,13 @@ const filterIsFolders = () => KV.area === "proj" && !isMobile();
 function renderBulkCats(){
   const pf = projFolderList();
   const byFolder = filterIsFolders();
-  $("#selall").title   = byFolder ? "모든 폴더 선택" : "모든 회의 종류 선택";
-  $("#deselall").title = byFolder ? "모든 폴더 해제" : "모든 회의 종류 해제";
+  const lbl = byFolder ? "모든 폴더 선택 · 해제" : "모든 회의 종류 선택 · 해제";
+  $("#allcats").title = lbl; $("#allcats").setAttribute("aria-label", lbl);
   const has  = byFolder ? pf.length : KV.cats.length;
   const allOn  = has && (byFolder ? pf.every(f => !S.offFolders.has(f.id)) : KV.cats.every(c => !S.offCats.has(c)));
   const allOff = has && (byFolder ? pf.every(f =>  S.offFolders.has(f.id)) : KV.cats.every(c =>  S.offCats.has(c)));
-  $("#selall").classList.toggle("on", !!allOn);
-  $("#deselall").classList.toggle("on", !!allOff);
+  $("#allcats").classList.toggle("on", !!allOn);
+  $("#allcats").setAttribute("aria-pressed", allOn ? "true" : "false");
   const mAllOn = allOn && pf.every(f => !S.offFolders.has(f.id));
   $("#mbtn-allcats").classList.toggle("on", !!mAllOn);
   $("#mbtn-allcats").setAttribute("aria-pressed", mAllOn ? "true" : "false");
@@ -3885,7 +3893,7 @@ function renderProjTree(){
   $("#listcount").textContent = projectDocs().length;
   if(all.length && !folders.length){
     $("#projtree").innerHTML = `<div class="emptybox">표시할 폴더가 없습니다.<br>
-      위 <b>Filter</b> 에서 <b>Select All</b> 을 누르거나<br>폴더를 켜 보세요.</div>` + PF_NEW_BTN;
+      위 <b>Filter</b> 의 <b>전체 선택</b> 단추(✓✓)를 누르거나<br>폴더를 켜 보세요.</div>` + PF_NEW_BTN;
     return;
   }
   if(!folders.length){
@@ -3925,7 +3933,7 @@ function renderTree(){
   }
   if(!list.length){
     $("#tree").innerHTML = `<div class="emptybox">표시할 자료가 없습니다.<br>
-      위 <b>Filter</b> 에서 <b>Select All</b> 을 누르거나<br>회의 종류를 켜 보세요.</div>`;
+      위 <b>Filter</b> 의 <b>전체 선택</b> 단추(✓✓)를 누르거나<br>회의 종류를 켜 보세요.</div>`;
     return;
   }
 
@@ -5022,20 +5030,8 @@ function toggleSide(which, force){
   KV[which] = !closed; saveKV(which);
   /* 폭이 .16s 에 걸쳐 바뀌므로 다 바뀐 뒤에 다시 맞춥니다 */
   if(was !== closed && S.pdf) setTimeout(autoFit, 200);
-  if(was !== closed && which === "left") setTimeout(alignLeftSep, 200);
 }
 
-/* Filter 줄의 첫 구분선을 왼쪽 패널 오른쪽 경계선과 나란히 맞춥니다 */
-function alignLeftSep(){
-  const left = $("#left"), sep = $("#leftsep");
-  if(!left || !sep) return;
-  const gap = left.getBoundingClientRect().right - sep.getBoundingClientRect().left;
-  const cur = parseFloat(getComputedStyle(sep).marginLeft) || 0;
-  sep.style.marginLeft = Math.max(0, cur + gap) + "px";
-}
-window.addEventListener("resize", alignLeftSep);
-window.addEventListener("load", alignLeftSep);
-setTimeout(alignLeftSep, 0);
 $$(".rail").forEach(b => b.onclick = () => toggleSide(b.dataset.open, true));
 /* 접기 단추는 오른쪽 탭 줄처럼 새로 그려지기도 하므로 맡겨서 처리합니다 */
 document.addEventListener("click", e => {
@@ -5690,7 +5686,7 @@ document.addEventListener("mousedown", e => {
 $("#sdrop").addEventListener("click", async e => {
   const t = e.target;
   if(t.closest("#sd-close")){ closeSdrop(); return; }
-  if(t.closest("#sd-fchip")){ $("#selall").click(); return; }
+  if(t.closest("#sd-fchip")){ bulkSelectAll(); return; }
   if(t.closest("#sd-sortbtn")){ S.srch.sort = S.srch.sort === "date" ? "rel" : "date"; renderSdrop(); return; }
   const grpRow = t.closest("[data-grp]");
   if(grpRow){ S.srch.grp = grpRow.dataset.grp; renderSdrop(); return; }
@@ -6317,20 +6313,24 @@ $("#ageditdel").onclick = () => {
 /* =========================================================
    9) 회의 종류 · 폴더 · 자료 선택
    ========================================================= */
-/* 전체 선택 · 해제 — 모든 회의 종류를 한 번에 켜고 끕니다 */
-$("#selall").addEventListener("click", () => {
+/* 전체 선택 · 해제 — 모든 회의 종류(프로젝트 영역이면 폴더)를 한 번에 켜고 끕니다 */
+function bulkSelectAll(){
   if(filterIsFolders()){ S.offFolders.clear(); renderTree(); return; }      /* 프로젝트 영역 — 폴더 칩 */
   S.offCats.clear();
   KV.offcats = []; saveKV("offcats");
   renderCats(); renderTree();
   if(S.srch.open){ sdRecompute(); renderSdrop(); }
-});
-$("#deselall").addEventListener("click", () => {
+}
+function bulkDeselectAll(){
   if(filterIsFolders()){ S.offFolders = new Set(projFolderList().map(f => f.id)); renderTree(); return; }
   S.offCats = new Set(KV.cats);
   KV.offcats = Array.from(S.offCats); saveKV("offcats");
   renderCats(); renderTree();
   if(S.srch.open){ sdRecompute(); renderSdrop(); }
+}
+/* 한 단추 — 모두 켜져 있으면 모두 끄고, 아니면 모두 켭니다 */
+$("#allcats").addEventListener("click", () => {
+  if($("#allcats").classList.contains("on")) bulkDeselectAll(); else bulkSelectAll();
 });
 
 /* 칩을 누르면 그 종류를 켜고 끕니다 — 드롭다운이 열려 있으면 커맨드바 교집합을 다시 셉니다(5단계) */
@@ -13104,7 +13104,7 @@ const TUT = [
       { ic:"search", html:"뷰어 툴바 오른쪽 — <b>이 자료에서 찾기</b>" }
     ]},
     { h:"하는 법", type:"steps", items:[
-      "<b>Filter 막대</b> 의 칩을 눌러 켜고 끕니다. <b class='k'>Select All</b> · <b class='k'>Deselect All</b> 로 한 번에 켜고 끌 수도 있습니다.",
+      "<b>Filter 막대</b> 의 칩을 눌러 켜고 끕니다. 칩 왼쪽의 <b class='k'>✓✓</b> 단추로 한 번에 모두 켜고 끌 수도 있습니다(모두 켜져 있으면 검은 바탕). 맨 왼쪽 <b>회의자료 / 프로젝트</b> 로 영역을 바꿉니다.",
       "상단바 검색창에 낱말을 치면 자료 이름 · 본문 · 회의록에서 걸린 곳이 아래로 펼쳐집니다. <b>↑ ↓</b> 로 줄을 옮기고 <b>Enter</b> 로 열거나, 그냥 눌러도 됩니다. 오른쪽 <b class='k'>?</b> 단추(문법 도움)에서 <b>-제외</b>·<b>\"정확히\"</b>·<b>#태그</b> 같은 문법을 볼 수 있습니다.",
       "자료를 열어 둔 채 <b>이 자료에서 찾기</b> 에 낱말을 치면 몇 쪽에 있는지 세어 주고, 걸린 자리는 목록과 본문 양쪽에 색칠해 보여 줍니다. <b>Enter</b> 로 다음, <b>Shift+Enter</b> 로 이전 쪽으로 넘어갑니다. 검색창과 같은 문법(<b>-제외</b>·<b>\"정확히\"</b>·<b>+ / </b>)을 쓸 수 있습니다 — 다만 <b>#태그</b> 는 자료 하나 안에서는 뜻이 없어 글자 그대로 찾습니다."
     ]},
@@ -13321,7 +13321,7 @@ const TUT = [
       ["내 자료가 인터넷에 올라가나요?","아닙니다. <b>이 기기의 브라우저 안</b>에만 저장됩니다. 인터넷을 쓰는 것은 AI NOTE뿐입니다"],
       ["다른 사람도 볼 수 있나요?","자동으로는 보이지 않습니다. 백업 파일을 건네주어야 봅니다"],
       ["인터넷이 끊겨도 되나요?","됩니다. AI NOTE만 빼고 전부 그대로 동작합니다"],
-      ["자료가 안 보여요","Filter 막대에서 그 회의 종류가 꺼져 있는지 보세요. <b class='k'>Select All</b> 로 모두 켤 수 있습니다"],
+      ["자료가 안 보여요","Filter 막대에서 그 회의 종류가 꺼져 있는지 보세요. 칩 왼쪽의 <b class='k'>✓✓</b> 단추로 모두 켤 수 있습니다"],
       ["화면이 예전 그대로예요","<b>설정 → 프로그램 갱신 → 최신으로 새로고침</b>. 자료는 지워지지 않습니다"],
       ["저장 공간이 모자랍니다","<b>자료 관리 → 선택 원본 비우기</b> 로 오래된 자료의 PDF만 비우세요. 검색은 그대로 됩니다"]
     ]},
@@ -13635,25 +13635,28 @@ const mCatsHome   = { parent: $("#cmdbar"), before: $("#addcat") };
 const mUploadHome = { parent: $(".side-head"), before: $(".side-head .closebtn") };
 const mModelHome  = { parent: $("#topmodelgrp") };   /* 모델 고르개는 무리의 맨 끝이 제자리입니다 */
 const mSearchHome = { parent: $("#topbar"), before: $("#topright") };   /* 검색칸(8d, 8단계) */
+const mAreaHome   = { parent: $("#cmdbar"), before: $("#allcats") };   /* 회의자료/프로젝트 고르기 — 아이폰은 자료 목록 위 */
 function mMountHeader(on){
   if(on){
     $("#mheadCats").appendChild($("#cats"));
     $("#mheadActions").insertBefore($("#btn-upload"), $("#mbtn-search"));
     $("#msmodel").appendChild($("#topmodel"));        /* 바텀시트의 AI Model 칸 (4단계) */
     $("#msearchBox").appendChild($("#searchwrap"));   /* 8d 검색 화면 (8단계) */
+    $("#left .side-inner").insertBefore($("#areatabs"), $("#left .side-scroll"));
   }else{
     mCatsHome.parent.insertBefore($("#cats"), mCatsHome.before);
     mUploadHome.parent.insertBefore($("#btn-upload"), mUploadHome.before);
     mModelHome.parent.appendChild($("#topmodel"));
     mSearchHome.parent.insertBefore($("#searchwrap"), mSearchHome.before);
+    mAreaHome.parent.insertBefore($("#areatabs"), mAreaHome.before);
   }
 }
 $("#mbtn-search").addEventListener("click", () => mGo("search"));
-/* 전체 단추 — 모두 켜져 있으면 모두 끄고, 아니면 모두 켭니다(PC 의 #selall · #deselall 동작을 그대로 씀) */
+/* 전체 단추 — 모두 켜져 있으면 모두 끄고, 아니면 모두 켭니다(PC 의 bulkSelectAll · bulkDeselectAll 을 그대로 씀) */
 /* 회의자료 종류와 프로젝트 폴더 칩을 함께 켜고 끕니다 */
 $("#mbtn-allcats").addEventListener("click", () => {
   const turnOff = $("#mbtn-allcats").classList.contains("on");
-  $(turnOff ? "#deselall" : "#selall").click();
+  if(turnOff) bulkDeselectAll(); else bulkSelectAll();
   S.offFolders = turnOff ? new Set(projFolderList().map(f => f.id)) : new Set();
   renderTree();
 });
