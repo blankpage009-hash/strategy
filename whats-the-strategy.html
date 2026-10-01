@@ -413,6 +413,10 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .sd-bar .track em{display:block;height:6px;background:var(--text);font-style:normal;}
 .sd-bar.on{background:var(--accent-soft);}
 .sd-bar .n{flex:0 0 auto;width:14px;text-align:right;font-size:11px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
+/* 레일의 '회의 자료' / '프로젝트' 칸 머리 — 이름과 그 칸 적중 합계. 프로젝트 머리는 눌러서 프로젝트 자료만 봅니다 */
+.sd-rail .sd-rhd{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;padding:3px 12px 6px;font-size:10px;letter-spacing:.14em;color:var(--muted2);}
+.sd-rail .sd-rhd .n{width:auto;font-size:10px;letter-spacing:0;color:var(--muted2);}
+.sd-rail button.sd-rhd:hover,.sd-rail button.sd-rhd.on{color:var(--text);}
 .sd-pcol{display:flex;flex-direction:column;gap:5px;padding:0 12px;}
 .sd-prow{display:flex;align-items:center;justify-content:space-between;gap:8px;
   width:100%;height:22px;border:1px solid var(--line);background:none;color:var(--muted);
@@ -5118,13 +5122,18 @@ function searchDocs(){ return activeDocs().concat(projectDocs()); }
 /* 검색 결과의 '회의 종류' 칸에서 프로젝트 자료를 한데 묶는 열쇠 — 회의 종류 이름과 겹치지 않게 기호로 감쌉니다 */
 const SRCH_PROJ = "@@project@@";
 const srchCatOf = d => isProj(d) ? SRCH_PROJ : d.cat;
-const srchCatLabel = c => c === SRCH_PROJ ? "프로젝트" : c;
+/* PC 레일 '프로젝트' 칸의 폴더별 열쇠 — S.srch.cat 에 이 값이 들면 그 폴더 자료만 봅니다 */
+const SRCH_PF = "@@pf@@";
+const srchCatLabel = c => c === SRCH_PROJ ? "프로젝트"
+  : c.startsWith(SRCH_PF) ? ((projFolderById(c.slice(SRCH_PF.length)) || {}).name || "(이름 없는 폴더)") : c;
+const srchFolderKey = d => SRCH_PF + d.folder;
+const srchMatchCat = (d, c) => c.startsWith(SRCH_PF) ? isProj(d) && srchFolderKey(d) === c : srchCatOf(d) === c;
 /* 프로젝트 자료가 든 폴더 이름 (목록에 없는 폴더면 "(이름 없는 폴더)") */
 function projFolderName(d){ const f = projFolderOf(d); return f ? f.name : "(이름 없는 폴더)"; }
 function runSearch(Q, opt){
   opt = opt || {};
   const spansFor = opt.spansFor || null;
-  const R = { q:Q, docs:[], tot:{ docs:0, hits:0, title:0, body:0, note:0 }, byCat:{}, byPeriod:{} };
+  const R = { q:Q, docs:[], tot:{ docs:0, hits:0, title:0, body:0, note:0 }, byCat:{}, byFolder:{}, byPeriod:{} };
   if(!queryHasTerms(Q)) return R;
 
   /* #태그 — 회의 종류 이름이 태그로 시작하면 모두 (OR). 맞는 종류가 없으면 결과 0 */
@@ -5185,6 +5194,7 @@ function runSearch(Q, opt){
     R.tot.docs++; R.tot.hits += hits; R.tot.title += title ? 1 : 0; R.tot.body += body; R.tot.note += nn;
     const ck = srchCatOf(d);
     R.byCat[ck] = (R.byCat[ck] || 0) + hits;
+    if(isProj(d)){ const fk = srchFolderKey(d); R.byFolder[fk] = (R.byFolder[fk] || 0) + hits; }
     const pk = periodBucketOf(d);
     R.byPeriod[pk] = (R.byPeriod[pk] || 0) + hits;
   });
@@ -5301,7 +5311,7 @@ function sdDocsFor(R){
   let docs = R.docs;
   if(S.srch.sort === "date")
     docs = docs.slice().sort((a, b) => (b.d.date + b.d.addedAt).localeCompare(a.d.date + a.d.addedAt));
-  if(S.srch.cat) docs = docs.filter(r => srchCatOf(r.d) === S.srch.cat);
+  if(S.srch.cat) docs = docs.filter(r => srchMatchCat(r.d, S.srch.cat));
   if(S.srch.mon) docs = docs.filter(r => inPeriod(r.d, S.srch.mon));
   if(S.srch.grp === "title") docs = docs.filter(r => r.title);
   else if(S.srch.grp === "body") docs = docs.filter(r => r.pages.length);
@@ -5343,17 +5353,27 @@ function sdPeriodHtml(R){
 function sdRailHtml(R){
   const grpRow = (key, icon, label, n) => `<div class="sd-rg ${S.srch.grp === key ? "on" : ""}" data-grp="${key}">`
     + `${icon ? `<span class="ic">${icon}</span>` : ""}<span class="t">${label}</span><span class="n">${n}</span></div>`;
-  const cats = Object.entries(R.byCat).sort((a, b) => b[1] - a[1]);
-  const maxCat = cats.length ? cats[0][1] : 1;
-  const bars = cats.map(([c, n], i) => `<button class="sd-bar ${S.srch.cat === c ? "on" : ""}" data-cat="${esc(c)}">`
-    + `<span class="t">${esc(srchCatLabel(c))}</span><span class="track"><em style="width:${Math.max(6, Math.round(n / maxCat * 100))}%;${i === 0 ? "background:var(--accent)" : ""}"></em></span>`
+  /* 회의 자료(회의 종류별)와 프로젝트(폴더별)를 두 칸으로 나눠 보여 줍니다. 막대 길이는 두 칸 공통 기준 */
+  const cats = Object.entries(R.byCat).filter(([c]) => c !== SRCH_PROJ).sort((a, b) => b[1] - a[1]);
+  const folders = Object.entries(R.byFolder || {}).sort((a, b) => b[1] - a[1]);
+  const all = cats.concat(folders);
+  const maxN = all.reduce((m, [, n]) => Math.max(m, n), 1);
+  const top = all.reduce((t, x) => (!t || x[1] > t[1]) ? x : t, null);
+  const barsOf = (list, labelOf) => list.map(([c, n]) => `<button class="sd-bar ${S.srch.cat === c ? "on" : ""}" data-cat="${esc(c)}">`
+    + `<span class="t">${esc(labelOf(c))}</span><span class="track"><em style="width:${Math.max(6, Math.round(n / maxN * 100))}%;${top && top[0] === c ? "background:var(--accent)" : ""}"></em></span>`
     + `<span class="n">${n}</span></button>`).join("");
+  const sum = list => list.reduce((s, [, n]) => s + n, 0);
+  const projOn = S.srch.cat === SRCH_PROJ;
+  const meetSec = cats.length ? `<div class="sd-rsep"></div>
+    <div class="sd-rlbl sd-rhd"><span>회의 자료</span><span class="n">${sum(cats)}</span></div>
+    <div class="sd-rbars">${barsOf(cats, c => c)}</div>` : "";
+  const projSec = folders.length ? `<div class="sd-rsep"></div>
+    <button class="sd-rlbl sd-rhd sd-bar ${projOn ? "on" : ""}" data-cat="${SRCH_PROJ}" title="프로젝트 자료만 보기"><span>프로젝트</span><span class="n">${sum(folders)}</span></button>
+    <div class="sd-rbars">${barsOf(folders, srchCatLabel)}</div>` : "";
   return `<div class="sd-rail">
     <div class="sd-rlbl">어디에서 걸렸나</div>
     ${grpRow("all", "", "전체", R.tot.hits)}${grpRow("title", SD_ICO.file, "파일명", R.tot.title)}${grpRow("body", SD_ICO.body, "본문", R.tot.body)}${grpRow("note", SD_ICO.note, "회의록", R.tot.note)}
-    <div class="sd-rsep"></div>
-    <div class="sd-rlbl">${R.byCat[SRCH_PROJ] ? "회의 종류 · 프로젝트" : "회의 종류"}</div>
-    <div class="sd-rbars">${bars}</div>
+    ${meetSec}${projSec}
     ${sdPeriodHtml(R)}
   </div>`;
 }
