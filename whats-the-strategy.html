@@ -1992,11 +1992,11 @@ body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-botto
 .mhead-allcats svg{display:block;}
 .mhead-allcats.on{background:var(--text);color:var(--bg);}
 /* 회의 종류 — PC 와 같은 칩(켜면 빨간 바탕). 손가락 크기로만 키웁니다 */
-.mhead-cats{padding:4px 0 12px;}
+.mhead-cats{padding:0 0 8px;}
 /* 좁은 화면 규칙(#cats{overflow:visible})은 PC 커맨드 바용이라, 여기서는 칩 줄 자체가 좌우로 밀리게 되돌립니다 */
 .mhead-cats #cats{gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;
   touch-action:pan-x;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
-.mhead-cats .cat{height:32px;padding:0 11px;font-size:13px;}
+.mhead-cats .cat{height:28px;padding:0 10px;font-size:13px;}
 .mhead-cats .cat .cnt{display:none;}
 /* 터치는 누른 뒤에도 :hover 가 남아 끈 칩이 켜진 듯 보이므로 여기선 hover 색을 쓰지 않습니다 */
 .mhead-cats .cat:not(.on):hover{border-color:var(--line);color:var(--muted);}
@@ -2004,7 +2004,7 @@ body.m #left .mhead{display:block;flex:0 0 auto;padding:14px 16px 0;border-botto
 /* 자료 목록 — PC 와 같은 연/월 접기 트리(손가락 크기로 키움). 행은 W 태그 + 제목(굵게) + 아래 종류·쪽수·날짜,
    열람 중은 연분홍 배경 + 왼쪽 빨간 선 */
 body.m #tree,body.m #projtree{padding:6px 0 20px;}
-body.m #areatabs{background:var(--bg);border-bottom:var(--rule-w) solid var(--rule);}
+body.m #areatabs{background:var(--bg);margin:0 -16px 8px;border-top:var(--rule-w) solid var(--rule);border-bottom:var(--rule-w) solid var(--rule);}
 body.m #areatabs button{height:32px;font-size:14px;}
 body.m .fold.pf{padding:10px 16px;font-size:16px;}
 body.m .fold.pf ~ .doc{padding-left:30px;}
@@ -13649,7 +13649,7 @@ function mMountHeader(on){
     $("#mheadActions").insertBefore($("#btn-upload"), $("#mbtn-search"));
     $("#msmodel").appendChild($("#topmodel"));        /* 바텀시트의 AI Model 칸 (4단계) */
     $("#msearchBox").appendChild($("#searchwrap"));   /* 8d 검색 화면 (8단계) */
-    $("#left .side-inner").insertBefore($("#areatabs"), $("#left .side-scroll"));
+    $(".mhead").insertBefore($("#areatabs"), $("#mheadCats"));   /* 제목 바로 아래, 종류 칩 줄 위 */
   }else{
     mCatsHome.parent.insertBefore($("#cats"), mCatsHome.before);
     mUploadHome.parent.insertBefore($("#btn-upload"), mUploadHome.before);
