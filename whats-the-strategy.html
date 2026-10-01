@@ -4588,15 +4588,18 @@ const RTAB_ICONS = {
 const RTABS = ["sum", "note", "task", "script", "memo"];
 function rtabOf(t){ return RTABS.includes(t) ? t : "sum"; }
 
-function rtabsHtml(tab, taskCount, scriptCount, off){
+function rtabsHtml(tab, taskCount, scriptCount, off, marks){
+  marks = marks || {};
+  /* 요약·회의록·메모는 있으면 숫자로 알립니다 (요약 1 · 메모 1 · 회의록은 AI NOTE·올린 NOTE 각 1) */
+  const dot = n => `<span class="num">${n}</span>`;
   const one = (k, label, extra) =>
     `<button class="rtab ${tab === k ? "on" : ""}" data-tab="${k}" title="${label}"
       ${off ? "disabled" : ""}>${RTAB_ICONS[k]}<span class="t">${label}</span>${extra || ""}</button>`;
-  return one("sum", "SUMMARY")
-       + one("note", "NOTE")
+  return one("sum", "SUMMARY", marks.sum ? dot(marks.sum) : "")
+       + one("note", "NOTE", marks.note ? dot(marks.note) : "")
        + one("task", "TASKS", taskCount ? `<span class="num">${taskCount}</span>` : "")
        + one("script", "SCRIPT", scriptCount ? `<span class="num">${scriptCount}</span>` : "")
-       + one("memo", "MEMO")
+       + one("memo", "MEMO", marks.memo ? dot(marks.memo) : "")
        + `<button class="closebtn" data-close="right" title="접기">»</button>`;
 }
 
@@ -4774,7 +4777,13 @@ function renderRight(){
     : `<button class="mini${has ? "" : " addbtn"}" data-lock="${id}">${has ? "Edit" : "Add"}</button>`;
 
   /* 위쪽 고정 — 탭 줄 (자료 이름은 뷰어 툴바에 이미 있습니다) */
-  top.innerHTML = rtabsHtml(tab, tasks.length, scPages.length, false);
+  const pgMap = mine.pg || {};
+  const marks = {
+    sum:  Object.keys(pgMap).some(k => pgMap[k] && scHas(pgMap[k].text)) ? 1 : 0,
+    note: (AINOTES[d.id] ? 1 : 0) + (atOf(d.id, "note").length ? 1 : 0),
+    memo: scHas((KV.memos || {})[d.id]) ? 1 : 0
+  };
+  top.innerHTML = rtabsHtml(tab, tasks.length, scPages.length, false, marks);
 
   /* ── 탭 1 : Executive Summary ─────────────────────────────
        구조 요약(ex)이 있으면 [0] 상자 + 부서별 하이어라키로 보여 주고,
