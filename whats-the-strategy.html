@@ -3775,19 +3775,33 @@ function activeDocs(){
 }
 
 /* ---- 전체 선택 · 해제 단추 상태 ---- */
+/* PC·아이패드에서 프로젝트 영역을 고르면 Filter 막대가 회의 종류 대신 프로젝트 폴더 칩을 보여 줍니다 */
+const filterIsFolders = () => KV.area === "proj" && !isMobile();
 function renderBulkCats(){
-  const has  = KV.cats.length;
-  const allOn  = has && KV.cats.every(c => !S.offCats.has(c));
-  const allOff = has && KV.cats.every(c =>  S.offCats.has(c));
+  const pf = projFolderList();
+  const byFolder = filterIsFolders();
+  $("#selall").title   = byFolder ? "모든 폴더 선택" : "모든 회의 종류 선택";
+  $("#deselall").title = byFolder ? "모든 폴더 해제" : "모든 회의 종류 해제";
+  const has  = byFolder ? pf.length : KV.cats.length;
+  const allOn  = has && (byFolder ? pf.every(f => !S.offFolders.has(f.id)) : KV.cats.every(c => !S.offCats.has(c)));
+  const allOff = has && (byFolder ? pf.every(f =>  S.offFolders.has(f.id)) : KV.cats.every(c =>  S.offCats.has(c)));
   $("#selall").classList.toggle("on", !!allOn);
   $("#deselall").classList.toggle("on", !!allOff);
-  const pf = projFolderList();
   const mAllOn = allOn && pf.every(f => !S.offFolders.has(f.id));
   $("#mbtn-allcats").classList.toggle("on", !!mAllOn);
   $("#mbtn-allcats").setAttribute("aria-pressed", mAllOn ? "true" : "false");
 }
 
 function renderCats(){
+  const byFolder = filterIsFolders();
+  $("#addcat").title = $("#addcat").ariaLabel = byFolder ? "프로젝트 폴더 추가" : "회의 종류 추가";
+  if(byFolder){
+    $("#cats").innerHTML = projFolderList().map(f => `<button class="cat ${S.offFolders.has(f.id)?"":"on"}" data-pfchip="${esc(f.id)}"
+      title="${esc(f.name)} · 눌러서 켜고 끄기 (오른쪽 단추 또는 길게 누르면 이름 바꾸기·삭제)"
+      >${esc(f.name)}<span class="cnt">${projectDocs().filter(d => d.folder === f.id).length}</span></button>`).join("");
+    renderBulkCats();
+    return;
+  }
   $("#cats").innerHTML = KV.cats.map(c => {
     const n = DOCS.filter(d => !isProj(d) && d.cat === c).length;
     const on = !S.offCats.has(c);
@@ -3830,6 +3844,7 @@ function renderAreaTabs(){
   document.body.classList.toggle("area-proj", proj);
   $("#tree").style.display = proj ? "none" : "";
   $("#projtree").style.display = proj ? "" : "none";
+  renderCats();                                  /* Filter 막대 칩도 영역에 맞춰 바꿈 */
 }
 
 /* 새 프로젝트 폴더 — 이름을 물어서 만들고 id 를 돌려줍니다. 같은 이름이 이미 있으면 그 폴더를 씁니다.
@@ -3861,8 +3876,14 @@ $("#pfchips").addEventListener("click", e => {
 function renderProjTree(){
   const mob = isMobile();
   renderPfChips();
-  const folders = projFolderList().filter(f => !mob || !S.offFolders.has(f.id));
+  const all = projFolderList();
+  const folders = all.filter(f => !S.offFolders.has(f.id));
   $("#listcount").textContent = projectDocs().length;
+  if(all.length && !folders.length){
+    $("#projtree").innerHTML = `<div class="emptybox">표시할 폴더가 없습니다.<br>
+      위 <b>Filter</b> 에서 <b>Select All</b> 을 누르거나<br>폴더를 켜 보세요.</div>` + PF_NEW_BTN;
+    return;
+  }
   if(!folders.length){
     $("#projtree").innerHTML = `<div class="emptybox">아직 프로젝트 자료가 없습니다.<br>
       <b>Upload</b> 로 PDF를 올리면 폴더별로 모입니다.</div>` + PF_NEW_BTN;
@@ -3966,7 +3987,7 @@ function revealDoc(id){
   const d = DOCS.find(x => x.id === id); if(!d) return;
   const area = isProj(d) ? "proj" : "meet";
   if(KV.area !== area){ KV.area = area; saveKV("area"); }
-  if(isProj(d)) S.open.add(projOpenKey(d.folder));
+  if(isProj(d)){ S.open.add(projOpenKey(d.folder)); S.offFolders.delete(d.folder); }   /* 꺼 둔 폴더의 자료를 열면 폴더를 다시 켬 */
   else { S.open.add(d.date.slice(0,4)); S.open.add(d.date.slice(0,7)); }
   KV.folders = Array.from(S.open); saveKV("folders");
 }
@@ -6278,12 +6299,14 @@ $("#ageditdel").onclick = () => {
    ========================================================= */
 /* 전체 선택 · 해제 — 모든 회의 종류를 한 번에 켜고 끕니다 */
 $("#selall").addEventListener("click", () => {
+  if(filterIsFolders()){ S.offFolders.clear(); renderTree(); return; }      /* 프로젝트 영역 — 폴더 칩 */
   S.offCats.clear();
   KV.offcats = []; saveKV("offcats");
   renderCats(); renderTree();
   if(S.srch.open){ sdRecompute(); renderSdrop(); }
 });
 $("#deselall").addEventListener("click", () => {
+  if(filterIsFolders()){ S.offFolders = new Set(projFolderList().map(f => f.id)); renderTree(); return; }
   S.offCats = new Set(KV.cats);
   KV.offcats = Array.from(S.offCats); saveKV("offcats");
   renderCats(); renderTree();
@@ -6294,6 +6317,11 @@ $("#deselall").addEventListener("click", () => {
 $("#cats").addEventListener("click", e => {
   if(catsWasDragged) return;                           /* 끌어서 미는 중이었다면 클릭으로 처리하지 않습니다 */
   const row = e.target.closest(".cat"); if(!row) return;
+  if(row.dataset.pfchip){                              /* 프로젝트 영역 — 폴더 칩 켜고 끄기 */
+    const id = row.dataset.pfchip;
+    S.offFolders.has(id) ? S.offFolders.delete(id) : S.offFolders.add(id);
+    renderTree(); return;
+  }
   const c = row.dataset.cat;
   S.offCats.has(c) ? S.offCats.delete(c) : S.offCats.add(c);
   KV.offcats = Array.from(S.offCats); saveKV("offcats");
@@ -6363,14 +6391,14 @@ function closeCatMenu(){ $("#catmenu").classList.remove("on"); }
 $("#cats").addEventListener("contextmenu", e => {
   const row = e.target.closest(".cat"); if(!row) return;
   e.preventDefault();
-  openCatMenu(row.dataset.cat, e.clientX, e.clientY);
+  openCatMenu(row.dataset.cat || "", e.clientX, e.clientY, row.dataset.pfchip);
 });
 /* 손가락으로 쓰는 기기 — 0.6초 길게 누르면 같은 쪽지가 열립니다 */
 let catHold = null;
 $("#cats").addEventListener("touchstart", e => {
   const row = e.target.closest(".cat"); if(!row) return;
   const t = e.touches[0];
-  catHold = setTimeout(() => { catHold = null; openCatMenu(row.dataset.cat, t.clientX, t.clientY); }, 600);
+  catHold = setTimeout(() => { catHold = null; openCatMenu(row.dataset.cat || "", t.clientX, t.clientY, row.dataset.pfchip); }, 600);
 }, {passive:true});
 ["touchend","touchmove","touchcancel"].forEach(ev =>
   $("#cats").addEventListener(ev, () => { clearTimeout(catHold); catHold = null; }, {passive:true}));
@@ -6496,7 +6524,10 @@ function addCat(){
   KV.cats.push(name); saveKV("cats");
   renderCats(); renderTree(); refreshCatUI(); toast(`'${name}' 종류를 추가했습니다`);
 }
-$("#addcat").onclick = () => addCat();
+$("#addcat").onclick = () => {
+  if(filterIsFolders()){ if(newProjFolder()) renderTree(); return; }   /* 프로젝트 영역 — 새 폴더 */
+  addCat();
+};
 
 /* 설정 화면의 회의 종류 목록 · 자동 지정 규칙을 다시 그립니다 */
 function refreshCatUI(){
