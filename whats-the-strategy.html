@@ -6616,14 +6616,18 @@ function mgRows(){
   const q = ($("#mgsearch").value || "").trim().toLowerCase();
   const nopdf = $("#mgnopdf").checked;
   const fcat = $("#mgfcat").value, fyear = $("#mgfyear").value, fmonth = $("#mgfmonth").value;
-  const farea = $("#mgfarea").value, ffolder = $("#mgffolder").value;
+  const farea = $("#mgfarea").value;
+  /* 화면에서 숨겨진 거르기 칸(회의 자료면 폴더, 프로젝트면 종류·연도·월)의 값은 무시합니다 —
+     왼쪽 목록의 회의자료/프로젝트 토글과는 상관없이 이 창의 영역·폴더 칸만 따릅니다 */
+  const ffolder = farea === "meet" ? "" : $("#mgffolder").value;
+  const useDate = farea !== "proj";
   return DOCS
     .filter(d => !nopdf || !d.hasPdf)
     .filter(d => !farea   || (farea === "proj") === isProj(d))
     .filter(d => !ffolder || d.folder === ffolder)
-    .filter(d => !fcat   || (d.cat || "") === fcat)
-    .filter(d => !fyear  || (!isProj(d) && yearOf(d) === fyear))
-    .filter(d => !fmonth || (!isProj(d) && String(monthOf(d)) === fmonth))
+    .filter(d => !useDate || !fcat   || (d.cat || "") === fcat)
+    .filter(d => !useDate || !fyear  || (!isProj(d) && yearOf(d) === fyear))
+    .filter(d => !useDate || !fmonth || (!isProj(d) && String(monthOf(d)) === fmonth))
     .filter(d => !q || (d.title || "").toLowerCase().includes(q)
                     || (d.cat   || "").toLowerCase().includes(q)
                     || ((projFolderOf(d) || {}).name || "").toLowerCase().includes(q))
