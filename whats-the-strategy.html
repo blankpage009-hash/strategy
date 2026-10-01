@@ -235,8 +235,11 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
 /* 우선 모델(제미나이) 선택 — Filter 막대 오른쪽 끝 */
 #topmodellabel{flex:0 0 auto;}
-#topmodelgrp{flex:0 0 auto;display:flex;align-items:center;margin-left:auto;}
-#topmodel{flex:0 0 auto;height:24px;max-width:180px;padding:0 6px;margin-right:-10px;
+/* 왼쪽 세로선이 위쪽 오른쪽 단추 줄(#topright)의 왼쪽 선(회의 Agenda 칸)과 같은 자리 — 폭은 JS 가 --tr-w 로 맞춥니다 */
+#topmodelgrp{flex:0 1 auto;min-width:0;box-sizing:border-box;align-self:stretch;display:flex;align-items:center;
+  margin-left:auto;margin-right:-20px;width:var(--tr-w,224px);padding:0 10px 0 12px;border-left:2px solid var(--line);}
+#topmodelgrp .cmdsep{display:none;}
+#topmodel{flex:0 1 auto;min-width:0;height:24px;max-width:180px;padding:0 6px;margin-right:0;
   border:2px solid var(--line);border-radius:0;background:var(--panel2);color:var(--muted);
   font-size:11px;font-weight:700;}
 #topmodel:hover{border-color:var(--accent);color:var(--accent-ink);}
@@ -303,7 +306,7 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .grouphead{padding:10px 10px 4px;font-size:11px;font-weight:700;color:var(--muted2);letter-spacing:.03em;
   display:flex;align-items:center;gap:5px;}
 /* 자료 목록 머리 — 오른쪽에 UPLOAD · 자료 관리를 나란히 둡니다 */
-#btn-upload{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;
+#btn-upload{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;
   border:none;background:var(--accent);border-radius:0;
   font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;white-space:nowrap;}
 #btn-upload:hover{background:var(--accent-hover);}
@@ -2448,11 +2451,11 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
         <div class="mhead-cats" id="mheadCats"><div id="pfchips"></div></div>
       </div>
       <div class="side-head">Materials <span class="cnt" id="listcount"></span>
-        <button id="btn-upload" title="PDF 자료 올리기">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        <button id="btn-upload" title="PDF 자료 올리기" aria-label="Upload">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-          </svg><span class="up-lbl">Upload</span></button>
+          </svg></button>
         <button id="btn-manage" title="자료 이름 바꾸기 · 옮기기 · 삭제" aria-label="자료 관리">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
@@ -13633,6 +13636,10 @@ Object.values(M_MODAL_SCR).forEach(m => mModalObs.observe($(m.bg), { attributes:
    #left 안의 .mhead 로 옮겨 두었다가(모양은 body.m CSS 가 담당) PC/아이패드로 돌아가면 제자리로 되돌립니다. */
 const mCatsHome   = { parent: $("#cmdbar"), before: $("#addcat") };
 const mUploadHome = { parent: $(".side-head"), before: $(".side-head .closebtn") };
+/* Filter 막대 오른쪽 칸(AI Model)의 왼쪽 선을 위쪽 단추 줄 왼쪽 선에 맞춤 */
+if(window.ResizeObserver) new ResizeObserver(() => {
+  document.documentElement.style.setProperty("--tr-w", $("#topright").getBoundingClientRect().width + "px");
+}).observe($("#topright"));
 const mModelHome  = { parent: $("#topmodelgrp") };   /* 모델 고르개는 무리의 맨 끝이 제자리입니다 */
 const mSearchHome = { parent: $("#topbar"), before: $("#topright") };   /* 검색칸(8d, 8단계) */
 const mAreaHome   = { parent: $("#cmdbar"), before: $("#allcats") };   /* 회의자료/프로젝트 고르기 — 아이폰은 자료 목록 위 */
