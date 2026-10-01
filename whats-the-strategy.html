@@ -356,6 +356,9 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .doc .wk{flex:0 0 auto;min-width:26px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.04em;
   color:var(--muted2);background:none;border:1px solid var(--line);border-radius:0;padding:0 3px;line-height:15px;}
 .doc.sel .wk{color:var(--accent-ink);border-color:var(--accent-line);}
+/* 프로젝트 자료는 주차가 없어 W 태그 자리에 같은 틀의 문서 그림을 둡니다 */
+.doc .wk.pk{display:flex;align-items:center;justify-content:center;height:17px;box-sizing:border-box;}
+.doc .wk.pk svg{display:block;}
 .doc .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500;}
 .doc.sel .nm{font-weight:700;}
 .doc .tag{flex:0 0 auto;display:flex;color:var(--accent-ink);}
@@ -2024,6 +2027,7 @@ body.m .fold.mo{padding:9px 16px 9px 30px;font-size:14px;}
 body.m .fold .cnt{font-size:12.5px;}
 body.m .doc{gap:10px;padding:9px 16px 9px 44px;border-left:3px solid transparent;min-height:52px;}
 body.m .doc .wk{font-size:11.5px;min-width:30px;padding:2px 4px;}
+body.m .doc .wk.pk{height:21px;}
 body.m .doc .mtx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;}
 body.m .doc .nm{white-space:normal;font-size:15px;font-weight:700;color:var(--text);}
 body.m .doc.sel{background:var(--accent-soft);border-left-color:var(--accent);}
@@ -3876,6 +3880,9 @@ function newProjFolder(){
   KV.projFolders = (KV.projFolders || []).concat([f]); saveKV("projFolders");
   return f.id;
 }
+/* 프로젝트 자료 행의 문서 그림 — 접힌 모서리 + 글줄 두 개 */
+const PK_TAG = `<span class="wk pk" aria-hidden="true"><svg width="10" height="12" viewBox="0 0 10 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round">
+  <path d="M1.5 .9h4.6L8.6 3.4v7.7H1.5z"/><path d="M6 .9v2.6h2.6"/><path d="M3.3 6.4h3.5M3.3 8.6h3.5" stroke-linecap="round"/></svg></span>`;
 const PF_NEW_BTN = `<button type="button" class="pfnew" data-pfnew="1">+ 새 폴더</button>`;
 
 /* 아이폰 머리의 폴더 칩 — 켜진 폴더만 목록에 보입니다(기기별·메모리만) */
@@ -3918,6 +3925,7 @@ function renderProjTree(){
       if(mob){ html += docRowMobile(d); return; }
       html += `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
           title="${esc(d.title)}&#10;${esc(f.name)}">
+        ${PK_TAG}
         <span class="nm">${esc(d.title)}</span>
         ${d.hasPdf ? "" : '<span class="nopdf" title="원본 없이 글자만 저장됨">글자만</span>'}
       </div>`;
@@ -3987,6 +3995,7 @@ function docRowMobile(d){
   if(isProj(d)){
     const f = projFolderOf(d);
     return `<div class="doc ${now?"sel":""}" data-id="${d.id}" title="${esc(d.title)}">
+      ${PK_TAG}
       <span class="mtx"><span class="nm">${esc(d.title)}</span>
       <span class="mmeta">${esc(f ? f.name : "")} · ${d.pages||1}p${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span></span>
     </div>`;
