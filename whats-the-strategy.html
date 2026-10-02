@@ -214,9 +214,8 @@ button[disabled]{opacity:.45;cursor:default;}
 #copyright{position:absolute;right:18px;top:0;height:100%;display:flex;align-items:flex-end;
   padding-bottom:8px;white-space:nowrap;font-size:11px;color:var(--muted2);letter-spacing:.02em;
   pointer-events:none;user-select:none;}
-body.right-closed #copyright{display:none;}
 /* 검색칸 오른쪽 끝을 오른쪽 패널(NOTE) 왼쪽 선에 맞춥니다 — topright 버튼 3칸(168px) 제외 */
-body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
+#searchwrap{padding-right:calc(var(--right-w) - 166px);}
 .primarybtn{height:32px;padding:0 12px;white-space:nowrap;background:var(--accent);color:#fff;
   border:none;border-radius:0;font-weight:800;font-size:11.5px;letter-spacing:.04em;}
 .primarybtn:hover:not([disabled]){background:var(--accent-hover);}
@@ -239,7 +238,7 @@ body:not(.right-closed) #searchwrap{padding-right:calc(var(--right-w) - 166px);}
 /* 우선 모델(제미나이) 선택 — Filter 막대 오른쪽 끝 */
 #topmodellabel{flex:0 0 auto;}
 /* 왼쪽 세로선이 위쪽 오른쪽 단추 줄(#topright)의 왼쪽 선(회의 Agenda 칸)과 같은 자리 — 폭은 JS 가 --tr-w 로 맞춥니다 */
-#topmodelgrp{flex:0 1 auto;min-width:0;box-sizing:border-box;align-self:stretch;display:flex;align-items:center;
+#topmodelgrp{flex:0 0 auto;min-width:0;box-sizing:border-box;align-self:stretch;display:flex;align-items:center;
   margin-left:auto;margin-right:-20px;width:var(--tr-w,224px);padding:0 10px 0 12px;border-left:2px solid var(--line);}
 #topmodelgrp .cmdsep{display:none;}
 #topmodel{flex:0 1 auto;min-width:0;height:24px;max-width:180px;padding:0 6px;margin-right:0;
@@ -1884,7 +1883,7 @@ body.m .pfnew{width:auto;margin:8px 16px 0;padding:12px 10px;font-size:15px;}
   body:not(.left-closed) #backdrop,body:not(.right-closed) #backdrop{display:block;}
   body.full #backdrop{display:none;}
   :root{--left-w:min(84vw,300px);--right-w:min(92vw,560px);}
-  body:not(.right-closed) #searchwrap{padding-right:16px;}
+  #searchwrap{padding-right:16px;}
   #copyright{display:none;}
   #center{padding-left:var(--rail);padding-right:var(--rail);}
   #brand{display:none;}
@@ -13765,7 +13764,9 @@ const mCatsHome   = { parent: $("#cmdbar"), before: $("#addcat") };
 const mUploadHome = { parent: $(".side-head"), before: $(".side-head .closebtn") };
 /* Filter 막대 오른쪽 칸(AI Model)의 왼쪽 선을 위쪽 단추 줄 왼쪽 선에 맞춤 */
 if(window.ResizeObserver) new ResizeObserver(() => {
-  document.documentElement.style.setProperty("--tr-w", $("#topright").getBoundingClientRect().width + "px");
+  /* 동기화 단추가 숨겨져 있어도(56px) 그 자리를 비워 둔 폭으로 고정 */
+  const sd = $("#btn-syncdot"), extra = (sd && getComputedStyle(sd).display === "none") ? 56 : 0;
+  document.documentElement.style.setProperty("--tr-w", ($("#topright").getBoundingClientRect().width + extra) + "px");
 }).observe($("#topright"));
 const mModelHome  = { parent: $("#topmodelgrp") };   /* 모델 고르개는 무리의 맨 끝이 제자리입니다 */
 const mSearchHome = { parent: $("#topbar"), before: $("#topright") };   /* 검색칸(8d, 8단계) */
