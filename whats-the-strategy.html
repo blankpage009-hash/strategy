@@ -365,6 +365,30 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .doc .tag svg{display:block;}
 .doc .nopdf{flex:0 0 auto;font-size:9.5px;color:var(--muted3);}
 #empty,.emptybox{padding:14px 16px;color:var(--muted);font-size:12px;line-height:1.7;}
+/* 자료 줄 오른쪽 끝의 핀 — 평소엔 줄에 마우스를 올렸을 때만, 꽂은 자료는 늘 빨갛게 보입니다 */
+.doc .pin{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  margin:-2px -4px -2px 0;padding:0;border:none;background:none;border-radius:0;color:var(--muted2);
+  opacity:0;cursor:pointer;}
+.doc .pin svg{display:block;}
+.doc:hover .pin,.doc .pin:focus-visible{opacity:1;}
+.doc .pin:hover{color:var(--accent-ink);}
+.doc .pin.on{opacity:1;color:var(--accent);}
+.doc .pin.on svg{fill:currentColor;}
+/* Pinboard — MATERIALS 머리 바로 아래. 바를 누르면 여닫고, 자료가 많으면 칸 안에서만 스크롤합니다 */
+#pinboard{flex:0 0 auto;border-bottom:var(--rule-w) solid var(--rule);background:var(--panel);}
+#pinboard .pb-bar{width:100%;height:30px;display:flex;align-items:center;gap:6px;padding:0 16px 0 12px;
+  border:none;border-bottom:1px solid var(--hairline);border-radius:0;background:var(--panel2);color:var(--text);
+  font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;text-align:left;}
+#pinboard .pb-bar:hover{color:var(--accent-ink);}
+#pinboard .pb-caret{display:flex;transition:transform .12s ease;}
+#pinboard .pb-caret svg{display:block;}
+#pinboard.shut .pb-caret{transform:rotate(-90deg);}
+#pinboard.shut .pb-bar{border-bottom:none;}
+#pinboard .cnt{font-size:11px;font-weight:500;letter-spacing:0;color:var(--muted2);}
+#pb-list{max-height:34vh;overflow-y:auto;overflow-x:hidden;padding:2px 8px;}
+#pinboard.shut #pb-list{display:none;}
+#pb-list .doc{padding-left:12px;}
+.pb-empty{padding:8px 8px 10px;color:var(--muted);font-size:11.5px;line-height:1.6;}
 
 /* ---------- 검색 팝업(회의 Agenda 가 함께 씁니다) ---------- */
 .pophead{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:12px 14px;
@@ -2032,6 +2056,14 @@ body.m .doc .wk.pk svg{display:inline-block;vertical-align:middle;top:-1px;}   /
 body.m .doc .mtx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;}
 body.m .doc .nm{white-space:normal;font-size:15px;font-weight:700;color:var(--text);}
 body.m .doc.sel{background:var(--accent-soft);border-left-color:var(--accent);}
+/* 아이폰 — 마우스 올리기가 없어 핀을 늘 옅게 보여 두고, 손가락으로 누르기 좋게 크게 */
+body.m .doc .pin{width:36px;height:36px;margin:-8px -10px -8px 0;opacity:.5;}
+body.m .doc .pin.on{opacity:1;}
+body.m .doc .pin svg{width:17px;height:17px;}
+body.m #pinboard{margin:0 -16px;}
+body.m #pinboard .pb-bar{height:36px;padding:0 16px;font-size:12px;}
+body.m #pb-list{padding:0;}
+body.m #pb-list .doc{padding-left:16px;}
 body.m .doc .mmeta{font-size:12px;font-weight:500;color:var(--muted);}
 body.m .doc .mnow{color:var(--accent-ink);font-weight:800;}
 
@@ -2471,6 +2503,15 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
           </svg>
         </button>
         <button class="closebtn" data-close="left" title="접기">«</button></div>
+      <!-- Pinboard — 핀을 꽂은 자료만 모아 보는 칸. 바를 누르면 여닫습니다 -->
+      <div id="pinboard">
+        <button type="button" id="pb-toggle" class="pb-bar" aria-expanded="true" aria-controls="pb-list" title="Pinboard 여닫기">
+          <span class="pb-caret"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="3" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="pb-ttl">Pinboard</span><span class="cnt" id="pb-count"></span>
+        </button>
+        <div id="pb-list"></div>
+      </div>
       <div class="side-scroll">
         <div id="tree"></div>
         <div id="projtree" style="display:none"></div>
@@ -3617,7 +3658,11 @@ const KV_DEFAULT = {
   /* 지운 프로젝트 폴더 id — 동기화에서 다른 기기의 목록과 합칠 때 되살아나지 않게 남겨 둡니다(늘기만 함) */
   projFolderDel:[],
   /* 왼쪽 목록에서 지금 고른 영역 — "meet"(회의 자료) · "proj"(프로젝트). 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
-  area:"meet"
+  area:"meet",
+  /* Pinboard — 핀을 꽂은 자료 id(최근 것이 앞). 동기화·백업에 들어갑니다 */
+  pins:[],
+  /* Pinboard 칸을 펴 두었는지 — 기기별로만 둡니다 */
+  pinOpen:true
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -3632,6 +3677,7 @@ async function loadKV(){
   KV.projFolders = Array.isArray(KV.projFolders) ? KV.projFolders.map(f => Object.assign({}, f)) : [];
   KV.projFolderDel = Array.isArray(KV.projFolderDel) ? KV.projFolderDel.slice() : [];
   if(KV.area !== "proj") KV.area = "meet";
+  KV.pins = Array.isArray(KV.pins) ? KV.pins.slice() : [];
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
   if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
@@ -3886,6 +3932,46 @@ const PK_TAG = `<span class="wk pk" aria-hidden="true"><svg width="12" height="7
   <rect x="0" y="0" width="7" height="2.2"/><rect x="0" y="4.6" width="12" height="2.2"/></svg>&#8203;</span>`;
 const PF_NEW_BTN = `<button type="button" class="pfnew" data-pfnew="1">+ 새 폴더</button>`;
 
+/* Pinboard — 핀을 꽂은 자료만 왼쪽 목록 맨 위에 모아 둡니다(회의 자료·프로젝트 모두). KV.pins 는 최근에 꽂은 것이 앞 */
+const PIN_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 17v5"/>
+  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>`;
+const isPinned = id => (KV.pins || []).includes(id);
+function pinBtn(d){
+  const on = isPinned(d.id);
+  return `<button type="button" class="pin ${on?"on":""}" data-pin="${esc(d.id)}" aria-pressed="${on}"
+    title="${on ? "Pinboard 에서 빼기" : "Pinboard 에 꽂기"}" aria-label="${on ? "Pinboard 에서 빼기" : "Pinboard 에 꽂기"}">${PIN_SVG}</button>`;
+}
+function togglePin(id){
+  const pins = (KV.pins || []).filter(x => x !== id);
+  if(!isPinned(id)) pins.unshift(id);
+  KV.pins = pins; saveKV("pins");
+  renderTree();
+}
+function renderPinboard(){
+  const docs = (KV.pins || []).map(id => DOCS.find(d => d.id === id)).filter(Boolean);
+  const open = KV.pinOpen !== false;
+  $("#pinboard").classList.toggle("shut", !open);
+  $("#pb-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+  $("#pb-count").textContent = docs.length;
+  if(!open){ $("#pb-list").innerHTML = ""; return; }
+  if(!docs.length){
+    $("#pb-list").innerHTML = `<div class="pb-empty">자료 오른쪽 끝의 핀을 누르면 여기에 모입니다.</div>`;
+    return;
+  }
+  const mob = isMobile();
+  $("#pb-list").innerHTML = docs.map(d => {
+    if(mob) return docRowMobile(d);
+    const proj = isProj(d), f = proj ? projFolderOf(d) : null;
+    return `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
+        title="${esc(d.title)}&#10;${esc(proj ? (f ? f.name : "") : fmtYMW(d))}">
+      ${proj ? PK_TAG : `<span class="wk">W${weekOf(d)}</span>`}
+      <span class="nm">${esc(proj ? d.title : (d.short || d.title))}</span>
+      ${pinBtn(d)}
+    </div>`;
+  }).join("");
+}
+
 /* 아이폰 머리의 폴더 칩 — 켜진 폴더만 목록에 보입니다(기기별·메모리만) */
 function renderPfChips(){
   $("#pfchips").innerHTML = projFolderList().map(f => `<button class="cat ${S.offFolders.has(f.id)?"":"on"}" data-pfchip="${esc(f.id)}"
@@ -3929,6 +4015,7 @@ function renderProjTree(){
         ${PK_TAG}
         <span class="nm">${esc(d.title)}</span>
         ${d.hasPdf ? "" : '<span class="nopdf" title="원본 없이 글자만 저장됨">글자만</span>'}
+        ${pinBtn(d)}
       </div>`;
     });
   });
@@ -3937,6 +4024,7 @@ function renderProjTree(){
 
 function renderTree(){
   renderAreaTabs();
+  renderPinboard();
   if(KV.area === "proj"){ renderProjTree(); return; }
   const list = activeDocs();
   $("#listcount").textContent = list.length;
@@ -3983,6 +4071,7 @@ function renderTree(){
           <span class="nm">${esc(d.short || d.title)}</span>
           ${noteOf(d) ? NOTE_MARK : ""}
           ${d.hasPdf ? "" : '<span class="nopdf" title="원본 없이 글자만 저장됨">글자만</span>'}
+          ${pinBtn(d)}
         </div>`;
       });
     });
@@ -3999,6 +4088,7 @@ function docRowMobile(d){
       ${PK_TAG}
       <span class="mtx"><span class="nm">${esc(d.title)}</span>
       <span class="mmeta">${esc(f ? f.name : "")} · ${d.pages||1}p${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span></span>
+      ${pinBtn(d)}
     </div>`;
   }
   const date = d.date.slice(5).replace("-", ".");
@@ -4008,6 +4098,7 @@ function docRowMobile(d){
     <span class="mtx"><span class="nm">${esc(d.short || d.title)}</span>
     <span class="mmeta">${esc(d.cat)} · ${d.pages||1}p · ${date}${now ? ' · <span class="mnow">열람 중</span>' : ""}${d.hasPdf ? "" : " · 글자만"}</span></span>
     ${noteOf(d) ? NOTE_MARK : ""}
+    ${pinBtn(d)}
   </div>`;
 }
 
@@ -6877,7 +6968,7 @@ async function selectDoc(id){
   renderTree(); renderRight();
   if(isNarrow()) toggleSide("left", false);
   if(isMobile()) mGo("view");                                /* 아이폰은 뷰어 화면으로 넘어갑니다 (PDF 를 읽기 전에) */
-  const el = document.querySelector(".doc.sel");
+  const el = document.querySelector(".side-scroll .doc.sel");
   if(el && el.scrollIntoView) el.scrollIntoView({ block:"nearest" });
   await loadPdfFor(DOCS.find(d => d.id === id));
   mSyncView();                                               /* 원본 없는 자료도 아이폰 뷰어 머리를 새 자료로 */
@@ -6899,6 +6990,8 @@ async function closeDoc(){
 $("#btn-docclose").onclick = closeDoc;
 
 function onTreeClick(e){
+  const pin = e.target.closest("[data-pin]");
+  if(pin){ e.stopPropagation(); togglePin(pin.dataset.pin); return; }
   if(e.target.closest("[data-pfnew]")){
     const id = newProjFolder(); if(!id) return;
     S.open.add(projOpenKey(id));
@@ -6917,6 +7010,12 @@ function onTreeClick(e){
 }
 $("#tree").addEventListener("click", onTreeClick);
 $("#projtree").addEventListener("click", onTreeClick);
+$("#pb-list").addEventListener("click", onTreeClick);
+/* Pinboard 여닫기 — 이 기기에만 기억합니다 */
+$("#pb-toggle").addEventListener("click", () => {
+  KV.pinOpen = KV.pinOpen === false; saveKV("pinOpen");
+  renderPinboard();
+});
 /* 회의 자료 / 프로젝트 영역 바꾸기 — 고른 영역은 이 기기에만 기억합니다 */
 $("#areatabs").addEventListener("click", e => {
   const b = e.target.closest("button[data-area]"); if(!b || KV.area === b.dataset.area) return;
@@ -8234,6 +8333,7 @@ async function removeDoc(id){
   }
   ATTACH = ATTACH.filter(x => x.docId !== id);
   delete KV.tasks[id]; delete KV.sums[id]; delete KV.scripts[id]; delete KV.memos[id];
+  if(isPinned(id)){ KV.pins = KV.pins.filter(x => x !== id); saveKV("pins"); }
   DOCS = DOCS.filter(x => x.id !== id);
   if(S.sel === id){
     S.sel = null; KV.sel = null; saveKV("sel");
@@ -11834,7 +11934,7 @@ async function exportBackup(mode){
   };
   if(!dataOnly){
     meta.kv = { cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts, memos:KV.memos,
-                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders, projFolderDel:KV.projFolderDel };
+                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders, projFolderDel:KV.projFolderDel, pins:KV.pins };
     meta.notes  = Object.values(NOTES);
     meta.ainote = Object.values(AINOTES);
   }
@@ -11965,7 +12065,9 @@ $("#importfile").addEventListener("change", async e => {
         KV.projFolderDel = Array.from(new Set((KV.projFolderDel || []).concat(data.kv.projFolderDel)));
       KV.projFolders = mergeProjFolders(KV.projFolders, Array.isArray(data.kv.projFolders) ? data.kv.projFolders : [], KV.projFolderDel);
       saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("scripts"); saveKV("memos");
-      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders"); saveKV("projFolderDel");
+      if(Array.isArray(data.kv.pins))                          /* Pinboard — 지금 것 앞, 백업에만 있던 것 뒤 */
+        KV.pins = Array.from(new Set((KV.pins || []).concat(data.kv.pins)));
+      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders"); saveKV("projFolderDel"); saveKV("pins");
     }
     await loadAll();
     renderAll(); updateUsage();
@@ -12191,7 +12293,7 @@ async function ghDelete(path, sha){
 }
 
 /* ---------- 저장소 경로 규칙 (1-2 표 그대로) ---------- */
-const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders","projFolderDel"];
+const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders","projFolderDel","pins"];
 /* 이 열쇠들은 통째로 덮어쓰지 않고 서버 것과 합칩니다 — 올리기 직전에 서버 것을 받아 합친 뒤 올리고, 받을 때도 합칩니다.
    (2026-09-30 한 기기의 빈 폴더 목록이 아이폰에서 만든 폴더를 두 번이나 지워 버렸습니다) */
 const SYNC_MERGE_KV = ["projFolders","projFolderDel"];
