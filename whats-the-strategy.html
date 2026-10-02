@@ -3666,7 +3666,10 @@ const KV_DEFAULT = {
   projFolderDel:[],
   /* 왼쪽 목록에서 지금 고른 영역 — "meet"(회의 자료) · "proj"(프로젝트). 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
   area:"meet",
-  /* Pinboard — 핀을 꽂은 자료 id(최근 것이 앞). 동기화·백업에 들어갑니다 */
+  /* Pinboard — { 자료 id: { on: 꽂았나, t: 꽂거나 뺀 시각(ms) } }. 동기화·백업에 들어가고, 기기끼리는 자료마다 나중 것으로 합칩니다
+     (2026-10-02 통째로 덮어쓰던 목록을 다른 기기의 빈 목록이 지워 버렸습니다) */
+  pinMap:{},
+  /* 꽂은 자료 id(최근 것이 앞) — pinMap 에서 다시 만드는 값입니다. 옛 버전과 옮겨 오기용으로만 저장합니다(동기화 안 함) */
   pins:[],
   /* Pinboard 칸을 펴 두었는지 — 기기별로만 둡니다 */
   pinOpen:true
@@ -3685,6 +3688,13 @@ async function loadKV(){
   KV.projFolderDel = Array.isArray(KV.projFolderDel) ? KV.projFolderDel.slice() : [];
   if(KV.area !== "proj") KV.area = "meet";
   KV.pins = Array.isArray(KV.pins) ? KV.pins.slice() : [];
+  KV.pinMap = mergePinMap({}, KV.pinMap);
+  if(!rows.some(r => r.k === "pinMap") && KV.pins.length){
+    /* 옛 목록을 한 번 옮겨 옵니다. 시각을 아주 작게 두어 다른 기기에서 실제로 꽂거나 뺀 기록에는 항상 집니다(순서만 유지) */
+    KV.pins.forEach((id, i) => { KV.pinMap[id] = { on:true, t: KV.pins.length - i }; });
+    saveKV("pinMap");
+  }
+  KV.pins = pinListOf(KV.pinMap);
   /* 옛 이름 '브리핑' 은 '내부토의' 로 한 번 바꿔 줍니다 */
   const ren = s => (s === "브리핑" ? "내부토의" : s);
   if(Array.isArray(KV.cats) && KV.cats.includes("브리핑")){
@@ -3944,15 +3954,35 @@ const PF_NEW_BTN = `<button type="button" class="pfnew" data-pfnew="1">+ 새 폴
 const PIN_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
   <path transform="translate(-2 2) rotate(45 12 12)" d="M16 9V4h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v5a3 3 0 0 1-3 3v2h5.97v7l1 1 1-1v-7H19v-2a3 3 0 0 1-3-3z"/></svg>`;
 const isPinned = id => (KV.pins || []).includes(id);
+/* 두 pinMap 을 자료마다 나중에 꽂거나 뺀 쪽으로 합칩니다(a 를 바꾸지 않고 새로 만듭니다). 이상한 값은 버립니다 */
+function mergePinMap(a, b){
+  const out = {};
+  for(const src of [a, b]){
+    if(!src || typeof src !== "object" || Array.isArray(src)) continue;
+    for(const [id, v] of Object.entries(src)){
+      if(!v || typeof v.t !== "number") continue;
+      if(!out[id] || v.t > out[id].t) out[id] = { on: !!v.on, t: v.t };
+    }
+  }
+  return out;
+}
+/* pinMap → 꽂은 자료 id 목록(최근에 꽂은 것이 앞) */
+function pinListOf(map){
+  return Object.entries(map || {}).filter(([, v]) => v.on).sort((x, y) => y[1].t - x[1].t).map(([id]) => id);
+}
+/* 이 기기에서 꽂거나 뺍니다 */
+function setPin(id, on){
+  KV.pinMap[id] = { on, t: Date.now() };
+  KV.pins = pinListOf(KV.pinMap);
+  saveKV("pinMap");
+}
 function pinBtn(d){
   const on = isPinned(d.id);
   return `<button type="button" class="pin ${on?"on":""}" data-pin="${esc(d.id)}" aria-pressed="${on}"
     title="${on ? "Pinboard 에서 빼기" : "Pinboard 에 꽂기"}" aria-label="${on ? "Pinboard 에서 빼기" : "Pinboard 에 꽂기"}">${PIN_SVG}</button>`;
 }
 function togglePin(id){
-  const pins = (KV.pins || []).filter(x => x !== id);
-  if(!isPinned(id)) pins.unshift(id);
-  KV.pins = pins; saveKV("pins");
+  setPin(id, !isPinned(id));
   renderTree();
 }
 function renderPinboard(){
@@ -8340,7 +8370,7 @@ async function removeDoc(id){
   }
   ATTACH = ATTACH.filter(x => x.docId !== id);
   delete KV.tasks[id]; delete KV.sums[id]; delete KV.scripts[id]; delete KV.memos[id];
-  if(isPinned(id)){ KV.pins = KV.pins.filter(x => x !== id); saveKV("pins"); }
+  if(isPinned(id)) setPin(id, false);
   DOCS = DOCS.filter(x => x.id !== id);
   if(S.sel === id){
     S.sel = null; KV.sel = null; saveKV("sel");
@@ -11941,7 +11971,7 @@ async function exportBackup(mode){
   };
   if(!dataOnly){
     meta.kv = { cats:KV.cats, tasks:KV.tasks, sums:KV.sums, scripts:KV.scripts, memos:KV.memos,
-                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders, projFolderDel:KV.projFolderDel, pins:KV.pins };
+                storeMode:KV.storeMode, agendas:KV.agendas, catMap:KV.catMap, projFolders:KV.projFolders, projFolderDel:KV.projFolderDel, pinMap:KV.pinMap, pins:KV.pins };
     meta.notes  = Object.values(NOTES);
     meta.ainote = Object.values(AINOTES);
   }
@@ -12072,9 +12102,12 @@ $("#importfile").addEventListener("change", async e => {
         KV.projFolderDel = Array.from(new Set((KV.projFolderDel || []).concat(data.kv.projFolderDel)));
       KV.projFolders = mergeProjFolders(KV.projFolders, Array.isArray(data.kv.projFolders) ? data.kv.projFolders : [], KV.projFolderDel);
       saveKV("cats"); saveKV("tasks"); saveKV("sums"); saveKV("scripts"); saveKV("memos");
-      if(Array.isArray(data.kv.pins))                          /* Pinboard — 지금 것 앞, 백업에만 있던 것 뒤 */
-        KV.pins = Array.from(new Set((KV.pins || []).concat(data.kv.pins)));
-      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders"); saveKV("projFolderDel"); saveKV("pins");
+      /* Pinboard — 자료마다 나중 기록으로 합칩니다. 옛 백업(pins 목록만 있음)은 이 기기에 기록이 없는 자료만 꽂습니다 */
+      if(data.kv.pinMap) KV.pinMap = mergePinMap(KV.pinMap, data.kv.pinMap);
+      else if(Array.isArray(data.kv.pins))
+        data.kv.pins.forEach((id, i) => { if(!KV.pinMap[id]) KV.pinMap[id] = { on:true, t: data.kv.pins.length - i }; });
+      KV.pins = pinListOf(KV.pinMap);
+      saveKV("agendas"); saveKV("catMap"); saveKV("projFolders"); saveKV("projFolderDel"); saveKV("pinMap");
     }
     await loadAll();
     renderAll(); updateUsage();
@@ -12300,12 +12333,20 @@ async function ghDelete(path, sha){
 }
 
 /* ---------- 저장소 경로 규칙 (1-2 표 그대로) ---------- */
-const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders","projFolderDel","pins"];
+/* Pinboard 는 "pinMap" 으로 올립니다. 옛 버전이 쓰던 kv/pins.enc 는 더 이상 받지도 올리지도 않습니다 */
+const SYNC_KV_KEYS = ["cats","offcats","tasks","sums","scripts","memos","agendas","agOff","catMap","projFolders","projFolderDel","pinMap"];
 /* 이 열쇠들은 통째로 덮어쓰지 않고 서버 것과 합칩니다 — 올리기 직전에 서버 것을 받아 합친 뒤 올리고, 받을 때도 합칩니다.
    (2026-09-30 한 기기의 빈 폴더 목록이 아이폰에서 만든 폴더를 두 번이나 지워 버렸습니다) */
-const SYNC_MERGE_KV = ["projFolders","projFolderDel"];
-/* 서버 값 v 를 이 기기 KV 에 합칩니다. { remote: 합친 결과가 서버 값과 달라 올려야 하나, folders: 폴더 목록이 바뀌었나 } */
+const SYNC_MERGE_KV = ["projFolders","projFolderDel","pinMap"];
+/* 서버 값 v 를 이 기기 KV 에 합칩니다. { remote: 합친 결과가 서버 값과 달라 올려야 하나, folders: 폴더 목록이 바뀌었나, pins: Pinboard 가 바뀌었나 } */
 function syncMergeKvValue(key, v){
+  if(key === "pinMap"){
+    const norm = m => JSON.stringify(Object.keys(m).sort().map(id => [id, m[id].on, m[id].t]));
+    const before = norm(KV.pinMap), server = mergePinMap({}, v);
+    KV.pinMap = mergePinMap(KV.pinMap, server);
+    KV.pins = pinListOf(KV.pinMap);
+    return { remote: norm(KV.pinMap) !== norm(server), folders:false, pins: norm(KV.pinMap) !== before };
+  }
   const r = Array.isArray(v) ? v : [];
   const norm = list => JSON.stringify(list.slice().sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const beforeFolders = norm(mergeProjFolders(KV.projFolders, [], []));
@@ -12335,10 +12376,8 @@ async function syncMergeKvBeforePush(key, path){
   const rv = (await syncDecodeRecord("kv", key, await ghGetBlob(sha))).v;
   const m = syncMergeKvValue(key, rv);
   await syncSaveMergeKv();
-  if(m.folders){
-    if(key === "projFolderDel") await syncMarkDirtyNoSchedule("kv", "projFolders");
-    syncRenderSoon();
-  }
+  if(m.folders && key === "projFolderDel") await syncMarkDirtyNoSchedule("kv", "projFolders");
+  if(m.folders || m.pins) syncRenderSoon();
   return sha;
 }
 /* store 이름 → 저장소 폴더 이름. kv·notes 는 규칙이 달라 아래에서 따로 다룹니다 */
@@ -12847,6 +12886,7 @@ async function syncPull(opts){
     const toGet = [], toDel = [];
     for(const [path, sha] of Object.entries(tree)){
       const where = syncKeyOf(path); if(!where) continue;
+      if(where.store === "kv" && !SYNC_KV_KEYS.includes(where.key)) continue;   /* 옛 버전 파일(kv/pins.enc 등)은 받지 않습니다 */
       const rec = local.get(path);
       const lazy = where.store === "files" || where.store === "attachfile";
       if(rec && rec.sha === sha && (!opts.force || lazy)) continue;          /* 이미 맞춰짐 */
@@ -12856,6 +12896,8 @@ async function syncPull(opts){
     for(const rec of local.values()){
       if(tree[rec.path] !== undefined) continue;
       if(!rec.sha || rec.deleted) continue;                 /* 새로 만든 것 · 이미 지운 것 → 올리기가 처리 */
+      const ow = syncKeyOf(rec.path);
+      if(ow && ow.store === "kv" && !SYNC_KV_KEYS.includes(ow.key)) continue;   /* 옛 버전 파일 — 이 기기 값은 건드리지 않습니다 */
       if(rec.dirty){ result.conflicts++; continue; }        /* 서버에선 지웠지만 여기서 고침 → 이 기기 것 유지 */
       toDel.push(rec);
     }
