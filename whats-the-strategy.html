@@ -3858,7 +3858,7 @@ const projTitleDesc = (a,b) => String(b.title).localeCompare(String(a.title), "k
 /* 영역 고르기 줄 — 고른 쪽을 검게, 개수는 영역별 */
 function renderAreaTabs(){
   const proj = KV.area === "proj";
-  $("#areatab-meet .cnt").textContent = activeDocs().length;
+  $("#areatab-meet .cnt").textContent = DOCS.filter(d => !isProj(d)).length;   /* Filter 와 상관없이 전체 개수 */
   $("#areatab-proj .cnt").textContent = projectDocs().length;
   [["meet", !proj], ["proj", proj]].forEach(([a, on]) => {
     const b = $("#areatab-" + a);
