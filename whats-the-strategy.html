@@ -6679,7 +6679,7 @@ const mgCatOptions = cur =>
 /* 기본 연도 칸(올해 ±)에 없는 옛 자료면 그 연도를 끼워 넣습니다 */
 const mgYearOptions = cur => {
   const now = new Date().getFullYear(), y = parseInt(cur, 10);
-  const extra = (y && (y > now + 1 || y < now - 5)) ? sel(y, cur, y + "년") : "";
+  const extra = (y && (y > now + 1 || y < 2000)) ? sel(y, cur, y + "년") : "";
   return extra + yearOptions(cur);
 };
 const mgMeta = d =>
@@ -11051,7 +11051,7 @@ const sel = (v, cur, label) =>
 const catOptions   = cur => KV.cats.map(c => sel(c, cur, c)).join("");
 const yearOptions  = cur => {
   const now = new Date().getFullYear(), out = [];
-  for(let y = now + 1; y >= now - 5; y--) out.push(sel(y, cur, y + "년"));
+  for(let y = now + 1; y >= 2000; y--) out.push(sel(y, cur, y + "년"));
   return out.join("");
 };
 const monthOptions = cur => {
