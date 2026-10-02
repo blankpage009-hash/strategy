@@ -303,13 +303,13 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .side-head .closebtn:hover{color:var(--accent-ink);}
 .side-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;padding-bottom:28px;}
-/* 왼쪽 목록 스크롤바 — 기본(약 15px, 위아래 화살표)보다 훨씬 얇은 6px로 */
-/* 가운데 쪽 미리보기 띠(#thumbs)도 같게 */
-.side-scroll::-webkit-scrollbar,#thumbs::-webkit-scrollbar{width:6px;}
-.side-scroll::-webkit-scrollbar-track,#thumbs::-webkit-scrollbar-track{background:transparent;}
-.side-scroll::-webkit-scrollbar-thumb,#thumbs::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted2) 20%,var(--line));border-radius:0;}
-.side-scroll::-webkit-scrollbar-thumb:hover,#thumbs::-webkit-scrollbar-thumb:hover{background:var(--muted2);}
-.side-scroll::-webkit-scrollbar-button,#thumbs::-webkit-scrollbar-button{display:none;}
+/* 스크롤바 — 앱 전체를 한 모양으로: 6px, 화살표 없음, 연한 막대 (안 보이게 한 곳은 각자의 display:none 이 더 세서 그대로 숨음) */
+*::-webkit-scrollbar{width:6px;height:6px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-corner{background:transparent;}
+*::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted2) 20%,var(--line));border-radius:0;}
+*::-webkit-scrollbar-thumb:hover{background:var(--muted2);}
+*::-webkit-scrollbar-button{display:none;}
 
 /* ---------- 왼쪽 ---------- */
 .grouphead{padding:10px 10px 4px;font-size:11px;font-weight:700;color:var(--muted2);letter-spacing:.03em;
