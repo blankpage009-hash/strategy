@@ -223,7 +223,7 @@ button[disabled]{opacity:.45;cursor:default;}
 #topright{flex:0 0 auto;display:flex;align-items:stretch;}
 .plainbtn{display:flex;align-items:center;justify-content:center;width:56px;
   border:none;border-left:1px solid var(--hairline);background:none;border-radius:0;
-  line-height:1;color:var(--text);padding:0;}
+  line-height:1;color:var(--text);padding:0 1px 0 0;}   /* 왼쪽 선 1px 만큼 오른쪽을 비워 아이콘이 칸 정중앙에 오게 */
 .plainbtn:hover{background:var(--accent-soft);color:var(--accent-ink);}
 .plainbtn svg{display:block;}
 #btn-agenda{border-left:2px solid var(--line);}
@@ -243,7 +243,7 @@ button[disabled]{opacity:.45;cursor:default;}
 #topmodelgrp .cmdsep{display:none;}
 #topmodel{flex:0 1 auto;min-width:0;height:24px;max-width:180px;padding:0 6px;margin-right:0;
   border:2px solid var(--line);border-radius:0;background:var(--panel2);color:var(--muted);
-  font-size:11px;font-weight:700;}
+  font-size:11px;font-weight:400;}
 #topmodel:hover{border-color:var(--accent);color:var(--accent-ink);}
 #cats{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;
   overflow-x:auto;overflow-y:hidden;cursor:grab;scrollbar-width:none;}
@@ -2183,7 +2183,7 @@ body.m[data-mscr="view"][data-msheet="script"] .msmodel{flex:0 0 auto;display:fl
   padding:10px 20px;border-bottom:1px solid var(--line);}
 .msmodel .lb{flex:0 0 auto;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
 .msmodel #topmodel{flex:1 1 auto;min-width:0;max-width:none;height:30px;margin:0;padding:0 12px;
-  border:1px solid var(--rule);border-radius:0;background:var(--surface);color:var(--text);font-size:14px;font-weight:700;}
+  border:1px solid var(--rule);border-radius:0;background:var(--surface);color:var(--text);font-size:14px;font-weight:400;}
 /* 본문 — 시트 안에서만 굴러갑니다. 바닥 줄이 없는 시트는 홈 막대 자리만큼 아래를 띄웁니다 */
 body.m[data-mscr="view"][data-msheet] #rbody{flex:1 1 auto;min-height:0;}
 body.m[data-mscr="view"][data-msheet]:not([data-msheet="sum"]):not([data-msheet="note"]):not([data-msheet="script"]) .msheet{padding-bottom:env(safe-area-inset-bottom);}
