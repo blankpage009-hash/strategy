@@ -290,7 +290,9 @@ body.right-closed #right{width:var(--rail);}
 .rail:hover{background:var(--panel2);color:var(--accent);}
 .rail .lbl{writing-mode:vertical-rl;letter-spacing:.14em;font-size:10.5px;margin-top:8px;}
 .rail .arw{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:14px;font-weight:700;line-height:1;}
-body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
+body.left-closed #left .rail,body.right-closed #right .rail{display:flex;z-index:1;}
+/* 접힌 서랍 속 내용은 숨깁니다 — 아이패드 Safari 에서 스크롤 칸 등이 세로 띠 위로 비쳐 보이던 것을 막음 */
+body:not(.m).left-closed #left .side-inner,body:not(.m).right-closed #right .side-inner{visibility:hidden;}
 
 .side-inner{width:var(--left-w);display:flex;flex-direction:column;min-height:0;flex:1 1 auto;}
 #right .side-inner{width:var(--right-w);}
