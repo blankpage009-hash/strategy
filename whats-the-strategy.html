@@ -4182,7 +4182,7 @@ function renderTree(){
     if(!yOpen) return;
 
     Object.keys(months).sort().reverse().forEach(m => {
-      const docs = months[m], mOpen = S.open.has(m);
+      const docs = months[m].slice().sort((a,b) => (+weekOf(b) || 0) - (+weekOf(a) || 0)), mOpen = S.open.has(m);
       html += `<div class="fold mo ${mOpen?"":"shut"}" data-k="${m}">${caretSvg(11)}
         <span class="nm">${parseInt(m.slice(5),10)}월</span>
         <span class="cnt">${docs.length}</span></div>`;
@@ -6847,7 +6847,7 @@ function mgChips(){
 }
 
 /* 탭 → 칩 → 원본 없음 → 검색(이름 · 종류 · 폴더 이름) 순으로 거릅니다.
-   정렬 — 회의자료는 연도 최신순, 연도 안에서는 월·주차 오름차순(4월 → 10월), 같은 주차는 제목순.
+   정렬 — 회의자료는 연·월·주차 모두 내림차순(최신이 위), 같은 주차는 제목순.
    프로젝트는 폴더 목록 순서 → 제목순. 연·주차는 글자일 수 있어 숫자로 바꿔 비교합니다. */
 function mgRows(){
   const on = MG.on[MG.tab], q = MG.q.trim().toLowerCase();
@@ -6861,8 +6861,8 @@ function mgRows(){
                     || ((projFolderOf(d) || {}).name || "").toLowerCase().includes(q))
     .sort(MG.tab === "proj"
       ? (a,b) => (fi.get(a.folder) || 0) - (fi.get(b.folder) || 0) || byTitle(a,b)
-      : (a,b) => (+yearOf(b) || 0) - (+yearOf(a) || 0) || monthOf(a) - monthOf(b)
-              || (+weekOf(a) || 0) - (+weekOf(b) || 0) || byTitle(a,b));
+      : (a,b) => (+yearOf(b) || 0) - (+yearOf(a) || 0) || monthOf(b) - monthOf(a)
+              || (+weekOf(b) || 0) - (+weekOf(a) || 0) || byTitle(a,b));
 }
 
 /* 묶음 키 — 연도 y2026 · 월 y2026m10 · 폴더 f<폴더id> (날짜가 없는 자료는 y0) */
