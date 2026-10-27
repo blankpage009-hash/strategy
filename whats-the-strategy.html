@@ -2062,6 +2062,35 @@ body.m[data-mscr="settings"] .cmrow select,body.m[data-mscr="settings"] .cmrow i
 body.m[data-mscr="settings"] .cmrow .del{min-height:32px;height:32px;}
 body.m[data-mscr="settings"] .mrow select,body.m[data-mscr="settings"] .mrow input[type=text],
 body.m[data-mscr="settings"] .mrow input[type=password]{min-height:44px;font-size:16px;}
+/* 자료 관리 손가락 손질(PLAN-MANAGE-V2 4단계) — 탭·묶음 머리·체크는 손가락 크기로, 칩은 한 줄 가로 넘김,
+   자료 한 줄은 두 줄(체크·W·이름 / 메타·단추 넷)로, 글자 입력칸은 16px(iOS 확대 방지) */
+body.m #managebg .mgtabs button{height:44px;}
+body.m #managebg .mgfilt{padding:10px 0 0 16px;gap:8px;}
+body.m #managebg .mgflabel{height:32px;min-width:0;}
+body.m #managebg #mgchips{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:0 16px 2px 0;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+body.m #managebg #mgchips::-webkit-scrollbar{display:none;}
+body.m #managebg .mgchip{flex:0 0 auto;height:32px;}
+body.m #managebg .mgchip.all{width:32px;}
+body.m #managebg #mgtools{padding:8px 16px 9px;}
+body.m #managebg #mgsearch{flex:1 1 100%;height:40px;font-size:16px;}
+body.m #managebg .mgtbtn{height:36px;}
+body.m #managebg .mgselbar{padding:0 16px;min-height:44px;}
+body.m #managebg #mgclr{min-height:44px;padding:0 6px;}
+body.m #managebg .mgyr,body.m #managebg .mggrp{height:44px;}
+body.m #managebg #mglist input[type=checkbox]{width:22px;height:22px;}
+body.m #managebg .mgrow{flex-wrap:wrap;gap:6px;padding:8px 16px 10px 16px;}
+body.m #managebg .mgchk{margin-right:2px;}
+body.m #managebg .mgname{flex:1 1 calc(100% - 80px);height:40px;font-size:16px;}
+body.m #managebg .mgrow .meta{flex:1 0 100%;padding:0 0 0 2px;}      /* 메타는 줄 하나를 차지하고 */
+body.m #managebg .mgrow .meta:empty{display:none;}
+body.m #managebg .mgrb{flex:1 1 auto;height:32px;padding:0 6px;}       /* 단추 넷은 그 아래 한 줄에 */
+body.m #managebg .mgmovep{padding:10px 16px 12px;}
+body.m #managebg .mgmovep select{height:36px;font-size:16px;flex:1 1 40%;min-width:0;}
+body.m #managebg .mgmovep select.cat{flex:1 1 100%;}
+body.m #managebg .mgseg button{height:36px;}
+body.m #managebg .mgmoveok,body.m #managebg .mgmovecancel{height:36px;padding:0 14px;}
+body.m #managebg .mgmovep .sp{flex:1 1 0;}
 /* 화면 아래에 붙는 것들은 탭 줄 위로 올립니다 */
 body.m #hitbar:not([hidden]){bottom:var(--mtab);}
 body.m #toast{bottom:calc(var(--mtab) + 16px);}
