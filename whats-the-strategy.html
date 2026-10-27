@@ -8405,7 +8405,16 @@ $("#topmodel").addEventListener("change", e => {
     ctx.beginPath();
     ctx.moveTo(pts[0][0] * w, pts[0][1] * h);
     if(pts.length === 1){ ctx.lineTo(pts[0][0] * w + 0.01, pts[0][1] * h); }
-    else for(let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * w, pts[i][1] * h);
+    else{
+      /* 점과 점을 직선으로 꺾지 않고, 이웃한 두 점의 가운데를 지나는 곡선으로 잇습니다
+         (점은 곡선을 당기는 손잡이). 저장된 점은 그대로라 예전 획도 매끄럽게 그려집니다 */
+      for(let i = 1; i < pts.length - 1; i++){
+        const x = pts[i][0] * w, y = pts[i][1] * h;
+        ctx.quadraticCurveTo(x, y, (x + pts[i+1][0] * w) / 2, (y + pts[i+1][1] * h) / 2);
+      }
+      const z = pts[pts.length - 1];
+      ctx.lineTo(z[0] * w, z[1] * h);
+    }
     ctx.stroke();
     ctx.restore();
   }
@@ -8413,7 +8422,40 @@ $("#topmodel").addEventListener("change", e => {
   /* ---- 좌표 변환 ---- */
   function norm(e){
     const r = layer.getBoundingClientRect();
-    return [ (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height ];
+    /* 소수 다섯째 자리까지만 — 종이 폭 2000px 에서 0.02px 라 눈에 안 보이고, 펜슬 점이 많아져도 저장·동기화 크기가 덜 붇습니다 */
+    const q = v => Math.round(v * 1e5) / 1e5;
+    return [ q((e.clientX - r.left) / r.width), q((e.clientY - r.top) / r.height) ];
+  }
+
+  /* ---- 긋는 동안엔 '지금 긋는 획'만 다시 그립니다 ----
+     획을 시작할 때 이미 그려진 판을 한 장 떠 두고(liveBase), 화면이 바뀔 때마다
+     그 사본을 붙인 뒤 지금 획만 얹습니다. 쪽에 획이 많아도 펜 끝을 늦게 따라오지 않고,
+     형광펜처럼 반투명한 획도 겹친 자리가 진해지지 않습니다. */
+  const liveBase = document.createElement("canvas");
+  let liveRaf = 0;
+  const liveCanvas = () => DRAW.cur && DRAW.cur.t === "hi" ? layerHi : layer;
+  function liveStart(){
+    const src = liveCanvas();
+    liveBase.width = src.width; liveBase.height = src.height;
+    liveBase.getContext("2d").drawImage(src, 0, 0);
+  }
+  function liveSoon(){ if(!liveRaf) liveRaf = requestAnimationFrame(liveDraw); }
+  function liveDraw(){
+    liveRaf = 0;
+    if(!DRAW.drawing || !DRAW.cur) return;
+    const src = liveCanvas(), ctx = src === layerHi ? hctx : octx;
+    if(liveBase.width !== src.width || liveBase.height !== src.height){ repaint(); return; }   /* 긋는 중 판 크기가 바뀜 */
+    const { w, h } = cssSize();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, src.width, src.height);
+    ctx.drawImage(liveBase, 0, 0);
+    ctx.restore();
+    paintStroke(DRAW.cur, w, h);
+  }
+  function liveEnd(){
+    if(liveRaf){ cancelAnimationFrame(liveRaf); liveRaf = 0; }
+    liveBase.width = liveBase.height = 0;   /* 아이패드 Safari 는 캔버스 메모리가 빠듯해 바로 돌려줍니다 */
   }
 
   /* ---- 그리기 ---- */
@@ -8467,7 +8509,7 @@ $("#topmodel").addEventListener("change", e => {
     if(fingerIgnored(e)) return;              /* 손가락(손바닥) — 그리기·포인터 개수에서 뺍니다 */
     DRAW.ptrs++;
     if(DRAW.ptrs > 1){                       /* 두 번째 손가락 — 확대 동작에 양보 */
-      if(DRAW.drawing){ DRAW.drawing = false; DRAW.cur = null; DRAW.past.pop(); repaint(); }
+      if(DRAW.drawing){ DRAW.drawing = false; liveEnd(); DRAW.cur = null; DRAW.past.pop(); repaint(); }
       return;
     }
     e.preventDefault();
@@ -8480,6 +8522,7 @@ $("#topmodel").addEventListener("change", e => {
       return;
     }
     snapshot();
+    repaint();                                /* 이미 그려진 획만 있는 판 — 이걸 떠 둡니다 */
     const g = DRAW.tool === "hi" ? DRAW.hi : DRAW.pen;
     DRAW.cur = {
       t: DRAW.tool === "hi" ? "hi" : "pen",
@@ -8489,7 +8532,8 @@ $("#topmodel").addEventListener("change", e => {
     };
     if(DRAW.tool === "hi") DRAW.cur.a = DRAW.hi.alpha;
     DRAW.drawing = true;
-    repaint();
+    liveStart();
+    liveDraw();
   });
 
   layer.addEventListener("pointermove", e => {
@@ -8497,10 +8541,17 @@ $("#topmodel").addEventListener("change", e => {
     if(fingerIgnored(e)) return;
     e.preventDefault();
     if(DRAW.tool === "eraser"){ eraseAt(norm(e)); return; }
-    const p = norm(e), pts = DRAW.cur.p, last = pts[pts.length - 1];
-    if(Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.0015) return;
-    pts.push(p);
-    repaint();
+    /* 애플펜슬은 1초에 240번 위치를 보내지만 pointermove 는 화면 주기마다 한 번만 옵니다.
+       그 사이에 묶여 온 점(getCoalescedEvents)을 모두 받아야 빠르게 쓴 곡선이 깎이지 않습니다 */
+    let evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+    if(!evs || !evs.length) evs = [e];
+    const { w, h } = cssSize(), pts = DRAW.cur.p, n0 = pts.length;
+    for(const ev of evs){
+      const p = norm(ev), last = pts[pts.length - 1];
+      if(Math.hypot((p[0] - last[0]) * w, (p[1] - last[1]) * h) < 0.75) continue;   /* 화면 0.75px 보다 가까운 점은 건너뜀 */
+      pts.push(p);
+    }
+    if(pts.length !== n0) liveSoon();
   });
 
   function endStroke(e){
@@ -8509,6 +8560,7 @@ $("#topmodel").addEventListener("change", e => {
     DRAW.ptrs = Math.max(0, DRAW.ptrs - 1);
     if(!DRAW.drawing) return;
     DRAW.drawing = false;
+    liveEnd();
     if(DRAW.tool !== "eraser" && DRAW.cur){
       if(DRAW.cur.p.length) curList().push(DRAW.cur);
       else DRAW.past.pop();
