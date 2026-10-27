@@ -1616,16 +1616,20 @@ body.m #mgsearch{border:2px solid var(--ink,#222);}
 .mgmove.on,.mgmove.on:hover{background:var(--areabar);border-color:var(--areabar);color:var(--areabar-ink);}
 .mgdel{border-color:var(--bad);color:var(--bad);font-weight:700;}
 .mgdel:hover:not([disabled]){background:var(--bad);border-color:var(--bad);color:var(--surface);}
-/* 자료 이동 칸 — 줄 바로 아래 흰 띠(3단계에서 시안의 이동 패널로 바뀝니다) */
-.mgbot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px 12px 77px;
+/* 자료 이동 패널 — 줄 바로 아래 흰 띠: 이동 위치 · 회의자료|프로젝트 · 셀렉트 · 취소 / 옮기기 */
+.mgmovep{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 16px 12px 77px;
   background:var(--surface);border-bottom:1px solid var(--line);}
-.mgbot select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
+.mgmovep .ml{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--muted);margin-right:4px;}
+.mgmovep .sp{flex:1 1 0;}
+.mgseg{display:inline-flex;border:1px solid var(--ink,#222);margin-right:8px;}
+.mgseg button{height:28px;padding:0 10px;border:none;border-radius:0;background:var(--surface);
+  color:var(--text);font-size:12px;cursor:pointer;}
+.mgseg button.on{background:var(--ink,#222);color:var(--surface,#fff);}
+.mgmovep select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
   background:var(--surface);font-size:12px;}
-.mgbot select.cat{flex:0 1 190px;min-width:110px;}
-.mgbot .meta{font-size:11px;color:var(--muted);white-space:nowrap;}
+.mgmovep select.cat{flex:0 1 190px;min-width:110px;}
 .mgmoveok,.mgmovecancel{flex:0 0 auto;height:28px;padding:0 10px;border:1px solid var(--line);border-radius:0;
   background:var(--bg);color:var(--muted);font-size:12px;white-space:nowrap;}
-.mgmovecancel{margin-left:auto;}
 .mgmovecancel:hover{border-color:var(--text);color:var(--text);}
 .mgmoveok{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:700;}
 .mgmoveok:hover{background:var(--accent-ink);border-color:var(--accent-ink);}
@@ -2996,9 +3000,9 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
     <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span>
 <button type="button" id="mghintbtn" aria-label="설명 보기" aria-expanded="false" title="설명 보기">i</button> <button class="x" id="mgclose">✕</button></header>
     <div id="mghint">
-      이름·회의 종류·날짜·폴더는 <b>고치는 즉시 저장</b>됩니다.
+      이름은 <b>고치는 즉시 저장</b>됩니다.
+      종류·날짜·폴더 변경과 회의 자료 ↔ 프로젝트 이동은 줄 끝 <b>자료 이동</b>에서 <b>옮기기</b>를 눌러 적용합니다.
       종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
-      프로젝트 자료는 <b>폴더</b>만 고르며, 줄 끝 단추로 회의 자료 ↔ 프로젝트를 옮길 수 있습니다.
     </div>
     <div class="mgtabs">
       <button type="button" class="on" data-mgtab="meet">회의자료 <span class="n" id="mgn-meet"></span></button>
@@ -6779,7 +6783,7 @@ const mgYearOptions = cur => {
    그래야 사라지지 않습니다. known 은 이미 칩으로 본 키라서, 새 종류·새 폴더는 켜진 채로 들어옵니다.
    closed 는 접힌 묶음 키(y2026 · y2026m10 · f<폴더id>), sel 은 고른 자료 id 입니다 — 묶음을 접어도 선택은 남습니다. */
 const MG = { tab:"meet", on:{ meet:null, proj:null }, known:{ meet:new Set(), proj:new Set() },
-             q:"", nopdf:false, closed:new Set(), sel:new Set(), moving:new Set() };
+             q:"", nopdf:false, closed:new Set(), sel:new Set(), moving:new Set(), mv:{} };
 
 function mgCatList(){
   const set = new Set(KV.cats);
@@ -6843,18 +6847,33 @@ function mgGroupKeys(rows){
 /* 고른 자료 id — 화면 체크가 아니라 상태(MG.sel) 기준이라 접힌 묶음 안의 선택도 들어갑니다 */
 const mgChecked = () => [...MG.sel];
 
-/* 자료 이동 칸 — 「자료 이동」을 누른 줄 바로 아래에 「어디로 옮길지」 고르는 띠를 펼칩니다(3단계에서 새 패널로 바뀝니다) */
-const mgFolderPick = () => `<select data-f="destfolder"><option value="">폴더 고르기</option>${folderOptions("")}</select>`;
-function mgBot(d){
-  const now = new Date();
-  const dest = isProj(d)
-    ? `<select class="cat" data-f="destcat">${catOptions(KV.cats[0])}</select>
-       <select data-f="destyear">${yearOptions(now.getFullYear())}</select>
-       <select data-f="destmonth">${monthOptions(now.getMonth() + 1)}</select>
-       <select data-f="destweek">${weekOptions(weekOfDate(mkDate(now.getFullYear(), now.getMonth() + 1, 1)))}</select>`
-    : mgFolderPick();
-  return `<span class="meta">${isProj(d) ? "회의 자료로 옮기기 —" : "프로젝트로 옮기기 —"}</span>${dest}
-    <button class="mgmovecancel">취소</button><button class="mgmoveok">옮기기</button>`;
+/* 자료 이동 패널 — 「자료 이동」을 누른 줄 바로 아래에 펼칩니다.
+   「이동 위치」 칸에서 회의자료 | 프로젝트를 고르고(처음에는 지금과 반대쪽), 회의자료면 종류·연·월·주차를,
+   프로젝트면 폴더를 고른 뒤 「옮기기」를 눌러야 적용됩니다. 같은 영역 안에서 종류·날짜·폴더만 바꿀 수도 있습니다.
+   고르던 값(MG.mv)은 목록이 다시 그려져도 남도록 상태로 들고 있습니다. */
+function mgMoveDraft(d){
+  let m = MG.mv[d.id];
+  if(m) return m;
+  const now = new Date(), proj = isProj(d);
+  m = MG.mv[d.id] = proj
+    ? { to:"meet", cat:KV.cats[0] || "", y:now.getFullYear(), m:now.getMonth() + 1,
+        w:weekOfDate(mkDate(now.getFullYear(), now.getMonth() + 1, 1)), folder:d.folder || "" }
+    : { to:"proj", cat:d.cat || "", y:+yearOf(d) || now.getFullYear(), m:monthOf(d), w:+weekOf(d) || 1, folder:"" };
+  return m;
+}
+function mgMoveP(d){
+  const m = mgMoveDraft(d), toProj = m.to === "proj";
+  const dest = toProj
+    ? `<select data-mf="folder"><option value="">폴더 고르기</option>${folderOptions(m.folder)}</select>`
+    : `<select class="cat" data-mf="cat">${mgCatOptions(m.cat)}</select>
+       <select data-mf="y">${mgYearOptions(m.y)}</select>
+       <select data-mf="m">${monthOptions(m.m)}</select>
+       <select data-mf="w">${weekOptions(m.w)}</select>`;
+  return `<div class="mgmovep" data-id="${d.id}"><span class="ml">이동 위치</span>
+    <div class="mgseg"><button type="button" data-to="meet" class="${toProj ? "" : "on"}">회의자료</button>`
+    + `<button type="button" data-to="proj" class="${toProj ? "on" : ""}">프로젝트</button></div>
+    ${dest}<span class="sp"></span>
+    <button type="button" class="mgmovecancel">취소</button><button type="button" class="mgmoveok">옮기기</button></div>`;
 }
 
 /* 묶음 머리 — ▼(접히면 옆으로) · 묶음 전체 선택 체크 · 이름 · 오른쪽 개수 */
@@ -6875,9 +6894,9 @@ function mgRowH(d){
       <span class="meta">${meta}</span>
       <button class="mgrb mgdown"${no} title="PDF 원본을 이 기기에 파일로 내려받기">다운로드</button>
       <button class="mgrb mgdetach"${no} title="PDF 원본만 삭제 — 요약·회의록·할 일은 그대로">PDF 원본만 삭제</button>
-      <button class="mgrb mgmove${mv ? " on" : ""}" title="회의 자료 ↔ 프로젝트로 옮기기">자료 이동</button>
+      <button class="mgrb mgmove${mv ? " on" : ""}" title="종류·날짜·폴더 바꾸기, 회의 자료 ↔ 프로젝트 옮기기">자료 이동</button>
       <button class="mgrb mgdel" title="자료를 통째로 지우기">삭제</button>
-    </div>${mv ? `<div class="mgbot" data-id="${d.id}">${mgBot(d)}</div>` : ""}`;
+    </div>${mv ? mgMoveP(d) : ""}`;
 }
 
 function mgRender(){
@@ -6957,7 +6976,7 @@ async function mgSaveDoc(d){
 
 function openManage(){
   MG.tab = "meet"; MG.on = { meet:null, proj:null }; MG.q = ""; MG.nopdf = false;
-  MG.closed.clear(); MG.sel.clear(); MG.moving.clear();
+  MG.closed.clear(); MG.sel.clear(); MG.moving.clear(); MG.mv = {};
   $("#mgsearch").value = "";
   mgRender();
   $("#managebg").classList.add("on");
@@ -6980,7 +6999,7 @@ $("#mghintbtn").addEventListener("click", () => {
 /* 탭을 바꾸면 선택·이동 중인 줄은 비웁니다 */
 $(".mgtabs").addEventListener("click", e => {
   const b = e.target.closest("[data-mgtab]"); if(!b || b.dataset.mgtab === MG.tab) return;
-  MG.tab = b.dataset.mgtab; MG.sel.clear(); MG.moving.clear();
+  MG.tab = b.dataset.mgtab; MG.sel.clear(); MG.moving.clear(); MG.mv = {};
   mgRender();
 });
 /* 칩 — 눌러서 켜고 끕니다. 맨 앞 칩은 전체 켜기/끄기 */
@@ -7014,6 +7033,14 @@ $("#mglist").addEventListener("change", async e => {
     mgRows().filter(d => mgInGroup(d, g)).forEach(pick);
     mgRender(); return;
   }
+  /* 이동 패널의 셀렉트 — 고르는 값은 상태에 담아 두고, 「옮기기」를 눌러야 적용됩니다 */
+  const mp = t.closest(".mgmovep");
+  if(mp && t.dataset.mf){
+    const pd = DOCS.find(x => x.id === mp.dataset.id); if(!pd) return;
+    const m = mgMoveDraft(pd), f = t.dataset.mf;
+    m[f] = (f === "y" || f === "m" || f === "w") ? +t.value : t.value;
+    return;
+  }
   const row = t.closest(".mgrow"); if(!row) return;
   const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
   if(t.classList.contains("mgchk")){ pick(d); mgRender(); return; }
@@ -7037,32 +7064,38 @@ $("#mglist").addEventListener("click", async e => {
     if(MG.closed.has(g)) MG.closed.delete(g); else MG.closed.add(g);
     mgRender(); return;
   }
-  /* 한 줄(.mgrow)과 그 아래 이동 칸(.mgbot)이 같은 data-id 를 가집니다 */
+  /* 한 줄(.mgrow)과 그 아래 이동 패널(.mgmovep)이 같은 data-id 를 가집니다 */
   const host = t.closest("[data-id]"); if(!host) return;
   const d = DOCS.find(x => x.id === host.dataset.id); if(!d) return;
 
   if(t.closest(".mgmove")){
-    if(MG.moving.has(d.id)) MG.moving.delete(d.id); else MG.moving.add(d.id);
+    if(MG.moving.has(d.id)){ MG.moving.delete(d.id); delete MG.mv[d.id]; } else MG.moving.add(d.id);
     mgRender(); return;
   }
-  if(t.closest(".mgmovecancel")){ MG.moving.delete(d.id); mgRender(); return; }
+  const seg = t.closest(".mgseg button");
+  if(seg){ mgMoveDraft(d).to = seg.dataset.to; mgRender(); return; }
+  if(t.closest(".mgmovecancel")){ MG.moving.delete(d.id); delete MG.mv[d.id]; mgRender(); return; }
   if(t.closest(".mgmoveok")){
-    if(isProj(d)){                                  /* 프로젝트 → 회의 자료 */
-      const cat = host.querySelector('[data-f="destcat"]').value;
-      if(!cat){ toast("먼저 설정에서 회의 종류를 만들어 주세요"); return; }
-      const y = +host.querySelector('[data-f="destyear"]').value, m = +host.querySelector('[data-f="destmonth"]').value,
-            w = +host.querySelector('[data-f="destweek"]').value;
-      delete d.folder; d.cat = cat; d.date = mkDate(y, m, w); d.week = w;
-    }else{                                          /* 회의 자료 → 프로젝트 */
-      const id = pickFolder(host.querySelector('[data-f="destfolder"]').value);
+    const m = mgMoveDraft(d), wasProj = isProj(d);
+    let changed;
+    if(m.to === "meet"){                            /* → 회의 자료 (회의 자료 안에서 종류·날짜만 바꾸는 경우 포함) */
+      if(!m.cat){ toast("먼저 설정에서 회의 종류를 만들어 주세요"); return; }
+      changed = wasProj || m.cat !== d.cat || m.y !== +yearOf(d) || m.m !== monthOf(d) || m.w !== +weekOf(d);
+      if(changed){ delete d.folder; d.cat = m.cat; d.date = mkDate(m.y, m.m, m.w); d.week = m.w; }
+    }else{                                          /* → 프로젝트 (프로젝트 안에서 폴더만 바꾸는 경우 포함) */
+      const id = pickFolder(m.folder);
       if(!id){ toast("폴더를 골라 주세요"); return; }
-      d.folder = id; d.cat = ""; delete d.week;      /* date 는 그대로 둡니다(화면에 안 보이는 내부용) */
-      S.open.add(projOpenKey(id)); KV.folders = Array.from(S.open); saveKV("folders");
+      changed = !wasProj || id !== d.folder;
+      if(changed){
+        d.folder = id; d.cat = ""; delete d.week;    /* date 는 그대로 둡니다(화면에 안 보이는 내부용) */
+        S.open.add(projOpenKey(id)); KV.folders = Array.from(S.open); saveKV("folders");
+      }
     }
-    MG.moving.delete(d.id);
+    MG.moving.delete(d.id); delete MG.mv[d.id];
+    if(!changed){ mgRender(); return; }              /* 바뀐 게 없으면 패널만 닫습니다 */
     if(await mgSaveDoc(d)){
       if(S.sel === d.id){ revealDoc(d.id); renderTree(); }   /* 보고 있던 자료면 목록도 그 영역으로 따라갑니다 */
-      toast(isProj(d) ? "프로젝트로 옮겼습니다" : "회의 자료로 옮겼습니다");
+      toast(isProj(d) === wasProj ? "저장했습니다" : isProj(d) ? "프로젝트로 옮겼습니다" : "회의 자료로 옮겼습니다");
     }
     mgRender(); return;
   }
