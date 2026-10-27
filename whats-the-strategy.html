@@ -1063,6 +1063,48 @@ body.thumbs-off #nav-prev{left:12px;}
 #btn-docclose svg{display:block;}
 /* 호버가 없는 터치 기기(아이패드 등)는 가리지 말고 늘 보여 둡니다 */
 @media (hover: none){ #btn-docclose{opacity:1;} }
+/* 화면 나누기 — 왼쪽 칸(#stage)과 오른쪽 보조 칸(#pane2)을 반씩, 사이에 굵은 경계선 하나.
+   보조 칸은 쪽 넘기기·확대/축소만 하는 가벼운 뷰어입니다. 아이폰 화면에서는 쓰지 않습니다 */
+body.split #stage{flex:1 1 0;}
+#pane2{flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative;
+  border-left:var(--rule-w) solid var(--rule);container-type:inline-size;}
+#pane2[hidden],body.m #pane2{display:none !important;}
+/* 보조 칸 머리줄 — 자료 이름 · ‹ 쪽 › · − 배율 + · 한 쪽 전체 */
+#sv-bar{flex:0 0 auto;height:30px;display:flex;align-items:stretch;background:var(--bg);
+  border-bottom:1px solid var(--hairline);white-space:nowrap;overflow:hidden;}
+#sv-bar .nm{flex:1 1 auto;min-width:0;align-self:center;padding:0 10px;overflow:hidden;text-overflow:ellipsis;
+  font-size:12px;font-weight:700;color:var(--text);}
+#sv-bar .svb{flex:0 0 auto;width:30px;display:flex;align-items:center;justify-content:center;padding:0;
+  border:none;border-left:1px solid var(--hairline);border-radius:0;background:none;color:var(--text);}
+#sv-bar .svb.sep{border-left:2px solid var(--line);}
+#sv-bar .svb:hover:not([disabled]){background:var(--panel2);}
+#sv-bar .svb[disabled]{opacity:.35;}
+#sv-bar .svb svg{display:block;}
+#sv-page,#sv-zval{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+#sv-page{padding:0 8px;}
+#sv-page .tot{color:var(--muted);}
+#sv-zval{width:44px;}
+/* 칸이 좁으면 자료 이름과 배율 숫자를 먼저 뺍니다 */
+@container (max-width: 300px){ #sv-bar .nm,#sv-zval{display:none;} #sv-bar #sv-prev{margin-left:auto;} }
+#stage2{flex:1 1 auto;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;
+  background:var(--panel2);padding:12px;-webkit-overflow-scrolling:touch;}
+#cw2{flex:0 0 auto;margin:auto;background:var(--card);box-shadow:var(--shadow);line-height:0;}
+#cw2[hidden]{display:none;}
+#pdfcanvas2{display:block;}
+#sv-msg{margin:auto;max-width:360px;padding:30px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7;}
+#sv-msg:empty{display:none;}
+#sv-msg .big{font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;}
+#nav2-prev{left:12px;} #nav2-next{right:12px;}
+/* 왼쪽 칸의 다음 장 ▶ · 자료 닫기 ✕ 는 보조 칸 폭(--pane2-w, 스크립트가 잼)만큼 왼쪽으로 비켜 둡니다 */
+body.split #nav-next,body.split #btn-docclose{right:calc(var(--pane2-w, 0px) + 12px);}
+/* 마우스를 올린 칸의 넘김 단추만 나타나게 합니다 */
+@media (hover: hover){
+  body.split #stagewrap:hover .pagenav,body.split #stagewrap:hover #btn-docclose{opacity:0;}
+  body.split #stage:hover ~ .pagenav,body.split #stage:hover ~ #btn-docclose,
+  body.split #stagewrap .pagenav:hover,body.split #stagewrap #btn-docclose:hover,
+  body.split #pane2:hover .pagenav{opacity:1;}
+}
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   color:var(--muted);text-align:center;padding:30px;margin:auto;max-width:460px;line-height:1.7;font-size:13px;}
 #novideo .big{font-size:15px;font-weight:800;color:var(--text);}
@@ -2788,6 +2830,41 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
         </div>
         <div class="mp-bar"><span id="mp-fill"></span></div>
+      </div>
+      <!-- 화면 나누기의 보조 칸 — 자료 하나를 더 띄워 쪽 넘기기·확대/축소만 하는 가벼운 뷰어입니다.
+           (그리기·하이라이트·쪽 미리보기는 왼쪽 칸에서만 됩니다) -->
+      <div id="pane2" hidden>
+        <div id="sv-bar">
+          <span class="nm" id="sv-title"></span>
+          <button type="button" class="svb" id="sv-prev" title="앞 장" aria-label="보조 칸 앞 장">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+          <span id="sv-page"></span>
+          <button type="button" class="svb" id="sv-next" title="다음 장" aria-label="보조 칸 다음 장">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+          <button type="button" class="svb sep" id="sv-zout" title="축소" aria-label="보조 칸 축소">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          <span id="sv-zval">100%</span>
+          <button type="button" class="svb" id="sv-zin" title="확대" aria-label="보조 칸 확대">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="svb" id="sv-fit" title="한 쪽 전체 보기 (Whole page)" aria-label="보조 칸 한 쪽 전체 보기">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" aria-hidden="true"
+                 ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+        </div>
+        <div id="stage2">
+          <div id="cw2" hidden><canvas id="pdfcanvas2"></canvas></div>
+          <div id="sv-msg"></div>
+        </div>
+        <button class="pagenav" id="nav2-prev" title="앞 장" aria-label="보조 칸 앞 장">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="pagenav" id="nav2-next" title="다음 장" aria-label="보조 칸 다음 장">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </div>
     </div>
 
@@ -7360,12 +7437,229 @@ $("#fit-page").onclick  = () => {
   if(isMobile()){ S.mFit = "page"; if(S.pdf) MS.jump = S.page; } else S.fitPref = "page";
   fitTo("page");
 };
-/* 화면 나누기 단추 — 지금은 켜짐/꺼짐 표시(눌린 모양)만 바뀝니다. 실제로 화면을 나누는 일은 다음 단계에서 이 자리에 붙입니다 */
-$("#btn-split").onclick = () => {
-  const on = !$("#btn-split").classList.contains("on");
-  $("#btn-split").classList.toggle("on", on);
-  $("#btn-split").setAttribute("aria-pressed", String(on));
-};
+/* ---- 화면 나누기 — 오른쪽 보조 칸 ----------------------------------------
+   왼쪽(활성) 칸은 지금까지의 뷰어 그대로이고, 오른쪽 보조 칸은 자료 하나를 더 띄워
+   쪽 넘기기(휠·◀▶)와 확대/축소만 합니다. 그리기·하이라이트·쪽 미리보기는 없습니다.
+   • SV.want — 사용자가 나누기를 켜 두었는지(단추의 눌린 모양).  SV.on — 지금 실제로 두 칸이 보이는지.
+     가운데가 너무 좁거나(460px 미만 — 툴바가 가장 좁은 모양이 되어 나누기 단추도 숨는 때) 아이폰 화면이면
+     켜 둔 채로 보조 칸만 잠시 접어 두고, 다시 넓어지면 그대로 폅니다.
+   • 보조 칸의 쪽·맞춤 방식·배율(SV.page · SV.fit · SV.fitPref · SV.zoom)은 보던 자리 기억(KV.viewPos)과
+     같은 뜻이라, 칸을 맞바꿀 때 그대로 옮겨 적을 수 있습니다.
+   • 처음 켤 때 보조 칸 자료 — 최근에 연 자료 가운데 지금 왼쪽에 열린 것이 아니고 PDF 원본이 있는 첫 자료.
+     없으면 칸 안에 안내문을 띄웁니다. */
+const SV = { want:false, on:false, id:null, pdf:null, page:1, zoom:1, base:1, fit:"page", fitPref:"page",
+             task:null, seq:0, rseq:0 };
+function svCanShow(){ return !isMobile() && !document.body.classList.contains("tiny-bar"); }
+function setSplit(want){ SV.want = !!want; applySplit(); }
+/* 켜 둔 상태(SV.want)와 화면 폭을 보고 두 칸을 펴거나 접습니다 — 폭이 바뀔 때마다 불러도 됩니다 */
+function applySplit(){
+  const b = $("#btn-split");
+  b.classList.toggle("on", SV.want);
+  b.setAttribute("aria-pressed", String(SV.want));
+  const on = SV.want && svCanShow();
+  if(on === SV.on) return;
+  SV.on = on;
+  document.body.classList.toggle("split", on);
+  $("#pane2").hidden = !on;
+  if(on){
+    if(!SV.pdf) svOpen(svPickDoc());                     /* 잠시 접었다 다시 펼 때는 보던 자료 그대로 */
+  }else if(!SV.want){
+    SV.id = null; svDrop(); svMsg("");                   /* 사용자가 끄면 보조 칸 자료를 내려 기억 공간을 비웁니다 */
+  }
+}
+$("#btn-split").onclick = () => setSplit(!SV.want);
+
+/* 보조 칸에 띄울 자료 — 방금까지 띄워 두었던 자료가 아직 있으면 그것, 아니면 최근 열람 자료에서 고릅니다 */
+function svPickDoc(){
+  const ok = d => d && d.hasPdf && d.id !== S.sel;
+  const cur = SV.id && DOCS.find(d => d.id === SV.id);
+  if(ok(cur)) return cur.id;
+  for(const id of (KV.recentDocs || [])){
+    const d = DOCS.find(x => x.id === id);
+    if(ok(d)) return d.id;
+  }
+  return null;
+}
+/* 칸 안 안내문 — 글을 넣으면 종이를 감추고 글을 띄웁니다. 빈 글이면 안내문만 지웁니다 */
+function svMsg(html){
+  $("#sv-msg").innerHTML = html;
+  if(html) $("#cw2").hidden = true;
+}
+/* 열려 있던 보조 칸 자료를 내립니다(그리던 그림 멈춤 · 문서 닫기 · 그림판 비우기) */
+function svDrop(){
+  SV.rseq++;
+  if(SV.task){ try{ SV.task.cancel(); }catch(e){} SV.task = null; }
+  if(SV.pdf){ try{ SV.pdf.destroy(); }catch(e){} SV.pdf = null; }
+  const cv = $("#pdfcanvas2"); cv.width = cv.height = 0;
+  $("#cw2").hidden = true;
+  svBar();
+}
+async function svOpen(id){
+  const seq = ++SV.seq;
+  svDrop();
+  SV.id = id || null;
+  const d = id && DOCS.find(x => x.id === id);
+  svBar();
+  if(!d){
+    svMsg(`<div class="big">옆에 띄울 자료가 없습니다</div>
+      최근에 열어 본 다른 자료가 없습니다.<br>왼쪽 목록에서 자료를 하나 더 열어 본 뒤<br>화면 나누기를 다시 켜 주세요.`);
+    return;
+  }
+  svMsg(`<div class="big">자료를 여는 중…</div>`);
+  try{
+    let rec = await dbGet("files", d.id);
+    /* 이 기기에 원본이 없으면 왼쪽 칸과 똑같이 동기화 저장소에서 내려받습니다 */
+    if((!rec || !rec.blob) && await syncHasRemote("files", d.id)){
+      if(seq !== SV.seq) return;
+      svMsg(`<div class="big">원본을 내려받는 중…</div>파일이 크면 잠시 걸립니다.`);
+      const blob = await syncFetchBlob("files", d.id);
+      if(blob) rec = { id: d.id, blob };
+    }
+    if(seq !== SV.seq) return;
+    if(!rec || !rec.blob) throw new Error("원본 파일을 찾을 수 없습니다");
+    const buf = await rec.blob.arrayBuffer();
+    if(seq !== SV.seq) return;
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    if(seq !== SV.seq){ try{ pdf.destroy(); }catch(e){} return; }
+    SV.pdf = pdf;
+    /* 전에 이 자료를 보던 자리가 기억돼 있으면 그 쪽·맞춤 방식으로 엽니다(보조 칸은 기억을 읽기만 합니다) */
+    const r = viewPosOf(d.id);
+    SV.page = r ? Math.min(pdf.numPages, Math.max(1, r.p | 0)) : 1;
+    const base = r && (r.fit === "width" || (r.fit === "manual" && r.b === "width")) ? "width" : "page";
+    svMsg(""); $("#cw2").hidden = false;
+    await svFit(base, r && r.fit === "manual" && r.z > 0 ? clampZoom(r.z) : 0);
+  }catch(err){
+    if(seq !== SV.seq) return;
+    svDrop();
+    svMsg(`<div class="big">PDF를 열지 못했습니다</div>${esc(err.message || String(err))}`);
+  }
+}
+/* 칸에 맞추기 — page: 한 쪽 전체, width: 폭 맞춤. zoom 을 주면 그 맞춤을 바탕으로 한 직접 확대 배율 */
+async function svFit(mode, zoom){
+  const pdf = SV.pdf; if(!pdf) return;
+  const page = await pdf.getPage(SV.page);
+  if(SV.pdf !== pdf) return;
+  const vp1 = page.getViewport({ scale: 1 });
+  const st  = $("#stage2");
+  const pad = parseFloat(getComputedStyle(st).paddingLeft) || 0;
+  let availW   = st.clientWidth  - pad * 2;
+  const availH = st.clientHeight - pad * 2;
+  if(availW <= 0 || availH <= 0) return;               /* 칸이 접혀 있으면 다시 펼 때 맞춥니다 */
+  SV.fitPref = mode === "width" ? "width" : "page";
+  if(SV.fitPref === "page") SV.base = Math.min(availW / vp1.width, availH / vp1.height);
+  else{
+    /* 폭 맞춤은 대개 세로로 넘칩니다 — 세로 막대 폭을 미리 빼서 가로 막대가 같이 생기지 않게 */
+    if(st.offsetWidth - st.clientWidth === 0 && vp1.height * (availW / vp1.width) > availH) availW -= scrollbarW();
+    SV.base = availW / vp1.width;
+  }
+  SV.fit = SV.fitPref; SV.zoom = 1;
+  if(zoom){ SV.zoom = zoom; SV.fit = "manual"; }
+  await svRender();
+}
+/* 보조 칸 그리기 — 왼쪽 칸과 같은 선명도 규칙(outScale). anchor 는 확대·축소 기준점(종이 위 비율 지점) */
+async function svRender(anchor){
+  const pdf = SV.pdf; if(!pdf) return;
+  const seq = ++SV.rseq;
+  if(SV.task){ try{ SV.task.cancel(); }catch(e){} SV.task = null; }
+  svBar();
+  try{
+    const page = await pdf.getPage(SV.page);
+    if(seq !== SV.rseq) return;
+    const vp = page.getViewport({ scale: SV.base * SV.zoom });
+    const ss = outScale(vp);
+    const cv = $("#pdfcanvas2");
+    cv.width  = Math.round(vp.width  * ss);
+    cv.height = Math.round(vp.height * ss);
+    cv.style.width  = vp.width.toFixed(2)  + "px";
+    cv.style.height = vp.height.toFixed(2) + "px";
+    if(anchor){
+      const st = $("#stage2"), r = cv.getBoundingClientRect();
+      st.scrollLeft += r.left + anchor.fx * r.width  - anchor.cx;
+      st.scrollTop  += r.top  + anchor.fy * r.height - anchor.cy;
+    }
+    const ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.setTransform(ss, 0, 0, ss, 0, 0);
+    const task = SV.task = page.render({ canvasContext: ctx, viewport: vp });
+    await task.promise;
+    if(SV.task === task) SV.task = null;
+  }catch(err){
+    if(err && err.name === "RenderingCancelledException") return;
+    console.warn(err);
+  }
+}
+/* 보조 칸 머리줄 — 자료 이름 · 쪽 번호 · 배율, 그리고 끝 쪽에서 막히는 단추 */
+function svBar(){
+  const d = SV.id && DOCS.find(x => x.id === SV.id);
+  const t = $("#sv-title");
+  t.textContent = d ? d.title : ""; t.title = d ? d.title : "";
+  const n = SV.pdf ? SV.pdf.numPages : 0;
+  $("#sv-page").innerHTML = n ? `${SV.page}<span class="tot"> / ${n}p</span>` : "";
+  $("#sv-prev").disabled = $("#nav2-prev").disabled = !n || SV.page <= 1;
+  $("#sv-next").disabled = $("#nav2-next").disabled = !n || SV.page >= n;
+  ["#sv-zout", "#sv-zin", "#sv-fit"].forEach(s => { $(s).disabled = !n; });
+  $("#sv-zval").textContent = n ? Math.round(SV.zoom * 100) + "%" : "";
+}
+function svGo(n){
+  if(!SV.pdf) return false;
+  const p = Math.min(SV.pdf.numPages, Math.max(1, n | 0));
+  if(p === SV.page) return false;
+  SV.page = p; svRender();
+  return true;
+}
+/* 확대·축소 — 보조 칸에 보이는 화면 한가운데를 기준으로 */
+function svZoomBy(dz){
+  if(!SV.pdf) return;
+  const z = clampZoom(SV.zoom + dz); if(z === SV.zoom) return;
+  const st = $("#stage2"), r = st.getBoundingClientRect(), q = $("#pdfcanvas2").getBoundingClientRect();
+  const cx = r.left + st.clientLeft + st.clientWidth / 2, cy = r.top + st.clientTop + st.clientHeight / 2;
+  const f = (v, a, w) => Math.min(1, Math.max(0, (v - a) / w));
+  const a = q.width && q.height ? { fx: f(cx, q.left, q.width), fy: f(cy, q.top, q.height), cx, cy } : null;
+  SV.zoom = z; SV.fit = "manual"; svRender(a);
+}
+$("#sv-prev").onclick = $("#nav2-prev").onclick = () => svGo(SV.page - 1);
+$("#sv-next").onclick = $("#nav2-next").onclick = () => svGo(SV.page + 1);
+$("#sv-zin").onclick  = () => svZoomBy(+0.15);
+$("#sv-zout").onclick = () => svZoomBy(-0.15);
+$("#sv-fit").onclick  = () => svFit("page");
+/* 보조 칸 마우스 휠 — 왼쪽 칸과 같은 규칙: 볼 곳이 남았으면 움직이기만, 끝에 닿으면 다음(이전) 장 */
+(function svWheel(){
+  const st = $("#stage2");
+  let until = 0;
+  st.addEventListener("wheel", e => {
+    if(!SV.pdf || e.ctrlKey || e.metaKey) return;
+    const dy = e.deltaY; if(!dy) return;
+    const down = dy > 0;
+    const room = st.scrollHeight - st.clientHeight;
+    if(room > 2){
+      if(down  && st.scrollTop < room - 1) return;
+      if(!down && st.scrollTop > 1)        return;
+    }
+    const to = SV.page + (down ? 1 : -1);
+    if(to < 1 || to > SV.pdf.numPages) return;
+    e.preventDefault();
+    const now = Date.now();
+    if(now < until) return;
+    until = now + 260;
+    svGo(to);
+    const place = () => { st.scrollTop = down ? 0 : st.scrollHeight; };
+    place(); setTimeout(place, 120);
+  }, { passive:false });
+})();
+/* 보조 칸 폭이 바뀌면(나누기를 켤 때 · 패널을 여닫을 때 · 창 크기) —
+   왼쪽 칸의 ▶·✕ 단추를 그 폭만큼 비켜 두고, 맞춤 상태면 새 폭에 다시 맞춥니다 */
+if(window.ResizeObserver){
+  let pw = 0, ph = 0, t = null;
+  new ResizeObserver(() => {
+    const el = $("#pane2"), w = el.offsetWidth, h = el.offsetHeight;
+    $("#stagewrap").style.setProperty("--pane2-w", w + "px");
+    if(Math.abs(w - pw) < 2 && Math.abs(h - ph) < 2) return;
+    pw = w; ph = h;
+    clearTimeout(t);
+    t = setTimeout(() => { if(SV.pdf && SV.on && SV.fit !== "manual") svFit(SV.fitPref); }, 120);
+  }).observe($("#pane2"));
+}
 
 $("#nav-prev").onclick = () => goPage(S.page - 1);
 $("#nav-next").onclick = () => goPage(S.page + 1);
@@ -7562,6 +7856,8 @@ $("#topmodel").addEventListener("change", e => {
     document.body.classList.toggle("hide-doctitle", w < 760);
     document.body.classList.toggle("tight-bar",     w < 560);
     document.body.classList.toggle("tiny-bar",      w < 460);
+    /* 가장 좁은 모양(나누기 단추가 숨는 때)이면 화면 나누기를 켜 둔 채로 보조 칸만 접고, 넓어지면 다시 폅니다 */
+    applySplit();
     /* 아이폰 화면은 늘 좁지만(600px 이하) 그리기 도구를 씁니다 — 끄지 않습니다 */
     if(w < 560 && !isMobile() && window.drawActive && window.drawActive()) window.drawExit();
   };
@@ -14707,6 +15003,7 @@ function applyMobile(){
   const on = MQ_M.matches;
   if(on === isMobile()) return;
   document.body.classList.toggle("m", on);
+  applySplit();                                           /* 아이폰 화면에서는 화면 나누기를 접어 둡니다 */
   mMountHeader(on);
   renderTree();
   renderRight();   /* 요약 안내 문구 등 화면별로 다른 글을 다시 씁니다 */
