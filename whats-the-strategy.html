@@ -3759,7 +3759,11 @@ const KV_DEFAULT = {
   /* 꽂은 자료 id(최근 것이 앞) — pinMap 에서 다시 만드는 값입니다. 옛 버전과 옮겨 오기용으로만 저장합니다(동기화 안 함) */
   pins:[],
   /* Pinboard 칸을 펴 두었는지 — 기기별로만 둡니다 */
-  pinOpen:true
+  pinOpen:true,
+  /* 자료마다 마지막에 보던 자리 — { 자료 id: { p:쪽, fit:맞춤 방식, b:직접 확대의 바탕 맞춤, z:배율, fx·fy:스크롤 위치(종이 크기 대비 비율), t:시각 } }.
+     자료를 바꾸거나 창을 닫을 때 적고, 그 자료를 다시 열면 그 자리로 돌아갑니다. 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음).
+     기억이 끝없이 늘지 않도록 최근 200개만 남깁니다 */
+  viewPos:{}
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -3771,6 +3775,7 @@ async function loadKV(){
   KV.memos   = Object.assign({}, KV.memos);
   KV.drawcfg = Object.assign({}, KV.drawcfg);
   KV.scriptOpts = Object.assign({}, KV.scriptOpts);
+  KV.viewPos = Object.assign({}, KV.viewPos);
   KV.projFolders = Array.isArray(KV.projFolders) ? KV.projFolders.map(f => Object.assign({}, f)) : [];
   KV.projFolderDel = Array.isArray(KV.projFolderDel) ? KV.projFolderDel.slice() : [];
   if(KV.area !== "proj") KV.area = "meet";
@@ -3894,6 +3899,10 @@ const S = {
      hlQ 는 뷰어 하이라이트 층(#hl-layer)에 칠할 검색어(parseQuery 결과). 막대 ✕ 로 둘 다 지웁니다 */
   nav:null, hlQ:null,
   pdf:null, renderTask:null, renderSeq:0, baseScale:1,
+  /* 지금 S.pdf 가 어느 자료의 것인지 — selectDoc 은 S.sel 을 먼저 바꾸고 나서 PDF 를 바꾸므로,
+     떠나는 자료의 보던 자리를 적으려면 S.sel 이 아니라 이것을 봅니다.
+     posReady 는 그 자료의 자리 복원이 끝났는지(끝나기 전에 적으면 도중 값이 기억을 덮어씁니다) */
+  pdfId:null, posReady:false,
   fitMode:"page",                           /* 지금 쓰고 있는 맞춤 방식 (width · page · manual) */
   fitPref:"page",                           /* 기본은 One Page — 처음 열 때 쪽 전체가 한눈에 보이게 */
   mFit:"page",                              /* 아이폰 화면의 맞춤 방식 — 처음 열 때는 Whole page */
@@ -4257,8 +4266,79 @@ function setNoView(title, msg, btnLabel, btnFn){
   if(btnLabel) $("#nvbtn").onclick = btnFn;
 }
 
+/* ---- 보던 자리 기억 ----------------------------------------------
+   자료 A 를 보다가 B 를 열고 다시 A 를 열면, A 를 보던 쪽·맞춤 방식·배율·스크롤 자리로 돌아갑니다.
+   기기별 KV.viewPos 에 적으므로 앱을 껐다 켜도 남습니다(동기화는 하지 않음).
+   • saveViewPos() — 지금 뷰어에 열린 자료(S.pdfId)의 자리를 적습니다. 자료를 떠날 때(loadPdfFor 앞머리)와
+     창을 닫거나 숨길 때 부릅니다. 쪽을 넘길 때마다 적지는 않습니다.
+   • viewPosOf(id) — 적어 둔 자리(없으면 null).  • applyViewPos(rec) — 열린 자료를 그 자리로 맞춥니다.
+   분할 보기에서 두 칸의 자료를 맞바꿀 때도 이 함수들을 그대로 다시 씁니다. */
+const VIEWPOS_MAX = 200;
+function viewPosOf(id){
+  const r = KV.viewPos && KV.viewPos[id];
+  return r && typeof r === "object" && r.p >= 1 ? r : null;
+}
+function saveViewPos(){
+  const id = S.pdfId;
+  if(!id || !S.pdf || !S.posReady || !DOCS.some(d => d.id === id)) return;   /* 지워졌거나 복원 도중이면 적지 않습니다 */
+  const mob = isMobile();
+  const rec = { p: S.page, fit: mob ? S.mFit : S.fitMode };
+  if(!mob){
+    const cv = $("#pdfcanvas"), st = $("#stage"), w = cv.offsetWidth, h = cv.offsetHeight;
+    if(S.fitMode === "manual"){ rec.b = S.fitPref; rec.z = S.zoom; }
+    rec.fx = w ? Math.round(st.scrollLeft / w * 1e4) / 1e4 : 0;     /* 픽셀이 아니라 종이 크기 대비 비율 */
+    rec.fy = h ? Math.round(st.scrollTop  / h * 1e4) / 1e4 : 0;
+  }
+  const old = viewPosOf(id);
+  if(old && ["p","fit","b","z","fx","fy"].every(k => old[k] === rec[k])) return;   /* 달라진 게 없으면 다시 쓰지 않습니다 */
+  rec.t = Date.now();
+  KV.viewPos[id] = rec;
+  const ids = Object.keys(KV.viewPos);
+  if(ids.length > VIEWPOS_MAX)                                        /* 오래된 기억부터 버립니다 */
+    ids.sort((a, b) => (KV.viewPos[a].t || 0) - (KV.viewPos[b].t || 0))
+       .slice(0, ids.length - VIEWPOS_MAX).forEach(k => { delete KV.viewPos[k]; });
+  saveKV("viewPos");
+}
+function forgetViewPos(id){
+  if(KV.viewPos && KV.viewPos[id]){ delete KV.viewPos[id]; saveKV("viewPos"); }
+}
+/* 방금 열린 자료(S.pdf)를 적어 둔 자리로 맞춥니다. rec 가 없으면 처음처럼 Whole page.
+   쪽 → 맞춤 방식(직접 확대면 배율) → 스크롤 순서입니다. */
+async function applyViewPos(rec){
+  const pdf = S.pdf;
+  S.page = rec ? Math.min(pdf.numPages, Math.max(1, rec.p | 0)) : 1;
+  MS.jump = S.page;                                       /* 아이폰 세로 이어 보기 — 그 쪽 맨 위부터 */
+  if(typeof window.drawLoadDoc === "function") await window.drawLoadDoc(S.pdfId);
+  if(S.pdf !== pdf) return;
+  if(!rec){
+    /* 기억이 없는 자료는 어느 기기에서든 항상 Whole page(100% 쪽 전체)로 맞춥니다 */
+    S.fitPref = "page"; S.mFit = "page";
+    await fitTo("page");
+  }else if(isMobile()){
+    S.mFit = rec.fit === "width" ? "width" : "page";       /* PC 쪽 방식(S.fitPref)은 건드리지 않습니다 */
+    await fitTo(S.mFit);
+  }else if(rec.fit === "manual" && rec.z > 0){
+    S.fitPref = rec.b === "width" ? "width" : "page";       /* 직접 확대한 배율은 이 맞춤을 바탕으로 한 값입니다 */
+    await fitTo(S.fitPref, clampZoom(rec.z));
+  }else{
+    S.fitPref = rec.fit === "width" ? "width" : "page";     /* 칸 폭이 달라졌을 수 있어 같은 방식으로 다시 맞춥니다 */
+    await fitTo(S.fitPref);
+  }
+  if(S.pdf !== pdf) return;
+  if(rec && !isMobile()){
+    const cv = $("#pdfcanvas"), st = $("#stage");
+    st.scrollLeft = (+rec.fx || 0) * cv.offsetWidth;
+    st.scrollTop  = (+rec.fy || 0) * cv.offsetHeight;
+  }
+}
+/* 창을 닫거나 새로 고치거나 다른 탭으로 갈 때도 적어 둡니다 */
+window.addEventListener("pagehide", saveViewPos);
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveViewPos(); });
+
 async function loadPdfFor(doc){
-  /* 이전 문서 정리 */
+  /* 이전 문서 정리 — 떠나는 자료의 보던 자리를 먼저 적습니다(selectDoc 은 S.sel 을 이미 새 자료로 바꿔 둠) */
+  saveViewPos();
+  S.pdfId = null; S.posReady = false;
   if(S.renderTask){ try{ S.renderTask.cancel(); }catch(e){} S.renderTask = null; }
   clearThumbs();
   mStripClear();
@@ -4306,12 +4386,11 @@ async function loadPdfFor(doc){
     S.pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     if(seq !== S.renderSeq){ try{ S.pdf.destroy(); }catch(e){} return; }
     showViewer(true);
-    S.page = 1;
-    MS.jump = 1;                                          /* 아이폰 세로 이어 보기 — 첫 쪽 맨 위부터 */
-    if(typeof window.drawLoadDoc === "function") await window.drawLoadDoc(doc.id);
-    /* 자료를 처음 열 때는 어느 기기에서든 항상 Whole page(100% 쪽 전체)로 맞춥니다 */
-    S.fitPref = "page"; S.mFit = "page";
-    await fitTo("page");
+    S.pdfId = doc.id; S.posReady = false;
+    /* 전에 보던 자리가 기억돼 있으면 그 자리로, 처음 여는 자료는 Whole page 로 엽니다 */
+    const pdf = S.pdf;
+    await applyViewPos(viewPosOf(doc.id));
+    if(S.pdf === pdf) S.posReady = true;                  /* 복원이 끝난 뒤부터 자리를 적을 수 있습니다 */
     buildThumbs();
   }catch(err){
     clearThumbs();
@@ -4412,7 +4491,8 @@ function scrollbarW(){
   return SBW;
 }
 
-async function fitTo(mode){
+/* zoom 을 주면 그 배율(직접 확대 상태)로 맞춥니다 — 보던 자리를 되살릴 때 씁니다 */
+async function fitTo(mode, zoom){
   if(!S.pdf) return;
   /* 아이폰 화면은 따로 기억한 방식(S.mFit — 기본 폭 맞춤)을 씁니다. PC 쪽 방식(S.fitPref)은 그대로 둡니다 */
   if(isMobile()) mode = S.mFit;
@@ -4439,6 +4519,7 @@ async function fitTo(mode){
   const anc = isMobile() && $("#mpages") && !MS.jump
     ? mAnchor(sr.left + st.clientLeft + st.clientWidth / 2, sr.top + st.clientTop) : null;
   S.zoom = 1;
+  if(zoom && !isMobile()){ S.zoom = zoom; S.fitMode = "manual"; }
   await renderPage(anc);
 }
 
@@ -5778,7 +5859,10 @@ async function openHit({ id, p, note }){
     renderRight();
     if(Q) noteReveal(Q);
   } else if(p){
+    /* 검색으로 연 쪽이 전에 보던 쪽보다 이깁니다. 다른 쪽으로 가면 그 쪽 맨 위부터 보여 줍니다 */
+    const moved = p !== S.page;
     goPage(p);
+    if(moved && !isMobile()) $("#stage").scrollTop = 0;
   }
   renderHitbar();
 }
@@ -8558,6 +8642,7 @@ async function removeDoc(id){
   }
   ATTACH = ATTACH.filter(x => x.docId !== id);
   delete KV.tasks[id]; delete KV.sums[id]; delete KV.scripts[id]; delete KV.memos[id];
+  forgetViewPos(id);                                      /* 보던 자리 기억도 함께 */
   if(isPinned(id)) setPin(id, false);
   DOCS = DOCS.filter(x => x.id !== id);
   if(S.sel === id){
@@ -12985,6 +13070,7 @@ async function syncFetchBlob(store, id){
 }
 /* 다른 기기에서 자료를 지웠을 때 — removeDoc() 과 같은 범위를 이 기기에서만(통신 없이) 지웁니다 */
 async function syncRemoveDocLocal(id, changed){
+  forgetViewPos(id);
   for(const s of ["docs","files","draw","ainote"]){
     await dbDelQuiet(s, id).catch(() => {});
     const p = await syncPathOf(s, id); if(p){ await dbDelQuiet("sync", p).catch(() => {}); changed.removedPaths.add(p); }
