@@ -1561,7 +1561,9 @@ body.m #mghintbtn{position:absolute;right:16px;bottom:7px;margin:0;width:20px;he
 .mgchip:hover{border-color:var(--areabar);color:var(--text);}
 .mgchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
 .mgchip.on .c{color:var(--accent-ink);}
-.mgchip.all{width:26px;padding:0;justify-content:center;}
+.mgchip.all{width:26px;padding:0;justify-content:center;background:var(--areabar);border-color:var(--areabar);color:var(--areabar-ink);}
+.mgchip.all.on{background:var(--areabar);border-color:var(--areabar);color:var(--areabar-ink);}
+.mgchip.all:hover{color:var(--areabar-ink);opacity:.85;}
 #mgtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px 9px;
   border-bottom:var(--rule-w) solid var(--rule);}
 #mgsearch{flex:1 1 180px;min-width:0;height:28px;padding:0 10px;border:1px solid var(--line);
@@ -6817,7 +6819,9 @@ const MG = { tab:"meet", on:{ meet:null, proj:null }, known:{ meet:new Set(), pr
 function mgCatList(){
   const set = new Set(KV.cats);
   DOCS.forEach(d => { if(d.cat && !isProj(d)) set.add(d.cat); });
-  return Array.from(set);
+  /* 프로젝트 폴더 이름과 같은 종류는 프로젝트 쪽 것이라, 회의자료가 하나도 없으면 회의자료 칩에서 뺍니다 */
+  const folderNames = new Set(projFolderList().map(f => f.name));
+  return Array.from(set).filter(c => !folderNames.has(c) || DOCS.some(d => !isProj(d) && d.cat === c));
 }
 /* 탭 하나의 칩 키 — 회의자료는 종류 이름, 프로젝트는 폴더 id */
 const mgKeys    = tab => tab === "proj" ? projFolderList().map(f => f.id) : mgCatList();
