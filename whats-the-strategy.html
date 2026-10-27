@@ -367,6 +367,9 @@ body.left-closed #left .rail,body.right-closed #right .rail{display:flex;}
 .doc .wk.pk svg{display:block;position:relative;}
 .doc .nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500;}
 .doc.sel .nm{font-weight:700;}
+/* 화면 나누기에서 옆(보조) 칸에 띄운 자료 — 고른 자료와 같은 표시를 옅게 */
+.doc.sel2{background:color-mix(in srgb, var(--accent-soft) 45%, transparent);border-left-color:var(--accent-line);}
+.doc.sel2 .wk{border-color:var(--accent-line);}
 .doc .tag{flex:0 0 auto;display:flex;color:var(--accent-ink);}
 .doc .tag svg{display:block;}
 .doc .nopdf{flex:0 0 auto;font-size:9.5px;color:var(--muted3);}
@@ -1105,6 +1108,19 @@ body.split #nav-next,body.split #btn-docclose{right:calc(var(--pane2-w, 0px) + 1
   body.split #stagewrap .pagenav:hover,body.split #stagewrap #btn-docclose:hover,
   body.split #pane2:hover .pagenav{opacity:1;}
 }
+/* 활성 칸(목록에서 누른 자료가 열리는 칸) — 빨간 테두리. 종이를 키워도 가려지지 않도록
+   #stage 자체가 아니라 그 자리 위에 누르기를 통과시키는 빈 틀을 하나 얹습니다(쪽 미리보기 띠 · 보조 칸 폭만큼 비켜서) */
+body.split #stagewrap::after{content:"";position:absolute;top:0;bottom:0;left:var(--thumb-w);right:var(--pane2-w, 0px);
+  border:2px solid var(--accent);pointer-events:none;z-index:5;}
+body.split.thumbs-off #stagewrap::after{left:0;}
+/* 보조 칸이 왼쪽에 올 때(sv-left) — 칸 순서만 바꾸고, 쪽 미리보기 띠는 활성 칸 바로 왼쪽에 붙어 다닙니다.
+   경계선은 보조 칸 오른쪽으로, 왼쪽 칸 기준이던 ◀ ▶ ✕ 자리도 같이 옮깁니다 */
+body.split.sv-left #pane2{order:-1;border-left:none;border-right:var(--rule-w) solid var(--rule);}
+body.split.sv-left #nav-prev{left:calc(var(--pane2-w, 0px) + var(--thumb-w) + 12px);}
+body.split.sv-left.thumbs-off #nav-prev{left:calc(var(--pane2-w, 0px) + 12px);}
+body.split.sv-left #nav-next,body.split.sv-left #btn-docclose{right:12px;}
+body.split.sv-left #stagewrap::after{left:calc(var(--pane2-w, 0px) + var(--thumb-w));right:0;}
+body.split.sv-left.thumbs-off #stagewrap::after{left:var(--pane2-w, 0px);}
 #novideo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   color:var(--muted);text-align:center;padding:30px;margin:auto;max-width:460px;line-height:1.7;font-size:13px;}
 #novideo .big{font-size:15px;font-weight:800;color:var(--text);}
@@ -3851,7 +3867,10 @@ const KV_DEFAULT = {
   /* 자료마다 마지막에 보던 자리 — { 자료 id: { p:쪽, fit:맞춤 방식, b:직접 확대의 바탕 맞춤, z:배율, fx·fy:스크롤 위치(종이 크기 대비 비율), t:시각 } }.
      자료를 바꾸거나 창을 닫을 때 적고, 그 자료를 다시 열면 그 자리로 돌아갑니다. 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음).
      기억이 끝없이 늘지 않도록 최근 200개만 남깁니다 */
-  viewPos:{}
+  viewPos:{},
+  /* 화면 나누기 — { on:켜 두었는지, id:옆(보조) 칸 자료, side:보조 칸 자리 "right"|"left" }.
+     다시 열면 같은 모양으로 폅니다. 기기별로만 둡니다(SYNC_KV_KEYS 에 넣지 않음) */
+  split:{ on:false, id:null, side:"right" }
 };
 let KV = Object.assign({}, KV_DEFAULT);
 async function loadKV(){
@@ -4169,6 +4188,11 @@ function togglePin(id){
   setPin(id, !isPinned(id));
   renderTree();
 }
+/* 자료 줄의 선택 표시 — 활성 칸에 열린 자료는 sel, 화면 나누기의 옆 칸에 띄운 자료는 옅은 sel2 */
+function docCls(d){
+  if(S.sel === d.id) return "sel";
+  return SV.on && SV.id === d.id ? "sel2" : "";
+}
 function renderPinboard(){
   const docs = (KV.pins || []).map(id => DOCS.find(d => d.id === id)).filter(Boolean);
   const open = KV.pinOpen !== false;
@@ -4184,7 +4208,7 @@ function renderPinboard(){
   $("#pb-list").innerHTML = docs.map(d => {
     if(mob) return docRowMobile(d);
     const proj = isProj(d), f = proj ? projFolderOf(d) : null;
-    return `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
+    return `<div class="doc ${docCls(d)}" data-id="${d.id}"
         title="${esc(d.title)}&#10;${esc(proj ? (f ? f.name : "") : fmtYMW(d))}">
       ${proj ? PK_TAG : `<span class="wk">W${weekOf(d)}</span>`}
       <span class="nm">${esc(proj ? d.title : (d.short || d.title))}</span>
@@ -4231,7 +4255,7 @@ function renderProjTree(){
     if(!open) return;
     docs.forEach(d => {
       if(mob){ html += docRowMobile(d); return; }
-      html += `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
+      html += `<div class="doc ${docCls(d)}" data-id="${d.id}"
           title="${esc(d.title)}&#10;${esc(f.name)}">
         ${PK_TAG}
         <span class="nm">${esc(d.title)}</span>
@@ -4286,7 +4310,7 @@ function renderTree(){
       if(!mOpen) return;
       if(mob){ docs.forEach(d => { html += docRowMobile(d); }); return; }
       docs.forEach(d => {
-        html += `<div class="doc ${S.sel===d.id?"sel":""}" data-id="${d.id}"
+        html += `<div class="doc ${docCls(d)}" data-id="${d.id}"
             title="${esc(d.title)}&#10;${esc(fmtYMW(d))}">
           <span class="wk">W${weekOf(d)}</span>
           <span class="nm">${esc(d.short || d.title)}</span>
@@ -4377,6 +4401,10 @@ function saveViewPos(){
     rec.fx = w ? Math.round(st.scrollLeft / w * 1e4) / 1e4 : 0;     /* 픽셀이 아니라 종이 크기 대비 비율 */
     rec.fy = h ? Math.round(st.scrollTop  / h * 1e4) / 1e4 : 0;
   }
+  putViewPos(id, rec);
+}
+/* 자리 하나를 적습니다 — 화면 나누기의 보조 칸도 같은 모양으로 이 함수를 통해 적습니다 */
+function putViewPos(id, rec){
   const old = viewPosOf(id);
   if(old && ["p","fit","b","z","fx","fy"].every(k => old[k] === rec[k])) return;   /* 달라진 게 없으면 다시 쓰지 않습니다 */
   rec.t = Date.now();
@@ -4419,9 +4447,10 @@ async function applyViewPos(rec){
     st.scrollTop  = (+rec.fy || 0) * cv.offsetHeight;
   }
 }
-/* 창을 닫거나 새로 고치거나 다른 탭으로 갈 때도 적어 둡니다 */
-window.addEventListener("pagehide", saveViewPos);
-document.addEventListener("visibilitychange", () => { if(document.hidden) saveViewPos(); });
+/* 창을 닫거나 새로 고치거나 다른 탭으로 갈 때도 적어 둡니다(화면 나누기의 보조 칸 자리도 함께) */
+const saveAllViewPos = () => { saveViewPos(); svSavePos(); };
+window.addEventListener("pagehide", saveAllViewPos);
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveAllViewPos(); });
 
 async function loadPdfFor(doc){
   /* 이전 문서 정리 — 떠나는 자료의 보던 자리를 먼저 적습니다(selectDoc 은 S.sel 을 이미 새 자료로 바꿔 둠) */
@@ -7437,8 +7466,8 @@ $("#fit-page").onclick  = () => {
   if(isMobile()){ S.mFit = "page"; if(S.pdf) MS.jump = S.page; } else S.fitPref = "page";
   fitTo("page");
 };
-/* ---- 화면 나누기 — 오른쪽 보조 칸 ----------------------------------------
-   왼쪽(활성) 칸은 지금까지의 뷰어 그대로이고, 오른쪽 보조 칸은 자료 하나를 더 띄워
+/* ---- 화면 나누기 — 보조 칸 ----------------------------------------
+   활성 칸은 지금까지의 뷰어 그대로이고, 보조 칸(처음엔 오른쪽)은 자료 하나를 더 띄워
    쪽 넘기기(휠·◀▶)와 확대/축소만 합니다. 그리기·하이라이트·쪽 미리보기는 없습니다.
    • SV.want — 사용자가 나누기를 켜 두었는지(단추의 눌린 모양).  SV.on — 지금 실제로 두 칸이 보이는지.
      가운데가 너무 좁거나(460px 미만 — 툴바가 가장 좁은 모양이 되어 나누기 단추도 숨는 때) 아이폰 화면이면
@@ -7446,34 +7475,92 @@ $("#fit-page").onclick  = () => {
    • 보조 칸의 쪽·맞춤 방식·배율(SV.page · SV.fit · SV.fitPref · SV.zoom)은 보던 자리 기억(KV.viewPos)과
      같은 뜻이라, 칸을 맞바꿀 때 그대로 옮겨 적을 수 있습니다.
    • 처음 켤 때 보조 칸 자료 — 최근에 연 자료 가운데 지금 왼쪽에 열린 것이 아니고 PDF 원본이 있는 첫 자료.
-     없으면 칸 안에 안내문을 띄웁니다. */
+     없으면 칸 안에 안내문을 띄웁니다.
+   • 활성 칸 — 목록에서 누른 자료가 열리는 칸(빨간 테두리). 늘 '지금까지의 뷰어'(#stage, S.sel)입니다.
+     보조 칸을 누르면 두 칸의 자리(왼/오)는 그대로 두고 자료만 맞바꿉니다 — 보조 칸이 왼쪽으로 가는 것은
+     SV.side("right"|"left")와 body.sv-left(CSS order)로 합니다.
+   • 켜 둔 상태 · 보조 칸 자료 · 자리는 KV.split 에 기억해 다시 열면 그대로 폅니다(기기별). */
 const SV = { want:false, on:false, id:null, pdf:null, page:1, zoom:1, base:1, fit:"page", fitPref:"page",
-             task:null, seq:0, rseq:0 };
+             task:null, seq:0, rseq:0, side:"right", opened:false };
 function svCanShow(){ return !isMobile() && !document.body.classList.contains("tiny-bar"); }
-function setSplit(want){ SV.want = !!want; applySplit(); }
-/* 켜 둔 상태(SV.want)와 화면 폭을 보고 두 칸을 펴거나 접습니다 — 폭이 바뀔 때마다 불러도 됩니다 */
+function setSplit(want){
+  SV.want = !!want;
+  if(!SV.want) SV.side = "right";                       /* 끄면 다음에 켤 때는 다시 보조 칸이 오른쪽 */
+  applySplit(); svSave();
+}
+/* 켜 둔 상태(SV.want)와 화면 폭을 보고 두 칸을 펴거나 접습니다 — 폭이 바뀔 때마다 불러도 됩니다.
+   (여기서는 KV.split 을 적지 않습니다 — 기억을 읽기 전, 시작할 때도 불리기 때문입니다) */
 function applySplit(){
   const b = $("#btn-split");
   b.classList.toggle("on", SV.want);
   b.setAttribute("aria-pressed", String(SV.want));
+  document.body.classList.toggle("sv-left", SV.side === "left");
   const on = SV.want && svCanShow();
   if(on === SV.on) return;
   SV.on = on;
   document.body.classList.toggle("split", on);
   $("#pane2").hidden = !on;
   if(on){
-    if(!SV.pdf) svOpen(svPickDoc());                     /* 잠시 접었다 다시 펼 때는 보던 자료 그대로 */
+    if(!SV.opened) svOpen(svPickDoc());                  /* 잠시 접었다 다시 펼 때는 보던 자료(또는 안내문) 그대로 */
   }else if(!SV.want){
-    SV.id = null; svDrop(); svMsg("");                   /* 사용자가 끄면 보조 칸 자료를 내려 기억 공간을 비웁니다 */
+    SV.id = null; SV.seq++; svDrop(); svMsg("");         /* 사용자가 끄면 보조 칸 자료를 내려 기억 공간을 비웁니다 */
+    SV.opened = false;
   }
+  renderTree();                                          /* 목록의 옅은 표시(옆 칸 자료)를 맞춥니다 */
 }
 $("#btn-split").onclick = () => setSplit(!SV.want);
+/* 지금 모양을 KV.split 에 적습니다 — 바뀐 게 없으면 쓰지 않습니다 */
+function svSave(){
+  const o = KV.split || {};
+  const n = { on: SV.want, id: SV.want ? SV.id : null, side: SV.side };
+  if(o.on === n.on && o.id === n.id && o.side === n.side) return;
+  KV.split = n; saveKV("split");
+}
+/* 보조 칸의 보던 자리를 KV.viewPos 에 적습니다(왼쪽 칸과 같은 모양). 칸을 맞바꾸기 직전과 창을 닫을 때 부릅니다.
+   두 칸에 같은 자료가 열려 있으면 활성 칸 쪽 기억을 남깁니다 */
+function svSavePos(){
+  if(!SV.id || !SV.pdf || SV.id === S.pdfId || !DOCS.some(d => d.id === SV.id)) return;
+  const cv = $("#pdfcanvas2"), st = $("#stage2"), w = cv.offsetWidth, h = cv.offsetHeight;
+  if(!w || !h) return;                                   /* 접혀 있거나 아직 안 그려졌으면 열 때 읽은 자리를 그대로 둡니다 */
+  const rec = { p: SV.page, fit: SV.fit };
+  if(SV.fit === "manual"){ rec.b = SV.fitPref; rec.z = SV.zoom; }
+  rec.fx = Math.round(st.scrollLeft / w * 1e4) / 1e4;
+  rec.fy = Math.round(st.scrollTop  / h * 1e4) / 1e4;
+  putViewPos(SV.id, rec);
+}
+/* 보조 칸을 누르면 — 두 칸의 자료를 맞바꾸고 활성 테두리를 누른 쪽으로 옮깁니다.
+   ① 두 칸의 보던 자리를 먼저 적고(보조 칸은 그림판을 비우기 전에)  ② 자리(왼/오)를 곧바로 바꿔
+   빠르게 두 번 눌러도 두 번째 누름은 이제 활성 칸에 떨어지게 하고  ③ 보조 칸은 방금까지 활성이던 자료를,
+   활성 칸은 보조 칸 자료를 엽니다(적어 둔 자리로 열립니다) */
+function svSwap(){
+  if(!SV.on) return;
+  const a = S.sel, b = SV.id;
+  saveViewPos(); svSavePos();
+  SV.side = SV.side === "left" ? "right" : "left";
+  document.body.classList.toggle("sv-left", SV.side === "left");
+  svOpen(a);
+  if(b) selectDoc(b); else closeDoc();
+  svSave();
+}
+$("#pane2").addEventListener("click", e => {
+  if(e.target.closest("button")) return;                 /* 머리줄 단추 · ◀ ▶ 는 그 칸 안에서만 */
+  const st = $("#stage2");
+  if(e.target === st && (e.offsetX >= st.clientWidth || e.offsetY >= st.clientHeight)) return;   /* 스크롤 막대 */
+  svSwap();
+});
+/* 자료가 지워졌거나 원본이 비워지거나 바뀌었을 때 보조 칸을 다시 맞춥니다 — 칸이 접혀 있어도 부릅니다.
+   reopen 을 주면(원본을 다시 올렸거나 새로 받았을 때) 같은 자료를 처음부터 다시 엽니다 */
+function svCheckDoc(reopen){
+  if(!SV.id) return;
+  const d = DOCS.find(x => x.id === SV.id);
+  if(!d || reopen || !!d.hasPdf !== !!SV.pdf) svOpen(SV.id);
+}
 
-/* 보조 칸에 띄울 자료 — 방금까지 띄워 두었던 자료가 아직 있으면 그것, 아니면 최근 열람 자료에서 고릅니다 */
+/* 보조 칸에 띄울 자료 — 방금까지 띄워 두었던(또는 기억해 둔) 자료가 아직 있으면 그것, 아니면 최근 열람 자료에서 고릅니다 */
 function svPickDoc(){
   const ok = d => d && d.hasPdf && d.id !== S.sel;
   const cur = SV.id && DOCS.find(d => d.id === SV.id);
-  if(ok(cur)) return cur.id;
+  if(cur && cur.id !== S.sel) return cur.id;            /* 원본이 없는 자료라도 띄워 두었던 것이면 그대로(칸에 안내문) */
   for(const id of (KV.recentDocs || [])){
     const d = DOCS.find(x => x.id === id);
     if(ok(d)) return d.id;
@@ -7497,12 +7584,23 @@ function svDrop(){
 async function svOpen(id){
   const seq = ++SV.seq;
   svDrop();
-  SV.id = id || null;
+  SV.opened = true;
   const d = id && DOCS.find(x => x.id === id);
+  const was = SV.id;
+  SV.id = d ? d.id : null;
+  if(SV.id !== was){ svSave(); renderTree(); }           /* 기억과 목록의 옅은 표시를 새 자료로 */
   svBar();
   if(!d){
-    svMsg(`<div class="big">옆에 띄울 자료가 없습니다</div>
-      최근에 열어 본 다른 자료가 없습니다.<br>왼쪽 목록에서 자료를 하나 더 열어 본 뒤<br>화면 나누기를 다시 켜 주세요.`);
+    svMsg(id
+      ? `<div class="big">옆 칸 자료가 지워졌습니다</div>
+         이 칸을 누르면 이쪽이 활성 칸(빨간 테두리)이 됩니다.<br>그다음 왼쪽 목록에서 볼 자료를 고르세요.`
+      : `<div class="big">옆에 띄울 자료가 없습니다</div>
+         이 칸을 누르면 이쪽이 활성 칸(빨간 테두리)이 됩니다.<br>그다음 왼쪽 목록에서 볼 자료를 고르세요.`);
+    return;
+  }
+  if(!d.hasPdf){
+    svMsg(`<div class="big">원본이 없습니다</div>
+      이 자료는 PDF 원본 없이 글자·요약만 있습니다.<br>이 칸을 누르면 활성 칸으로 옮겨 요약·회의록을 볼 수 있습니다.`);
     return;
   }
   svMsg(`<div class="big">자료를 여는 중…</div>`);
@@ -7528,6 +7626,12 @@ async function svOpen(id){
     const base = r && (r.fit === "width" || (r.fit === "manual" && r.b === "width")) ? "width" : "page";
     svMsg(""); $("#cw2").hidden = false;
     await svFit(base, r && r.fit === "manual" && r.z > 0 ? clampZoom(r.z) : 0);
+    /* 스크롤 자리도 종이 크기 대비 비율로 되돌립니다(칸을 맞바꿀 때 보던 곳 그대로) */
+    if(r && seq === SV.seq){
+      const cv = $("#pdfcanvas2"), st = $("#stage2");
+      st.scrollLeft = (+r.fx || 0) * cv.offsetWidth;
+      st.scrollTop  = (+r.fy || 0) * cv.offsetHeight;
+    }
   }catch(err){
     if(seq !== SV.seq) return;
     svDrop();
@@ -8954,6 +9058,7 @@ async function removeDoc(id){
     S.anErr = ""; S.anErrId = null; S.asErr = ""; S.asErrId = null;
     await loadPdfFor(null);
   }
+  svCheckDoc();                                           /* 화면 나누기의 옆 칸 자료였다면 그 칸도 비웁니다 */
 }
 
 /* 자료 레코드와 데이터(요약·회의록·할 일·메모·발표 스크립트·펜 자국)는 그대로 두고
@@ -8971,6 +9076,7 @@ async function detachPdf(id){
     return;
   }
   if(S.sel === id) await loadPdfFor(d);
+  svCheckDoc();                                           /* 옆 칸 자료였다면 '원본이 없습니다' 안내로 */
 }
 
 /* 통째 삭제 확인창에 보여 줄, 이 자료에 딸린 데이터 요약 한 줄 */
@@ -12067,6 +12173,7 @@ async function relinkDoc(d, p, buf, pages, pageTexts, warns){
              :               "비어 있던 원본을 다시 채웠습니다";
   warns.unshift(`이어붙였습니다 — ${what} (${had.pages}쪽 → ${pages}쪽)`);
   if(S.sel === d.id) await loadPdfFor(d);
+  if(SV.id === d.id) svCheckDoc(true);                    /* 옆 칸에 띄워 둔 자료면 새 원본으로 다시 엽니다 */
   return warns.join(" · ");
 }
 
@@ -12708,7 +12815,7 @@ $("#btn-wipe").onclick = async () => {
   S.aiErr = ""; S.aiErrId = null;
   $("#modalbg").classList.remove("on");
   $("#set-store").value = KV.storeMode; syncAiRow(); syncAiNoteRow();
-  renderAll(); await loadPdfFor(null); updateUsage(); updatePersist();
+  renderAll(); await loadPdfFor(null); svCheckDoc(); updateUsage(); updatePersist();
   toast("전부 지웠습니다");
 };
 
@@ -13537,6 +13644,7 @@ async function syncApplyToScreen(changed){
     await loadPdfFor(null);   /* "자료가 없습니다 / 자료를 고르세요" 안내문을 지금 개수에 맞게 */
   }
   if(cur && changed.draw.has(cur.id) && typeof window.drawReloadDoc === "function") await window.drawReloadDoc(cur.id);
+  if(SV.id) svCheckDoc(changed.files.has(SV.id));         /* 화면 나누기의 옆 칸도 같은 기준으로(지워짐 · 원본 바뀜) */
   syncRenderSoon();
   updateUsage();
 }
@@ -15103,6 +15211,13 @@ function registerSW(){
   const last = KV.sel ? DOCS.find(d => d.id === KV.sel) : null;
   if(last){ S.sel = last.id; revealDoc(last.id); }
   else if(KV.sel){ KV.sel = null; saveKV("sel"); }
+  /* 지난번에 화면 나누기를 켜 두었으면 같은 자리 · 같은 옆 칸 자료로 다시 폅니다.
+     왼쪽 자료를 읽기 전에 펴야 처음부터 반 폭에 맞춰 열립니다(그 자료가 지워졌으면 최근 자료에서 고릅니다) */
+  if(KV.split && KV.split.on){
+    SV.id   = typeof KV.split.id === "string" ? KV.split.id : null;
+    SV.side = KV.split.side === "left" ? "left" : "right";
+    setSplit(true);
+  }
 
   renderAll();
   if(window.pdfjsLib) await loadPdfFor(last || null);
