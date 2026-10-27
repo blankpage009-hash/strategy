@@ -1533,8 +1533,8 @@ body.full .thumb.sum::after{background:#f3f2f2;}
 /* 머리의 i 단추 — 누르면 설명이 펼쳐집니다(데스크톱·모바일 공통) */
 #mghintbtn{flex:0 0 auto;margin:0 0 0 auto;width:22px;height:22px;padding:0;border:1.5px solid var(--muted);
   border-radius:50%;background:transparent;color:var(--muted);font:italic 700 12px/18px Georgia,serif;cursor:pointer;}
-#mghintbtn:hover{border-color:var(--ink,#222);color:var(--ink,#222);}
-#mghintbtn[aria-expanded="true"]{background:var(--ink,#222);color:var(--surface,#fff);border-color:var(--ink,#222);}
+#mghintbtn:hover{border-color:var(--text);color:var(--text);}
+#mghintbtn[aria-expanded="true"]{background:var(--areabar);color:var(--areabar-ink);border-color:var(--areabar);}
 #mghintbtn + .x{margin-left:6px;}
 body.m #managebg .modal > header{position:relative;}
 body.m #mghintbtn{position:absolute;right:16px;bottom:7px;margin:0;width:20px;height:20px;font-size:12px;line-height:17px;}
@@ -1548,7 +1548,7 @@ body.m #mghintbtn{position:absolute;right:16px;bottom:7px;margin:0;width:20px;he
 .mgtabs button + button{border-left:1px solid var(--line);}
 .mgtabs .n{font-size:12px;font-weight:600;}
 .mgtabs button:hover{background:var(--panel2);color:var(--text);}
-.mgtabs button.on{background:var(--ink,#222);color:var(--surface,#fff);}
+.mgtabs button.on{background:var(--areabar);color:var(--areabar-ink);}
 .mgtabs button.on .n{color:#b3aeae;}
 /* 칩 필터 — 여러 개를 켜고 끌 수 있고, 맨 앞 칩이 전체 켜기/끄기입니다 */
 .mgfilt{display:flex;gap:10px;align-items:flex-start;padding:10px 16px 0;}
@@ -1558,7 +1558,7 @@ body.m #mghintbtn{position:absolute;right:16px;bottom:7px;margin:0;width:20px;he
 .mgchip{height:26px;padding:0 10px;border:1px solid var(--line);border-radius:0;background:var(--surface);color:var(--muted);
   font-size:12.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
 .mgchip .c{font-size:11px;color:var(--muted);}
-.mgchip:hover{border-color:var(--ink,#222);color:var(--text);}
+.mgchip:hover{border-color:var(--areabar);color:var(--text);}
 .mgchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
 .mgchip.on .c{color:var(--accent-ink);}
 .mgchip.all{width:26px;padding:0;justify-content:center;}
@@ -1569,10 +1569,10 @@ body.m #mghintbtn{position:absolute;right:16px;bottom:7px;margin:0;width:20px;he
 #mgsearch:focus{border-color:var(--accent);outline:none;}
 .mgtbtn{height:28px;padding:0 11px;border:1px solid var(--line);border-radius:0;background:var(--surface);color:var(--text);
   font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
-.mgtbtn:hover{border-color:var(--ink,#222);}
+.mgtbtn:hover{border-color:var(--areabar);}
 .mgtbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
 .mgtbtn[hidden]{display:none;}
-body.m #mgsearch{border:2px solid var(--ink,#222);}
+body.m #mgsearch{border:2px solid var(--areabar);}
 #mgtools .cnt{font-size:12px;color:var(--muted);white-space:nowrap;margin-left:auto;}
 /* 창 크기 — 한 줄 행(이름 · 메타 · 단추 넷)이 들어가도록 넓히고, 높이는 고정해 거를 때 창이 출렁이지 않게 합니다.
    탭 · 칩 · 도구 줄은 제자리에 두고 목록(#mglist)만 굴러갑니다. */
@@ -1621,10 +1621,10 @@ body.m #mgsearch{border:2px solid var(--ink,#222);}
   background:var(--surface);border-bottom:1px solid var(--line);}
 .mgmovep .ml{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:var(--muted);margin-right:4px;}
 .mgmovep .sp{flex:1 1 0;}
-.mgseg{display:inline-flex;border:1px solid var(--ink,#222);margin-right:8px;}
+.mgseg{display:inline-flex;border:1px solid var(--areabar);margin-right:8px;}
 .mgseg button{height:28px;padding:0 10px;border:none;border-radius:0;background:var(--surface);
   color:var(--text);font-size:12px;cursor:pointer;}
-.mgseg button.on{background:var(--ink,#222);color:var(--surface,#fff);}
+.mgseg button.on{background:var(--areabar);color:var(--areabar-ink);}
 .mgmovep select{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;
   background:var(--surface);font-size:12px;}
 .mgmovep select.cat{flex:0 1 190px;min-width:110px;}
@@ -13610,22 +13610,23 @@ const TUT = [
 },
 {
   no:"10", nav:"자료 관리", title:"자료 관리 — 이름 · 종류 · 날짜 · 삭제",
-  lead:"이미 올린 자료의 이름을 바꾸거나, 회의 종류 · 날짜를 옮기거나, 지웁니다.",
+  lead:"이미 올린 자료의 이름을 바꾸거나, 종류 · 날짜 · 폴더를 옮기거나, 지웁니다.",
   secs:[
     { h:"어디에", type:"where", items:[
       { ic:"manage", html:"왼쪽 <b>MATERIALS</b> 줄의 목록 단추 (Upload 오른쪽)" }
     ]},
     { h:"하는 법", type:"steps", items:[
-      "이름 칸을 고치거나 종류 · 연 · 월 · 주차를 고릅니다. <b>고치는 즉시 저장</b>되어 확인 단추가 없습니다.",
+      "위쪽 <b>회의자료 / 프로젝트</b> 탭과 <b>칩</b>으로 보고 싶은 자료만 추립니다. 연 · 월(또는 폴더) 묶음은 머리를 눌러 접고 펼 수 있습니다. 이름 칸은 <b>고치는 즉시 저장</b>됩니다.",
       "<b>이름으로 걸러내기</b> 로 많은 자료 중에서 찾습니다.",
-      "여러 개를 골라 <b class='k'>선택 삭제</b> 하거나 <b class='k'>선택 원본 비우기</b> 를 누릅니다."
+      "종류 · 날짜 · 폴더를 바꾸거나 회의 자료 ↔ 프로젝트로 옮길 때는 줄 끝 <b class='k'>자료 이동</b> 에서 <b>옮기기</b> 를 누릅니다.",
+      "여러 개를 골라 <b class='k'>선택 삭제</b> 하거나 <b class='k'>선택 PDF 원본만 삭제</b> 를 누릅니다."
     ]},
     { h:"두 가지 지우기", type:"table", head:["단추","없어지는 것","남는 것"], rows:[
-      ["<b>선택 원본 비우기</b>","PDF 원본 파일만","자료 이름 · 뽑아 둔 글자 · 요약 · 회의록 · 할 일 (검색도 그대로 됩니다)"],
+      ["<b>PDF 원본만 삭제</b> · <b>선택 PDF 원본만 삭제</b>","PDF 원본 파일만","자료 이름 · 뽑아 둔 글자 · 요약 · 회의록 · 할 일 (검색도 그대로 됩니다)"],
       ["<b>선택 삭제</b>","자료와 딸린 것 전부","없음 — 되돌릴 수 없습니다"]
     ]},
     { h:"알아두기", type:"note", html:
-      "종류나 날짜를 바꾸면 <b>연결된 회의록도 함께</b> 그 날짜의 것으로 옮겨집니다. 저장 공간이 모자랄 때는 오래된 자료의 <b>원본만 비우면</b> 검색은 그대로 두면서 공간을 크게 줄일 수 있습니다." }
+      "종류나 날짜를 바꾸면 <b>연결된 회의록도 함께</b> 그 날짜의 것으로 옮겨집니다. 저장 공간이 모자랄 때는 오래된 자료의 <b>PDF 원본만 삭제하면</b> 검색은 그대로 두면서 공간을 크게 줄일 수 있습니다." }
   ]
 },
 {
@@ -13687,7 +13688,7 @@ const TUT = [
       ["인터넷이 끊겨도 되나요?","됩니다. AI NOTE만 빼고 전부 그대로 동작합니다"],
       ["자료가 안 보여요","Filter 막대에서 그 회의 종류가 꺼져 있는지 보세요. 칩 왼쪽의 <b class='k'>✓✓</b> 단추로 모두 켤 수 있습니다"],
       ["화면이 예전 그대로예요","<b>설정 → 프로그램 갱신 → 최신으로 새로고침</b>. 자료는 지워지지 않습니다"],
-      ["저장 공간이 모자랍니다","<b>자료 관리 → 선택 원본 비우기</b> 로 오래된 자료의 PDF만 비우세요. 검색은 그대로 됩니다"]
+      ["저장 공간이 모자랍니다","<b>자료 관리 → 선택 PDF 원본만 삭제</b> 로 오래된 자료의 PDF만 지우세요. 검색은 그대로 됩니다"]
     ]},
     { h:"알아두기", type:"note", warn:true, html:
       "브라우저의 <b>인터넷 사용 기록 삭제</b> 에서 ‘쿠키 및 사이트 데이터’ 를 지우면 이 앱의 자료도 함께 지워질 수 있습니다. 백업을 정기적으로 내보내 두세요. <b>설정 → 저장 공간 → 저장 보호 요청</b> 을 눌러 두면 브라우저가 함부로 지우지 않습니다." }
