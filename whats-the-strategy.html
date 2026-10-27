@@ -1530,25 +1530,49 @@ body.full .thumb.sum::after{background:#f3f2f2;}
   border-radius:0;background:var(--panel);color:var(--muted);font-size:12px;cursor:pointer;}
 .cmrow .del:hover{border-color:var(--bad);color:var(--bad);}
 /* ---------- 자료 관리(Manage) ---------- */
-#mgfilters{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:10px;padding-bottom:10px;
-  border-bottom:1px solid var(--hairline);}
-.mgfgroup{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.mgflabel{flex:0 0 auto;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--muted);}
-.mgfsel{height:28px;padding:0 6px;border:1px solid var(--line);border-radius:0;background:var(--surface);font-size:12px;}
-.mgfsel:focus{border-color:var(--accent);}
-#mgtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
-#mgsearch{flex:1 1 180px;min-width:0;height:32px;padding:0 9px;border:1px solid var(--line);
-  border-radius:0;background:var(--panel);font-size:13px;}
-#mgsearch:focus{border-color:var(--accent);}
-#mghintbtn{display:none;}
+/* 머리의 i 단추 — 누르면 설명이 펼쳐집니다(데스크톱·모바일 공통) */
+#mghintbtn{flex:0 0 auto;margin:0 0 0 auto;width:22px;height:22px;padding:0;border:1.5px solid var(--muted);
+  border-radius:50%;background:transparent;color:var(--muted);font:italic 700 12px/18px Georgia,serif;cursor:pointer;}
+#mghintbtn:hover{border-color:var(--ink,#222);color:var(--ink,#222);}
+#mghintbtn[aria-expanded="true"]{background:var(--ink,#222);color:var(--surface,#fff);border-color:var(--ink,#222);}
+#mghintbtn + .x{margin-left:6px;}
 body.m #managebg .modal > header{position:relative;}
-body.m #mghintbtn{display:block;position:absolute;right:16px;bottom:7px;margin:0;width:20px;height:20px;padding:0;border:1.5px solid var(--muted);
-  border-radius:50%;background:transparent;color:var(--muted);font:italic 700 12px/17px Georgia,serif;cursor:pointer;}
-body.m #mghintbtn[aria-expanded="true"]{background:var(--ink,#222);color:var(--surface,#fff);border-color:var(--ink,#222);}
-body.m #mghint{display:none;}
-body.m #mghint.open{display:block;}
+body.m #mghintbtn{position:absolute;right:16px;bottom:7px;margin:0;width:20px;height:20px;font-size:12px;line-height:17px;}
+#mghint{display:none;flex:0 0 auto;padding:10px 16px;font-size:11.5px;line-height:1.6;color:var(--muted);
+  background:var(--surface);border-bottom:1px solid var(--line);}
+#mghint.open{display:block;}
+/* 회의자료 / 프로젝트 탭 — 켜진 쪽은 검정 바탕에 흰 글씨 */
+.mgtabs{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;border-bottom:var(--rule-w) solid var(--rule);}
+.mgtabs button{height:36px;padding:0;border:none;border-radius:0;background:var(--panel);color:var(--muted);
+  font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+.mgtabs button + button{border-left:1px solid var(--line);}
+.mgtabs .n{font-size:12px;font-weight:600;}
+.mgtabs button:hover{background:var(--panel2);color:var(--text);}
+.mgtabs button.on{background:var(--ink,#222);color:var(--surface,#fff);}
+.mgtabs button.on .n{color:#b3aeae;}
+/* 칩 필터 — 여러 개를 켜고 끌 수 있고, 맨 앞 칩이 전체 켜기/끄기입니다 */
+.mgfilt{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;}
+.mgflabel{flex:0 0 auto;min-width:44px;height:26px;display:flex;align-items:center;
+  font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--muted);}
+#mgchips{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 auto;min-width:0;}
+.mgchip{height:26px;padding:0 10px;border:1px solid var(--line);border-radius:0;background:var(--surface);color:var(--muted);
+  font-size:12.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.mgchip .c{font-size:11px;color:var(--muted);}
+.mgchip:hover{border-color:var(--ink,#222);color:var(--text);}
+.mgchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
+.mgchip.on .c{color:var(--accent-ink);}
+.mgchip.all{width:26px;padding:0;justify-content:center;}
+#mgtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+#mgsearch{flex:1 1 180px;min-width:0;height:28px;padding:0 10px;border:1px solid var(--line);
+  border-radius:0;background:var(--surface);font-size:13px;}
+#mgsearch:focus{border-color:var(--accent);outline:none;}
+.mgtbtn{height:28px;padding:0 11px;border:1px solid var(--line);border-radius:0;background:var(--surface);color:var(--text);
+  font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.mgtbtn:hover{border-color:var(--ink,#222);}
+.mgtbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
+.mgtbtn[hidden]{display:none;}
 body.m #mgsearch{border:2px solid var(--ink,#222);}
-#mgtools .cnt{font-size:12px;color:var(--muted);margin-left:auto;}
+#mgtools .cnt{font-size:12px;color:var(--muted);white-space:nowrap;margin-left:auto;}
 .mgrow{border:none;border-bottom:1px solid var(--hairline);border-radius:0;background:none;padding:10px 2px;}
 .mgrow.gone{opacity:.45;}
 .mgtop{display:flex;align-items:center;gap:7px;}
@@ -2935,28 +2959,23 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
 <!-- 자료 관리 -->
 <div class="modalbg" id="managebg">
   <div class="modal wide" role="dialog" aria-label="자료 관리">
-    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span> <button class="x" id="mgclose">✕</button>
-<button type="button" id="mghintbtn" aria-label="설명 보기" aria-expanded="false" title="설명 보기">i</button></header>
+    <header><span class="hd-t"><span class="hd-k">WHAT'S THE STRATEGY?</span><span class="hd-n">자료 관리</span></span>
+<button type="button" id="mghintbtn" aria-label="설명 보기" aria-expanded="false" title="설명 보기">i</button> <button class="x" id="mgclose">✕</button></header>
+    <div id="mghint">
+      이름·회의 종류·날짜·폴더는 <b>고치는 즉시 저장</b>됩니다.
+      종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
+      프로젝트 자료는 <b>폴더</b>만 고르며, 줄 끝 단추로 회의 자료 ↔ 프로젝트를 옮길 수 있습니다.
+    </div>
+    <div class="mgtabs">
+      <button type="button" class="on" data-mgtab="meet">회의자료 <span class="n" id="mgn-meet"></span></button>
+      <button type="button" data-mgtab="proj">프로젝트 <span class="n" id="mgn-proj"></span></button>
+    </div>
     <div class="content">
-      <div class="hint" id="mghint" style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:9px">
-        이름·회의 종류·날짜·폴더는 <b>고치는 즉시 저장</b>됩니다.
-        종류나 날짜를 바꾸면 연결되는 회의록도 그 날짜의 것으로 함께 바뀝니다.
-        프로젝트 자료는 <b>폴더</b>만 고르며, 줄 끝 단추로 회의 자료 ↔ 프로젝트를 옮길 수 있습니다.
-      </div>
-      <div id="mgfilters">
-        <div class="mgfgroup"><span class="mgflabel">영역</span><select class="mgfsel" id="mgfarea">
-          <option value="">전체</option><option value="meet">회의 자료</option><option value="proj">프로젝트</option></select></div>
-        <div class="mgfgroup" id="mgg-folder"><span class="mgflabel">폴더</span><select class="mgfsel" id="mgffolder"></select></div>
-        <div class="mgfgroup" id="mgg-cat"><span class="mgflabel">종류</span><select class="mgfsel" id="mgfcat"></select></div>
-        <div class="mgfgroup" id="mgg-year"><span class="mgflabel">연도</span><select class="mgfsel" id="mgfyear"></select></div>
-        <div class="mgfgroup" id="mgg-month"><span class="mgflabel">월</span><select class="mgfsel" id="mgfmonth"></select></div>
-      </div>
+      <div class="mgfilt"><span class="mgflabel" id="mgflabel">종류</span><div id="mgchips"></div></div>
       <div id="mgtools">
         <input id="mgsearch" type="search" placeholder="이름으로 걸러내기" autocomplete="off">
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
-          <input type="checkbox" id="mgnopdf" style="width:15px;height:15px;margin:0"> 원본 없는 자료만</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
-          <input type="checkbox" id="mgall" style="width:15px;height:15px;margin:0"> 전체 선택</label>
+        <button type="button" class="mgtbtn" id="mgnopdf" aria-pressed="false">원본 없는 자료만</button>
+        <button type="button" class="mgtbtn" id="mgfold" hidden>모두 접기</button>
         <span class="cnt" id="mgcount"></span>
       </div>
       <div id="mglist"></div>
@@ -6724,48 +6743,46 @@ const mgYearOptions = cur => {
 const mgMeta = d =>
   `${d.pages || 1}p${d.hasPdf ? "" : " · 글자만"}${noteOf(d) ? " · 회의록 있음" : ""}`;
 
-/* ---- 상단 필터 드롭다운 — 종류 · 연도 · 월 (하나씩 고릅니다, 기본은 전체) ---- */
+/* ---- 창 상태 — 탭 · 칩 · 검색 · 원본없음 · 접힘 · 선택 · 이동 중 (창을 열 때마다 처음으로 돌립니다) ----
+   on[탭] 이 null 이면 칩이 전부 켜진 상태(거르지 않음)입니다. 종류가 빈 회의자료나 목록에 없는 폴더의 자료도
+   그래야 사라지지 않습니다. known 은 이미 칩으로 본 키라서, 새 종류·새 폴더는 켜진 채로 들어옵니다. */
+const MG = { tab:"meet", on:{ meet:null, proj:null }, known:{ meet:new Set(), proj:new Set() },
+             q:"", nopdf:false, closed:new Set(), sel:new Set(), moving:new Set() };
+
 function mgCatList(){
   const set = new Set(KV.cats);
   DOCS.forEach(d => { if(d.cat && !isProj(d)) set.add(d.cat); });
   return Array.from(set);
 }
-function mgYearList(){
-  const ys = new Set();
-  meetDocs().forEach(d => { const y = yearOf(d); if(y) ys.add(y); });
-  return Array.from(ys).sort((a, b) => b.localeCompare(a));
+/* 탭 하나의 칩 키 — 회의자료는 종류 이름, 프로젝트는 폴더 id */
+const mgKeys    = tab => tab === "proj" ? projFolderList().map(f => f.id) : mgCatList();
+const mgKeyName = (tab, k) => tab === "proj" ? ((projFolderList().find(f => f.id === k) || {}).name || k) : k;
+const mgKeyOf   = d => isProj(d) ? d.folder : (d.cat || "");
+const mgTabDocs = tab => DOCS.filter(d => isProj(d) === (tab === "proj"));
+/* 새로 생긴 종류·폴더는 일부만 켜 둔 상태에서도 켜진 채로 들어오게 합니다 */
+function mgSyncKeys(){
+  ["meet", "proj"].forEach(tab => {
+    const on = MG.on[tab], known = MG.known[tab];
+    mgKeys(tab).forEach(k => { if(!known.has(k)){ known.add(k); if(on) on.add(k); } });
+  });
 }
-function mgFilterSelects(){
-  const fill = (id, list, label) => {
-    const el = $(id), cur = el.value;
-    el.innerHTML = `<option value="">전체</option>` + list.map(v => sel(v, cur, label(v))).join("");
-  };
-  fill("#mgffolder", projFolderList().map(f => f.id), v => (projFolderList().find(f => f.id === v) || {}).name || v);
-  fill("#mgfcat",   mgCatList(),  v => v);
-  fill("#mgfyear",  mgYearList(), v => v + "년");
-  fill("#mgfmonth", Array.from({ length: 12 }, (_, i) => String(i + 1)), v => v + "월");
-  /* 영역에 맞는 거르기 칸만 보입니다 — 프로젝트는 폴더, 회의 자료는 종류·연도·월 */
-  const area = $("#mgfarea").value;
-  $("#mgg-folder").style.display = area === "meet" ? "none" : "";
-  ["cat","year","month"].forEach(k => $("#mgg-" + k).style.display = area === "proj" ? "none" : "");
+const MG_ALL_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+  + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12.5l4.5 4.5L15 8.5"/><path d="M10 15.5l1.5 1.5L22 6.5"/></svg>';
+function mgChips(){
+  const tab = MG.tab, keys = mgKeys(tab), on = MG.on[tab], docs = mgTabDocs(tab);
+  const allOn = !on || keys.every(k => on.has(k));
+  const lab = allOn ? "전체 해제" : "전체 선택";
+  return `<button type="button" class="mgchip all${allOn ? " on" : ""}" data-all="1" title="${lab}" aria-label="${lab}">${MG_ALL_ICON}</button>`
+    + keys.map(k => `<button type="button" class="mgchip${!on || on.has(k) ? " on" : ""}" data-k="${esc(k)}">${esc(mgKeyName(tab, k))} `
+      + `<span class="c">${docs.filter(d => mgKeyOf(d) === k).length}</span></button>`).join("");
 }
 
+/* 탭 → 칩 → 원본 없음 → 검색(이름 · 종류 · 폴더 이름) 순으로 거릅니다 */
 function mgRows(){
-  const q = ($("#mgsearch").value || "").trim().toLowerCase();
-  const nopdf = $("#mgnopdf").checked;
-  const fcat = $("#mgfcat").value, fyear = $("#mgfyear").value, fmonth = $("#mgfmonth").value;
-  const farea = $("#mgfarea").value;
-  /* 화면에서 숨겨진 거르기 칸(회의 자료면 폴더, 프로젝트면 종류·연도·월)의 값은 무시합니다 —
-     왼쪽 목록의 회의자료/프로젝트 토글과는 상관없이 이 창의 영역·폴더 칸만 따릅니다 */
-  const ffolder = farea === "meet" ? "" : $("#mgffolder").value;
-  const useDate = farea !== "proj";
-  return DOCS
-    .filter(d => !nopdf || !d.hasPdf)
-    .filter(d => !farea   || (farea === "proj") === isProj(d))
-    .filter(d => !ffolder || d.folder === ffolder)
-    .filter(d => !useDate || !fcat   || (d.cat || "") === fcat)
-    .filter(d => !useDate || !fyear  || (!isProj(d) && yearOf(d) === fyear))
-    .filter(d => !useDate || !fmonth || (!isProj(d) && String(monthOf(d)) === fmonth))
+  const on = MG.on[MG.tab], q = MG.q.trim().toLowerCase();
+  return mgTabDocs(MG.tab)
+    .filter(d => !on || on.has(mgKeyOf(d)))
+    .filter(d => !MG.nopdf || !d.hasPdf)
     .filter(d => !q || (d.title || "").toLowerCase().includes(q)
                     || (d.cat   || "").toLowerCase().includes(q)
                     || ((projFolderOf(d) || {}).name || "").toLowerCase().includes(q))
@@ -6790,12 +6807,11 @@ function mgSyncSel(){
 }
 
 /* 영역 옮기기를 누른 자료 — 줄 아래가 「어디로 옮길지」 고르는 칸으로 바뀝니다 */
-const mgMoving = new Set();
 const mgFolderPick = () => `<select data-f="destfolder"><option value="">폴더 고르기</option>${folderOptions("")}</select>`;
 function mgBot(d){
   const dl = d.hasPdf ? '<button class="mgdown" title="PDF 원본을 이 기기에 파일로 내려받기">다운로드</button>' : "";
   const meta = `<span class="meta">${esc(mgMeta(d))}</span>`;
-  if(mgMoving.has(d.id)){
+  if(MG.moving.has(d.id)){
     const now = new Date();
     const dest = isProj(d)
       ? `<select class="cat" data-f="destcat">${catOptions(KV.cats[0])}</select>
@@ -6817,9 +6833,16 @@ function mgBot(d){
 }
 
 function mgRender(){
-  mgFilterSelects();
-  const rows = mgRows();
-  $("#mgcount").textContent = `자료 ${DOCS.length}개${rows.length !== DOCS.length ? ` · ${rows.length}개 표시` : ""}`;
+  mgSyncKeys();
+  const rows = mgRows(), tab = MG.tab;
+  $("#mgn-meet").textContent = mgTabDocs("meet").length;
+  $("#mgn-proj").textContent = mgTabDocs("proj").length;
+  $$(".mgtabs button").forEach(b => b.classList.toggle("on", b.dataset.mgtab === tab));
+  $("#mgflabel").textContent = tab === "proj" ? "폴더" : "종류";
+  $("#mgchips").innerHTML = mgChips();
+  $("#mgnopdf").classList.toggle("on", MG.nopdf);
+  $("#mgnopdf").setAttribute("aria-pressed", MG.nopdf ? "true" : "false");
+  $("#mgcount").textContent = `${rows.length}개 표시`;
   $("#mglist").innerHTML = rows.length
     ? rows.map(d => `
       <div class="mgrow" data-id="${d.id}">
@@ -6832,9 +6855,8 @@ function mgRender(){
         <div class="mgbot">${mgBot(d)}</div>
       </div>`).join("")
     : `<div id="mgempty">${ DOCS.length
-        ? "찾는 이름의 자료가 없습니다."
+        ? "조건에 맞는 자료가 없습니다."
         : "아직 등록된 자료가 없습니다.<br>왼쪽 <b>MATERIALS</b> 줄의 <b>Upload</b> 로 먼저 등록하세요." }</div>`;
-  $("#mgall").checked = false;
   mgSyncSel();
 }
 
@@ -6853,10 +6875,9 @@ async function mgSaveDoc(d){
 }
 
 function openManage(){
+  MG.tab = "meet"; MG.on = { meet:null, proj:null }; MG.q = ""; MG.nopdf = false;
+  MG.closed.clear(); MG.sel.clear(); MG.moving.clear();
   $("#mgsearch").value = "";
-  $("#mgnopdf").checked = false;
-  $("#mgfcat").innerHTML = $("#mgfyear").innerHTML = $("#mgfmonth").innerHTML = $("#mgffolder").innerHTML = "";
-  $("#mgfarea").value = ""; mgMoving.clear();
   mgRender();
   $("#managebg").classList.add("on");
 }
@@ -6870,22 +6891,31 @@ $("#btn-manage").onclick = openManage;
 $("#mgclose").onclick    = closeManage;
 $("#mgdone").onclick     = closeManage;
 $("#managebg").addEventListener("click", e => { if(e.target.id === "managebg") closeManage(); });
-$("#mgsearch").addEventListener("input", mgRender);
+$("#mgsearch").addEventListener("input", () => { MG.q = $("#mgsearch").value; mgRender(); });
 $("#mghintbtn").addEventListener("click", () => {
   const open = $("#mghint").classList.toggle("open");
   $("#mghintbtn").setAttribute("aria-expanded", open ? "true" : "false");
 });
-$("#mgnopdf").addEventListener("change", mgRender);
-$("#mgfcat").addEventListener("change", mgRender);
-$("#mgfarea").addEventListener("change", mgRender);
-$("#mgffolder").addEventListener("change", mgRender);
-$("#mgfyear").addEventListener("change", mgRender);
-$("#mgfmonth").addEventListener("change", mgRender);
-$("#mgall").onchange = () => {
-  const on = $("#mgall").checked;
-  $$("#mglist .mgchk").forEach(c => c.checked = on);
-  mgSyncSel();
-};
+/* 탭을 바꾸면 선택·이동 중인 줄은 비웁니다 */
+$(".mgtabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-mgtab]"); if(!b || b.dataset.mgtab === MG.tab) return;
+  MG.tab = b.dataset.mgtab; MG.sel.clear(); MG.moving.clear();
+  mgRender();
+});
+/* 칩 — 눌러서 켜고 끕니다. 맨 앞 칩은 전체 켜기/끄기 */
+$("#mgchips").addEventListener("click", e => {
+  const c = e.target.closest(".mgchip"); if(!c) return;
+  const tab = MG.tab, keys = mgKeys(tab), on = MG.on[tab];
+  if(c.dataset.all){
+    MG.on[tab] = (!on || keys.every(k => on.has(k))) ? new Set() : null;
+  }else{
+    const cur = on || new Set(keys), k = c.dataset.k;
+    if(cur.has(k)) cur.delete(k); else cur.add(k);
+    MG.on[tab] = keys.every(x => cur.has(x)) ? null : cur;   /* 전부 켜지면 다시 "거르지 않음" */
+  }
+  mgRender();
+});
+$("#mgnopdf").addEventListener("click", () => { MG.nopdf = !MG.nopdf; mgRender(); });
 
 $("#mglist").addEventListener("change", async e => {
   const row = e.target.closest(".mgrow"); if(!row) return;
@@ -6925,8 +6955,8 @@ $("#mglist").addEventListener("click", async e => {
   const row = e.target.closest(".mgrow"); if(!row) return;
   const d = DOCS.find(x => x.id === row.dataset.id); if(!d) return;
 
-  if(e.target.closest(".mgmove")){ mgMoving.add(d.id); mgRender(); return; }
-  if(e.target.closest(".mgmovecancel")){ mgMoving.delete(d.id); mgRender(); return; }
+  if(e.target.closest(".mgmove")){ MG.moving.add(d.id); mgRender(); return; }
+  if(e.target.closest(".mgmovecancel")){ MG.moving.delete(d.id); mgRender(); return; }
   if(e.target.closest(".mgmoveok")){
     if(isProj(d)){                                  /* 프로젝트 → 회의 자료 */
       const cat = row.querySelector('[data-f="destcat"]').value;
@@ -6940,7 +6970,7 @@ $("#mglist").addEventListener("click", async e => {
       d.folder = id; d.cat = ""; delete d.week;      /* date 는 그대로 둡니다(화면에 안 보이는 내부용) */
       S.open.add(projOpenKey(id)); KV.folders = Array.from(S.open); saveKV("folders");
     }
-    mgMoving.delete(d.id);
+    MG.moving.delete(d.id);
     if(await mgSaveDoc(d)){
       if(S.sel === d.id){ revealDoc(d.id); renderTree(); }   /* 보고 있던 자료면 목록도 그 영역으로 따라갑니다 */
       toast(isProj(d) ? "프로젝트로 옮겼습니다" : "회의 자료로 옮겼습니다");
