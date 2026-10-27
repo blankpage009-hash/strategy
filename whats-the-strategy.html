@@ -741,7 +741,11 @@ table.tuttable td b{font-weight:800;}
 #viewbar .fitbtn .t{display:none;}
 #viewbar .fitbtn.on{background:var(--rule);color:var(--bg);}
 #viewbar .fitbtn.on:hover{background:var(--rule);}
-#viewbar #fit-page{border-right:2px solid var(--line);}
+/* 화면 나누기 단추 — One Page 바로 뒤. 켜져 있으면(.on) 맞춤 단추처럼 배경이 채워집니다.
+   칸을 가르는 굵은 선은 이 단추 오른쪽으로 옮겼습니다 */
+#viewbar #btn-split{border-right:2px solid var(--line);}
+#viewbar #btn-split.on,#viewbar #btn-split.on:hover{background:var(--rule);color:var(--bg);}
+body.m #viewbar #btn-split{display:none !important;}
 /* min-width 를 0 으로 두지 않습니다 — 좁아져도 쪽 번호가 찌그러져
    검색칸 위로 올라타지 않게, 자료 이름(.nm) 쪽에서만 줄어들게 합니다 */
 #viewbar .doctitle{flex:1 1 auto;display:flex;align-items:center;padding:0 14px;}
@@ -770,6 +774,12 @@ body.tight-bar #viewbar .doctitle{padding:0 8px;}
 body.tight-bar #viewbar #pagejump{margin-left:0;padding-left:0;border-left:none;}
 body.tight-bar #viewbar .vbtn{width:34px;}
 body.tight-bar #zoomval{width:42px;font-size:11px;}
+/* 가운데가 460px 보다 좁으면(양쪽 패널을 다 펼친 작은 창) 한 번 더 줄입니다 —
+   단추를 더 좁히고, 자료 이름·검색 돋보기·화면 나누기 단추는 접어 툴바가 옆으로 넘치지 않게 합니다 */
+body.tiny-bar #viewbar .vbtn{width:30px;}
+body.tiny-bar #zoomval{width:36px;}
+body.tiny-bar #viewbar .doctitle{padding:0 4px;}
+body.tiny-bar #viewbar .doctitle .nm,body.tiny-bar #viewbar #btn-split{display:none !important;}
 
 /* ---------- 자료 내 검색 — 뷰어 툴바 오른쪽 ----------
    display 를 아이디 선택자로 주므로, 브라우저 기본 [hidden]{display:none} 보다
@@ -792,7 +802,6 @@ body.tight-bar #zoomval{width:42px;font-size:11px;}
   align-items:center;justify-content:center;border:none;border-radius:0;
   background:none;color:var(--muted2);line-height:1;font-size:12px;}
 #docfind .dfbtn:hover:not([disabled]){color:var(--accent-ink);}
-#docfind .dfbtn[disabled]{opacity:.35;}
 #docfind .dfbtn svg{display:block;}
 #docfind #docfind-clear{display:none;font-size:13px;}
 #docfind.has-text #docfind-clear{display:flex;}
@@ -800,6 +809,9 @@ body.hide-doctitle #docfind-in{flex-basis:104px;}
 body.tight-bar #docfind{padding:0 8px;gap:5px;}
 body.tight-bar #docfind-in{flex-basis:72px;}
 body.tight-bar #docfind-count{display:none;}
+body.tiny-bar #docfind{padding:0 4px;gap:3px;}
+body.tiny-bar #docfind .mag{display:none;}
+body.tiny-bar #docfind-in{flex-basis:44px;min-width:30px;}
 body.full #viewbar #docfind{border-left-color:#605d5d;}
 body.full #docfind-in{color:#f3f2f2;border-bottom-color:#605d5d;}
 body.full #docfind-in:focus{border-bottom-color:var(--accent);}
@@ -1433,8 +1445,9 @@ body.full #topbar,body.full #cmdbar,body.full #left,body.full #right{display:non
 body.full #viewbar{background:#2d2b2b;border-bottom-color:#201e1d;color:#f3f2f2;}
 body.full #viewbar .vbtn,body.full #zoomval{border-right-color:#605d5d;color:#f3f2f2;}
 body.full #viewbar .vbtn:hover:not([disabled]){background:#444141;}
-body.full #viewbar #zoom-in,body.full #viewbar #fit-page,
+body.full #viewbar #zoom-in,body.full #viewbar #fit-page,body.full #viewbar #btn-split,
 body.full #viewbar #btn-thumbs{border-right-color:#605d5d;}
+body.full #viewbar #btn-split.on,body.full #viewbar #btn-split.on:hover{background:var(--accent);color:#fff;}
 body.full #viewbar #btn-thumbs.on{background:#f3f2f2;color:#201e1d;}
 body.full #viewbar #btn-full{border-left-color:#605d5d;background:#2d2b2b;}
 body.full #viewbar .fitbtn.on{background:#f3f2f2;color:#201e1d;}
@@ -2651,6 +2664,10 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" aria-hidden="true"
              ><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="t">One Page</span></button>
+      <button class="vbtn" id="btn-split" title="화면 나누기 (자료 두 개를 좌우로 나란히 보기)" aria-label="화면 나누기" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+             ><rect x="3" y="4" width="18" height="16"/><path d="M12 4v16"/></svg></button>
       <div class="doctitle"><span class="nm" id="viewtitle"></span><span class="meta" id="viewmeta"></span><button id="pagejump" title="p 번호로 이동" aria-label="p 번호로 이동" hidden></button></div>
       <button class="vbtn" id="drawtoggle" title="그리기 도구 펴기 / 접기"
               aria-label="그리기 도구 펴기 / 접기" aria-expanded="false" hidden>
@@ -2701,12 +2718,6 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
                placeholder="이 자료에서 찾기" aria-label="이 자료에서 찾기">
         <button class="dfbtn" id="docfind-clear" type="button" title="지우기" aria-label="검색어 지우기">✕</button>
         <span id="docfind-count" aria-live="polite"></span>
-        <button class="dfbtn" id="docfind-prev" title="이전 (Shift+Enter)" aria-label="이전 결과">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg></button>
-        <button class="dfbtn" id="docfind-next" title="다음 (Enter)" aria-label="다음 결과">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
       </div>
       <button class="vbtn" id="btn-full" title="Full screen (Esc to exit)" aria-label="Full screen">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -6280,15 +6291,7 @@ function clearDocFind(){
   const c = $("#docfind-count"); if(c){ c.textContent = ""; c.removeAttribute("title"); }
   const b = $("#docfind"); if(b) b.classList.remove("nohit", "has-text");
   closeDfPop();
-  refreshDfBtns();
   if(ownsHl){ S.hlQ = S.nav ? S.nav.q : null; repaintHl(); }   /* 딥링크가 켜져 있으면 그쪽 하이라이트로 되돌림 */
-}
-
-function refreshDfBtns(){
-  const none = S.find.hits.length === 0;
-  const p = $("#docfind-prev"), n = $("#docfind-next");
-  if(p) p.disabled = none;
-  if(n) n.disabled = none;
 }
 
 /* 상단바 검색창과 같은 문법(+·/·-·"…"·말*·말~) — #태그·cat:·year: 는 자료 하나 안에서는
@@ -6318,7 +6321,6 @@ function runDocFind(){
 
   $("#docfind").classList.toggle("nohit", active && S.find.hits.length === 0);
   $("#docfind").classList.toggle("has-text", !!raw);
-  refreshDfBtns();
   updateDocFindCount();
   renderDfPop();
 
@@ -6420,8 +6422,6 @@ document.addEventListener("keydown", e => {
   }
 });
 document.addEventListener("click", e => {
-  if(e.target.closest("#docfind-next")){ stepDocFind(1); return; }
-  if(e.target.closest("#docfind-prev")){ stepDocFind(-1); return; }
   if(e.target.closest("#docfind-clear")){ clearDocFind(); const inp = $("#docfind-in"); if(inp) inp.focus(); return; }
   if(e.target.closest("#dfpop-x")){ closeDfPop(); return; }
   const row = e.target.closest(".dfres");
@@ -7360,6 +7360,12 @@ $("#fit-page").onclick  = () => {
   if(isMobile()){ S.mFit = "page"; if(S.pdf) MS.jump = S.page; } else S.fitPref = "page";
   fitTo("page");
 };
+/* 화면 나누기 단추 — 지금은 켜짐/꺼짐 표시(눌린 모양)만 바뀝니다. 실제로 화면을 나누는 일은 다음 단계에서 이 자리에 붙입니다 */
+$("#btn-split").onclick = () => {
+  const on = !$("#btn-split").classList.contains("on");
+  $("#btn-split").classList.toggle("on", on);
+  $("#btn-split").setAttribute("aria-pressed", String(on));
+};
 
 $("#nav-prev").onclick = () => goPage(S.page - 1);
 $("#nav-next").onclick = () => goPage(S.page + 1);
@@ -7555,6 +7561,7 @@ $("#topmodel").addEventListener("change", e => {
     const w = c.clientWidth;
     document.body.classList.toggle("hide-doctitle", w < 760);
     document.body.classList.toggle("tight-bar",     w < 560);
+    document.body.classList.toggle("tiny-bar",      w < 460);
     /* 아이폰 화면은 늘 좁지만(600px 이하) 그리기 도구를 씁니다 — 끄지 않습니다 */
     if(w < 560 && !isMobile() && window.drawActive && window.drawActive()) window.drawExit();
   };
