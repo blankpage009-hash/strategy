@@ -8359,7 +8359,7 @@ $("#topmodel").addEventListener("change", e => {
   /* 디자인 핸드오프(concept 3a) 값 그대로 ------------------------------------
      굵기는 프리셋 칸이 아니라 슬라이더. 굵기 값은 '그릴 때의 화면 px' 로 잡아
      저장 시엔 종이 폭 대비 비율로 바꿉니다(확대·축소와 무관하게 유지). */
-  const PEN = { min:0.25, max:3,  step:0.25, def:1  };
+  const PEN = { min:0.25, max:3,  step:0.25, def:1.5 };
   const HL  = { min:6,    max:20, step:1,    def:12 };
   const ER_SIZES = [10, 16, 24];
   const PEN_COLORS = [
@@ -8379,7 +8379,7 @@ $("#topmodel").addEventListener("change", e => {
 
   const DRAW = {
     tool:null,                       /* 'pen' | 'hi' | 'eraser' | null */
-    pen:{ size:PEN.def, color:PEN_COLORS[0].c },
+    pen:{ size:PEN.def, color:PEN_COLORS[1].c },
     hi :{ size:HL.def,  color:HI_COLORS[0].c, alpha:0.4 },
     eraser:{ mode:"stroke", size:16 },   /* 지우개는 늘 '획 전체' 로 열립니다 */
     docId:null,
@@ -8711,7 +8711,9 @@ $("#topmodel").addEventListener("change", e => {
     DRAW.cur = {
       t: DRAW.tool === "hi" ? "hi" : "pen",
       c: g.color,
-      w: g.size / w,                          /* 폭 대비 비율로 저장 */
+      /* 폭 대비 비율로 저장. 펜은 배율 100% 기준 굵기를 유지 — 확대해 쓸수록 화면 굵기를 배율만큼 키워
+         종이 위 굵기가 같게 (배율 1이면 그대로) */
+      w: g.size * (DRAW.tool === "pen" ? (S.zoom || 1) : 1) / w,
       p: [ prPoint(norm(e)) ]
     };
     if(DRAW.tool === "hi") DRAW.cur.a = DRAW.hi.alpha;
