@@ -8001,6 +8001,35 @@ function svThumbsShow(on){
     place(); setTimeout(place, 120);
   }, { passive:false });
 })();
+/* 보조 칸 손가락 쓸기(아이패드) — 왼쪽 칸(swipePage)과 같은 규칙: 위로 밀면 다음 장, 아래로 밀면 앞 장 */
+(function svSwipe(){
+  const st = $("#stage2");
+  let x0 = 0, y0 = 0, t0 = 0, ok = false;
+  st.addEventListener("touchstart", e => {
+    ok = e.touches.length === 1 && !!SV.pdf;
+    if(!ok) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive:true });
+  st.addEventListener("touchmove", e => {
+    if(e.touches.length !== 1) ok = false;
+  }, { passive:true });
+  st.addEventListener("touchend", e => {
+    if(!ok || !SV.pdf) return;
+    ok = false;
+    const t = e.changedTouches[0]; if(!t) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if(Math.abs(dy) < 55 || Math.abs(dy) < Math.abs(dx) * 1.6) return;
+    if(Date.now() - t0 > 800) return;
+    const room = st.scrollHeight - st.clientHeight;
+    if(room > 24){
+      if(dy < 0 && st.scrollTop < room - 4) return;
+      if(dy > 0 && st.scrollTop > 4)        return;
+    }
+    const to = SV.page + (dy < 0 ? 1 : -1);
+    if(to < 1 || to > SV.pdf.numPages) return;
+    svGo(to);
+  }, { passive:true });
+})();
 /* 보조 칸 폭이 바뀌면(나누기를 켤 때 · 패널을 여닫을 때 · 창 크기) —
    왼쪽 칸의 ▶·✕ 단추를 그 폭만큼 비켜 두고, 맞춤 상태면 새 폭에 다시 맞춥니다 */
 if(window.ResizeObserver){
