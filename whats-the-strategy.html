@@ -6155,6 +6155,14 @@ $("#search").addEventListener("input", e => {
   $("#searchwrap").classList.toggle("has-text", !!S.q);
   renderQMirror();
   clearTimeout(sdDebounce);
+  /* 결과를 열거나 Esc 로 드롭다운만 닫히고 커서는 입력칸에 남아 있으면 focus 가 다시 나지 않으므로,
+     글자를 치는 순간 다시 엽니다. 타이머로 미루지 않아야 친 직후 Esc 로 닫은 드롭다운이 되살아나지 않습니다 */
+  if(!S.srch.open){
+    sdResetFacets();
+    openSdrop();
+    if(isMobile()) mRenderSearch();
+    return;
+  }
   sdDebounce = setTimeout(() => {
     sdResetFacets();
     sdRecompute();
