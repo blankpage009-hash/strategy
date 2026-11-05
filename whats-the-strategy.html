@@ -1770,6 +1770,9 @@ body.m #mgsearch{border:2px solid var(--areabar);}
 #mgdelsel{background:var(--bad);border-color:var(--bad);color:var(--surface);}
 #mgdelsel:hover:not([disabled]){background:var(--accent);border-color:var(--accent);color:#fff;}
 #mgdone{margin-left:auto;}
+#mgbulk{padding-left:16px;border-top:1px solid var(--line);flex:0 0 auto;}
+#mgbulk[hidden]{display:none;}
+#mgmovesel.on{background:var(--areabar);border-color:var(--areabar);color:var(--areabar-ink);}
 .subbox{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:0;background:var(--panel);}
 .subbox .lbl2{font-size:12px;font-weight:600;margin-top:8px;}
 .subbox .lbl2:first-child{margin-top:0;}
@@ -3253,10 +3256,13 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
       </div>
       <div id="mglist"></div>
     </div>
+    <div id="mgbulk" class="mgmovep" hidden></div>
     <footer>
       <button class="ghostbtn" id="mgdetachsel" disabled
         title="고른 자료의 PDF 원본만 삭제합니다 — 요약·회의록·할 일은 그대로 둡니다">선택 PDF 원본만 삭제</button>
       <button class="ghostbtn" id="mgdelsel" disabled>선택 삭제</button>
+      <button class="ghostbtn" id="mgmovesel" disabled
+        title="고른 자료를 한꺼번에 다른 종류·날짜·폴더로 옮깁니다">선택 이동</button>
       <button class="ghostbtn" id="mgdone">닫기</button>
     </footer>
   </div>
@@ -7127,7 +7133,7 @@ const mgYearOptions = cur => {
    그래야 사라지지 않습니다. known 은 이미 칩으로 본 키라서, 새 종류·새 폴더는 켜진 채로 들어옵니다.
    closed 는 접힌 묶음 키(y2026 · y2026m10 · f<폴더id>), sel 은 고른 자료 id 입니다 — 묶음을 접어도 선택은 남습니다. */
 const MG = { tab:"meet", on:{ meet:null, proj:null }, known:{ meet:new Set(), proj:new Set() },
-             q:"", nopdf:false, closed:new Set(), sel:new Set(), moving:new Set(), mv:{} };
+             q:"", nopdf:false, closed:new Set(), sel:new Set(), moving:new Set(), mv:{}, bulk:null };
 
 function mgCatList(){
   const set = new Set(KV.cats);
@@ -7222,6 +7228,28 @@ function mgMoveP(d){
     <button type="button" class="mgmovecancel">취소</button><button type="button" class="mgmoveok">옮기기</button></div>`;
 }
 
+/* 선택 이동 패널 — 아래 줄 위에 펼치는 띠. 고른 자료 전부를 같은 위치로 옮깁니다 */
+function mgBulkDraft(){
+  if(MG.bulk) return MG.bulk;
+  const now = new Date();
+  return MG.bulk = { to: MG.tab === "proj" ? "meet" : "proj", cat:KV.cats[0] || "", y:now.getFullYear(), m:now.getMonth() + 1,
+    w:weekOfDate(mkDate(now.getFullYear(), now.getMonth() + 1, 1)), folder:"" };
+}
+function mgBulkH(){
+  const m = mgBulkDraft(), toProj = m.to === "proj", n = MG.sel.size;
+  const dest = toProj
+    ? `<select data-mf="folder"><option value="">폴더 고르기</option>${folderOptions(m.folder)}</select>`
+    : `<select class="cat" data-mf="cat">${mgCatOptions(m.cat)}</select>
+       <select data-mf="y">${mgYearOptions(m.y)}</select>
+       <select data-mf="m">${monthOptions(m.m)}</select>
+       <select data-mf="w">${weekOptions(m.w)}</select>`;
+  return `<span class="ml">선택 ${n}개 이동 위치</span>
+    <div class="mgseg"><button type="button" data-to="meet" class="${toProj ? "" : "on"}">회의자료</button>`
+    + `<button type="button" data-to="proj" class="${toProj ? "on" : ""}">프로젝트</button></div>
+    ${dest}<span class="sp"></span>
+    <button type="button" class="mgmovecancel">취소</button><button type="button" class="mgmoveok">옮기기</button>`;
+}
+
 /* 묶음 머리 — ▼(접히면 옆으로) · 묶음 전체 선택 체크 · 이름 · 오른쪽 개수 */
 function mgGroupH(cls, g, label, items){
   const all = items.every(d => MG.sel.has(d.id));
@@ -7302,6 +7330,13 @@ function mgRender(){
   const withPdf = ids.filter(id => { const d = DOCS.find(x => x.id === id); return d && d.hasPdf; }).length;
   $("#mgdelsel").disabled = !n;
   $("#mgdelsel").textContent = n ? `선택 삭제 (${n}개)` : "선택 삭제";
+  if(!n) MG.bulk = null;
+  const bp = $("#mgbulk");
+  bp.hidden = !MG.bulk;
+  if(MG.bulk && !bp.contains(document.activeElement)) bp.innerHTML = mgBulkH();
+  $("#mgmovesel").disabled = !n;
+  $("#mgmovesel").classList.toggle("on", !!MG.bulk);
+  $("#mgmovesel").textContent = n ? `선택 이동 (${n}개)` : "선택 이동";
   $("#mgdetachsel").disabled = !withPdf;
   $("#mgdetachsel").textContent = withPdf ? `선택 PDF 원본만 삭제 (${withPdf}개)` : "선택 PDF 원본만 삭제";
 }
@@ -7322,7 +7357,7 @@ async function mgSaveDoc(d){
 
 function openManage(){
   MG.tab = "meet"; MG.on = { meet:null, proj:null }; MG.q = ""; MG.nopdf = false;
-  MG.closed.clear(); MG.sel.clear(); MG.moving.clear(); MG.mv = {};
+  MG.closed.clear(); MG.sel.clear(); MG.moving.clear(); MG.mv = {}; MG.bulk = null;
   $("#mgsearch").value = "";
   mgRender();
   $("#managebg").classList.add("on");
@@ -7345,7 +7380,7 @@ $("#mghintbtn").addEventListener("click", () => {
 /* 탭을 바꾸면 선택·이동 중인 줄은 비웁니다 */
 $(".mgtabs").addEventListener("click", e => {
   const b = e.target.closest("[data-mgtab]"); if(!b || b.dataset.mgtab === MG.tab) return;
-  MG.tab = b.dataset.mgtab; MG.sel.clear(); MG.moving.clear(); MG.mv = {};
+  MG.tab = b.dataset.mgtab; MG.sel.clear(); MG.moving.clear(); MG.mv = {}; MG.bulk = null;
   mgRender();
 });
 /* 칩 — 눌러서 켜고 끕니다. 맨 앞 칩은 전체 켜기/끄기 */
@@ -7479,6 +7514,45 @@ $("#mgdelsel").onclick = async () => {
   renderAll(); mgRender();
   toast(`자료 ${ids.length}개를 지웠습니다`);
 };
+
+/* 선택 이동 — 단추로 패널을 열고 닫고, 패널 안의 선택·옮기기 */
+$("#mgmovesel").onclick = () => {
+  if(!MG.sel.size) return;
+  if(MG.bulk) MG.bulk = null; else mgBulkDraft();
+  mgRender();
+};
+$("#mgbulk").addEventListener("change", e => {
+  const t = e.target, f = t.dataset.mf; if(!f) return;
+  MG.bulk[f] = (f === "y" || f === "m" || f === "w") ? +t.value : t.value;
+});
+$("#mgbulk").addEventListener("click", async e => {
+  const t = e.target, seg = t.closest(".mgseg button");
+  if(seg){ MG.bulk.to = seg.dataset.to; $("#mgbulk").innerHTML = mgBulkH(); return; }
+  if(t.closest(".mgmovecancel")){ MG.bulk = null; mgRender(); return; }
+  if(!t.closest(".mgmoveok")) return;
+  const m = MG.bulk, ids = mgChecked(); if(!m || !ids.length) return;
+  let folderId = null;
+  if(m.to === "meet"){
+    if(!m.cat){ toast("먼저 설정에서 회의 종류를 만들어 주세요"); return; }
+  }else{
+    folderId = pickFolder(m.folder);
+    if(!folderId){ toast("폴더를 골라 주세요"); return; }
+  }
+  const dest = m.to === "meet" ? `${m.cat} ${m.y}년 ${m.m}월 ${m.w}주차` : "선택한 폴더";
+  if(!confirm(`고른 자료 ${ids.length}개를 '${dest}'(으)로 옮길까요?`)) return;
+  let ok = 0;
+  for(const id of ids){
+    const d = DOCS.find(x => x.id === id); if(!d) continue;
+    if(m.to === "meet"){ delete d.folder; d.cat = m.cat; d.date = mkDate(m.y, m.m, m.w); d.week = m.w; }
+    else{ d.folder = folderId; d.cat = ""; delete d.week; }
+    if(await mgSaveDoc(d)) ok++; else break;
+  }
+  if(m.to === "proj"){ S.open.add(projOpenKey(folderId)); KV.folders = Array.from(S.open); saveKV("folders"); }
+  MG.sel.clear(); MG.moving.clear(); MG.mv = {}; MG.bulk = null;
+  if(S.sel){ const cur = DOCS.find(x => x.id === S.sel); if(cur && ids.includes(cur.id)){ revealDoc(cur.id); renderTree(); } }
+  mgRender();
+  toast(m.to === "proj" ? `${ok}개를 프로젝트로 옮겼습니다` : `${ok}개를 회의 자료로 옮겼습니다`);
+});
 
 /* 고른 자료 가운데 원본이 있는 것만 PDF 원본을 삭제하고, 끝나면 선택을 비웁니다 */
 $("#mgdetachsel").onclick = async () => {
