@@ -211,9 +211,12 @@ button[disabled]{opacity:.45;cursor:default;}
 #qhelp:hover{border-color:var(--accent);color:var(--accent-ink);}
 #qhelp.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);}
 /* 저작권 표기 — 검색창 길이는 그대로 두고, 그 오른쪽 남는 공간에 작게 얹습니다 */
-#copyright{position:absolute;right:18px;top:0;height:100%;display:flex;align-items:flex-end;
+#copyright{position:absolute;right:18px;top:0;height:100%;display:flex;flex-direction:column;
+  align-items:flex-end;justify-content:flex-end;gap:5px;
   padding-bottom:8px;white-space:nowrap;font-size:11px;color:var(--muted2);letter-spacing:.02em;
   pointer-events:none;user-select:none;}
+/* 현재 버전 — 저작권 문구 바로 위, 오른쪽 끝을 맞춥니다 */
+#appver{font-size:12px;font-weight:400;line-height:1;color:var(--muted);}
 /* 검색칸 오른쪽 끝을 오른쪽 패널(NOTE) 왼쪽 선에 맞춥니다 — topright 버튼 3칸(168px) 제외 */
 #searchwrap{padding-right:calc(var(--right-w) - 166px);}
 .primarybtn{height:32px;padding:0 12px;white-space:nowrap;background:var(--accent);color:#fff;
@@ -2631,7 +2634,7 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
     </div>
     <button id="clearsearch" title="지우기">✕</button>
     <button id="qhelp" title="검색 문법 도움">?</button>
-    <span id="copyright">Copyright ⓒ C.Hwang. All rights reserved.</span>
+    <span id="copyright"><span id="appver">v3.5</span><span>Copyright ⓒ C.Hwang. All rights reserved.</span></span>
   </div>
   <div id="topright">
     <button class="plainbtn" id="btn-agenda" title="회의 Agenda" aria-label="회의 Agenda">
