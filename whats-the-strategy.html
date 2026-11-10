@@ -1014,6 +1014,7 @@ body.thumbs-off #thumbs{display:none;}
   font-variant-numeric:tabular-nums;}
 /* 요약이 붙어 있는 쪽은 오른쪽 위에 작은 점 하나 — 페이지 자리 띠와 같은 뜻입니다 */
 .thumb.sum::after{content:"";position:absolute;right:4px;top:4px;width:6px;height:6px;background:var(--rule);}
+.thumb:focus,.thumb:focus-visible{outline:none;}   /* 선택 테두리(.now) 바깥에 포커스 윤곽이 한 겹 더 생겨 빨간 테두리가 둘로 보이던 것을 없앰 */
 .thumb:hover{border-color:var(--line);}
 .thumb.now{border-color:var(--accent);}
 .thumb.now .no{background:var(--accent);}
