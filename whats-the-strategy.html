@@ -1313,6 +1313,36 @@ div.sum:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-e
   font-variant-numeric:tabular-nums;line-height:1;}
 .scjump .pgchip:hover{border-color:var(--accent);color:var(--accent);}
 .scjump .pgchip.on{background:var(--rule);border-color:var(--rule);color:var(--bg);}
+/* 쪽 옮기기 창 */
+.pgmlead{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+.pgmkinds{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12px;font-weight:700;
+  padding:8px 0;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);margin-bottom:6px;}
+.pgmk{display:inline-flex;align-items:center;gap:5px;font-weight:600;cursor:pointer;}
+.pgnone{font-weight:400;color:var(--muted2);}
+.pgmrow{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--hairline);}
+.pgmrow.off .pgmain{opacity:.4;}
+.pgck{padding-top:3px;}
+.pgmain{flex:1 1 auto;min-width:0;}
+.pgline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;}
+.pgfrom{min-width:34px;font-variant-numeric:tabular-nums;}
+.pgkinds{font-size:11px;color:var(--muted);}
+.pgarr{color:var(--muted2);font-weight:800;}
+input.pgto{width:56px;height:24px;padding:0 6px;border:1px solid var(--line);border-radius:0;background:var(--bg);
+  color:inherit;font:inherit;font-weight:700;font-variant-numeric:tabular-nums;}
+input.pgto:focus{outline:none;border-color:var(--accent);}
+.pgtail{margin-left:-4px;}
+.pgst{font-size:10.5px;font-weight:800;padding:0 6px;line-height:18px;border:1px solid var(--line);color:var(--muted);}
+.pgst.ok{border-color:var(--accent-line);color:var(--accent-ink);}
+.pgst.bad{border-color:var(--bad);color:var(--bad);}
+.pgsnip{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pgsnip .k,.pgmprev .k{display:inline-block;min-width:30px;font-weight:800;color:var(--muted2);margin-right:4px;}
+.pgopt{display:flex;align-items:center;gap:8px;font-size:12.5px;line-height:2;cursor:pointer;margin-top:6px;}
+.pgopt.dis{opacity:.45;}
+.pgopt span{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.pgtip{margin:0 0 6px 24px;}
+.pgmprev{font-size:12px;margin-top:10px;font-variant-numeric:tabular-nums;line-height:1.6;}
+#pgmleft.bad{color:var(--bad);}
+#pgmapbg .modal > footer .left{min-width:0;}
 .tip{font-size:10.5px;color:var(--muted2);margin-top:3px;}
 .nonote{font-size:12px;color:var(--muted);line-height:1.6;}
 /* 상태 딱지 — 9px 사각형 하나에 글자 하나 */
@@ -3244,6 +3274,21 @@ body.m .aisum.empty{font-size:14px;margin:0 20px;}
       <button class="x" id="scx" aria-label="닫기">✕</button></header>
     <div class="content" id="scbody"></div>
     <footer id="scfoot"></footer>
+  </div>
+</div>
+
+<!-- 쪽 옮기기 — 스크립트·p별 AI 요약·펜 자국을 다른 쪽으로. 본문은 renderPgMap() 이 그립니다
+     (원본을 다시 올려 쪽이 밀렸을 때 자동으로 열리고, 스크립트 탭 ⇄ 단추로도 엽니다) -->
+<div class="modalbg" id="pgmapbg">
+  <div class="modal wide" role="dialog" aria-label="쪽 옮기기">
+    <header><span id="pgmtitle">쪽 옮기기</span> <span id="pgmwho" style="font-weight:400;font-size:12px;color:var(--muted)"></span>
+      <button class="x" id="pgmx" aria-label="닫기">✕</button></header>
+    <div class="content" id="pgmbody"></div>
+    <footer>
+      <span class="left" id="pgmleft"></span>
+      <button class="ghostbtn" id="pgmskip">그대로 두기</button>
+      <button class="primarybtn" id="pgmok">적용</button>
+    </footer>
   </div>
 </div>
 
@@ -5494,6 +5539,7 @@ function renderRight(){
             scPages.map(n => `<button class="pgchip ${n === curPg ? "on" : ""}" data-scgo="${n}"
               title="${n}p로 가기">${n}</button>`).join("") }</span>` : "" }
         ${ (S.editS || scText) ? fmtBarHtml() : "" }
+        ${ scPages.length ? `<button class="mini" data-pgmove title="스크립트를 다른 쪽으로 옮기기 (이 쪽만 · 한꺼번에 밀기)">⇄</button>` : "" }
         ${ lockBtn("S", scHas(scText), S.editS) }
       </h4>
       ${ sumBox("sumS", scText, S.editS, S.editS ? "이 p에서 할 말을 한 줄씩"
@@ -9638,6 +9684,7 @@ $("#rbody").addEventListener("click", async e => {
   if(scp){ scGo(S.page + (scp.dataset.scp === "next" ? 1 : -1)); return; }
   const scgo = e.target.closest("[data-scgo]");
   if(scgo){ scGo(+scgo.dataset.scgo); return; }
+  if(e.target.closest("[data-pgmove]")){ openPgMove(); return; }
   /* Upload / AI Note — 첨부 PDF */
   const at = e.target.closest("[data-at]");
   if(at){
@@ -12733,6 +12780,7 @@ $("#upstart").onclick = async () => {
   }
   renderAll(); updateUsage();
   if(done) toast(`${done}개를 등록했습니다`);
+  pgMapNext();                                  /* 다시 올려 쪽이 밀린 자료가 있으면 맞추는 창을 엽니다 */
 
   /* 등록이 끝나면 창을 자동으로 닫습니다.
      실패가 있거나 중단한 경우에는 로그를 볼 수 있게 열어 둡니다. */
@@ -12866,8 +12914,18 @@ async function relinkDoc(d, p, buf, pages, pageTexts, warns){
       warns.push(`기존 자료의 이름·폴더(${relinkLabel(d)})를 그대로 씁니다`);
   }else if(p.title !== d.title || p.cat !== d.cat || p.week !== d.week)
     warns.push(`기존 자료의 이름·종류·주차(${d.title} · ${d.cat} · ${d.week}주차)를 그대로 씁니다`);
-  const dw = await trimDraw(d, had.pages, pages);
-  if(dw) warns.push(dw);
+  /* 쪽 번호에 묶인 데이터(스크립트·p별 AI 요약·펜 자국)가 밀렸는지 — 밀렸으면 등록이 끝난 뒤 맞추는 창을 엽니다.
+     그 창이 남는 쪽까지 다루므로, 그때는 줄어든 쪽의 펜 자국 묻기(trimDraw)를 하지 않습니다 */
+  if(S.sel === d.id && typeof window.drawLoadDoc === "function") await window.drawLoadDoc(null);
+  let plan = null;
+  try{ plan = await pgPlanFor(d, had.pageTexts || [], pageTexts, had.pages, pages); }catch(err){ console.warn(err); }
+  if(plan){
+    PGMAP_Q.push(plan);
+    warns.push(`쪽이 달라진 데이터 ${plan.rows.length}쪽 — 등록이 끝나면 맞추는 창이 열립니다`);
+  }else{
+    const dw = await trimDraw(d, had.pages, pages);
+    if(dw) warns.push(dw);
+  }
   const what = !keepPdf     ? "글자만 갱신했습니다 (원본은 저장하지 않았습니다)"
              : had.hasPdf  ? "원본을 새 파일로 바꿨습니다"
              :               "비어 있던 원본을 다시 채웠습니다";
@@ -12908,6 +12966,310 @@ function stripDoc(d){
   for(const k in d) if(k[0] !== "_") rest[k] = d[k];
   return rest;
 }
+
+/* =========================================================
+   13-9) 쪽 옮기기 — 쪽 번호에 묶인 데이터(발표 스크립트 · p별 AI 요약 · 펜 자국)를 다른 쪽으로
+      · 자동: 원본을 다시 올려 쪽이 밀렸을 때, 이전 쪽 글자와 새 쪽 글자를 비교해 짝을 찾고
+              등록이 끝나면 확인 창(renderPgMap)을 띄웁니다. 고쳐서 [적용] 하거나 [그대로 두기].
+      · 손으로: 스크립트 탭 ⇄ 단추 — 이 쪽만 옮기기(있으면 서로 바꿈) · 몇 p부터 끝까지 한꺼번에 밀기
+      · 저장 구조는 그대로입니다 (열쇠만 다른 쪽 번호로 바꿉니다)
+   ========================================================= */
+const PGK = { s:"스크립트", p:"AI 요약", d:"펜 자국" };
+const PG_MIN = 0.45;            /* 이보다 덜 닮았으면 같은 쪽으로 보지 않습니다 (글자 두 개씩 묶음 겹침 비율) */
+const PGMAP_Q = [];             /* 등록 중에 생긴 '쪽 맞추기' 할 일 — 등록이 끝나면 하나씩 엽니다 */
+let PGM = null;                 /* 지금 열린 창의 상태 */
+
+async function pgDrawRec(id){ try{ return await dbGet("draw", id); }catch(_){ return null; } }
+
+/* 자료 하나에서 데이터가 있는 쪽들 — { 쪽번호: Set("s"|"p"|"d") } */
+async function pgData(id){
+  const out = {};
+  const add = (k, kind) => { const n = +k; if(n > 0) (out[n] || (out[n] = new Set())).add(kind); };
+  scriptPages(id).forEach(n => add(n, "s"));
+  const pg = (KV.sums[id] || {}).pg || {};
+  for(const k in pg) if(pg[k]) add(k, "p");
+  const rec = await pgDrawRec(id);
+  if(rec && rec.pages) for(const k in rec.pages) if((rec.pages[k] || []).length) add(k, "d");
+  return out;
+}
+
+/* 글자 닮은 정도 — 공백을 뺀 글자를 두 개씩 묶어 겹치는 비율(0~1) */
+function pgGrams(s){
+  const t = sqz(s).t, g = new Set();
+  for(let i = 0; i < t.length - 1; i++) g.add(t.slice(i, i + 2));
+  if(t.length === 1) g.add(t);
+  return g;
+}
+function pgSim(a, b){
+  if(!a.size || !b.size) return 0;
+  const [x, y] = a.size < b.size ? [a, b] : [b, a];
+  let n = 0; for(const g of x) if(y.has(g)) n++;
+  return 2 * n / (a.size + b.size);
+}
+
+/* 이전 쪽(pages)마다 새 PDF 에서 가장 닮은 쪽을 고릅니다.
+   ① 확실한 짝들로 '몇 쪽 밀렸는지'를 어림하고 ② 닮은 순서대로 짝을 정하되(같은 쪽 두 번 안 씀)
+   비슷하면 어림한 밀림에 가까운 쪽을 고릅니다 ③ 못 찾은 쪽(글자가 없는 그림 쪽 등)은 밀림만큼 옮겨 '추정'으로 둡니다 */
+function pgMatch(oldTexts, newTexts, pages){
+  const NG = newTexts.map(pgGrams);
+  const sc = {};
+  pages.forEach(p => { const g = pgGrams(oldTexts[p - 1] || ""); sc[p] = NG.map(x => pgSim(g, x)); });
+  const offs = [];
+  pages.forEach(p => {
+    let bi = -1, bv = 0;
+    sc[p].forEach((v, i) => { if(v > bv){ bv = v; bi = i; } });
+    if(bv >= .6) offs.push(bi + 1 - p);
+  });
+  offs.sort((a, b) => a - b);
+  const off = offs.length ? offs[offs.length >> 1] : 0;
+  const cand = [];
+  pages.forEach(p => sc[p].forEach((v, i) => {
+    if(v >= PG_MIN) cand.push({ p, q:i + 1, v, k:v - Math.abs(i + 1 - p - off) * 1e-3 });
+  }));
+  cand.sort((a, b) => b.k - a.k);
+  const res = {}, used = new Set();
+  for(const c of cand){
+    if(res[c.p] || used.has(c.q)) continue;
+    res[c.p] = { to:c.q, sim:c.v, how:"match" }; used.add(c.q);
+  }
+  pages.forEach(p => {
+    if(res[p]) return;
+    const q = p + off;
+    if(q >= 1 && q <= newTexts.length && !used.has(q)){ res[p] = { to:q, sim:0, how:"guess" }; used.add(q); }
+    else res[p] = { to:null, sim:0, how:"none" };
+  });
+  return res;
+}
+
+/* 원본을 다시 올린 직후 — 쪽을 맞출 일이 있으면 할 일을 만들어 돌려줍니다 (없으면 null) */
+async function pgPlanFor(d, oldTexts, newTexts, oldN, newN){
+  const data = await pgData(d.id);
+  const pages = Object.keys(data).map(Number).sort((a, b) => a - b);
+  if(!pages.length) return null;
+  const res = pgMatch(oldTexts, newTexts, pages);
+  const need = pages.some(p => res[p].to !== p || res[p].how === "none" || (res[p].how === "guess" && oldN !== newN));
+  if(!need) return null;
+  return { id:d.id, old:oldTexts.slice(), oldN, newN, data, rows: pages.map(p => ({ from:p, on:true, ...res[p] })) };
+}
+
+/* 옮기기 검사 — map: { 이전쪽: 새쪽 } · kinds: 옮길 데이터 종류. 문제가 있으면 그 문장들 */
+function pgCheck(data, map, kinds, last){
+  const errs = [], tg = {};
+  for(const f in map){
+    const t = map[f];
+    if(!(t >= 1 && t <= last)){ errs.push(`${f}p → ${t}p : 1 ~ ${last}p 사이여야 합니다`); continue; }
+    if(tg[t]) errs.push(`${tg[t]}p 와 ${f}p 가 둘 다 ${t}p 로 갑니다`);
+    tg[t] = f;
+  }
+  for(const f in map){
+    const t = map[f];
+    if(String(t) in map) continue;                          /* 그 쪽도 비켜 나가면 괜찮습니다 */
+    const hit = kinds.filter(k => data[t] && data[t].has(k) && data[f] && data[f].has(k));
+    if(hit.length) errs.push(`${t}p 에 이미 ${hit.map(k => PGK[k]).join("·")} 이(가) 있습니다 — 그 쪽도 함께 옮기거나 다른 쪽을 고르세요`);
+  }
+  return errs;
+}
+
+/* 실제로 옮깁니다 — 옮기지 않는 쪽은 제자리, 옮기는 쪽은 새 번호로 (있던 것을 덮어씀: 미리 pgCheck 하세요) */
+async function pgApply(id, map, kinds){
+  if(!Object.keys(map).length) return;
+  const mv = o => {
+    const out = {};
+    for(const k in o) if(!(k in map)) out[k] = o[k];
+    for(const k in map) if(o[k] !== undefined) out[map[k]] = o[k];
+    return out;
+  };
+  if(kinds.includes("s")){ KV.scripts[id] = mv(KV.scripts[id] || {}); saveKV("scripts"); }
+  if(kinds.includes("p") && KV.sums[id] && KV.sums[id].pg){
+    KV.sums[id] = Object.assign({}, KV.sums[id], { pg: mv(KV.sums[id].pg) }); saveKV("sums");
+  }
+  if(kinds.includes("d")){
+    /* 화면이 펜 자국을 들고 있으면 먼저 저장하고 떼었다가, 옮긴 뒤 다시 읽습니다 */
+    const live = S.pdfId === id && typeof window.drawLoadDoc === "function";
+    if(live) await window.drawLoadDoc(null);
+    const rec = await pgDrawRec(id);
+    if(rec && rec.pages){
+      rec.pages = mv(rec.pages);
+      try{ await dbPut("draw", rec); }catch(err){ alert("펜 자국을 옮기지 못했습니다 — " + storeErrMsg(err)); }
+    }
+    if(live) await window.drawLoadDoc(id);
+  }
+}
+
+const pgSnip = s => { s = String(s || "").replace(/\s+/g, " ").trim(); return s ? (s.length > 70 ? s.slice(0, 70) + "…" : s) : "(글자 없음)"; };
+const pgKindsOn = () => $$("#pgmbody [data-pgkind]").filter(x => x.checked).map(x => x.dataset.pgkind);
+function pgLast(d){ return (S.pdf && S.pdfId === d.id) ? S.pdf.numPages : Math.max(1, d.pages || 1); }
+
+/* 등록이 끝나면 쌓인 쪽 맞추기를 하나씩 엽니다 */
+function pgMapNext(){
+  if(PGM) return;
+  while(PGMAP_Q.length){
+    const plan = PGMAP_Q.shift();
+    if(!DOCS.find(x => x.id === plan.id)) continue;
+    PGM = Object.assign({ mode:"auto" }, plan);
+    renderPgMap();
+    $("#pgmapbg").classList.add("on");
+    return;
+  }
+}
+function closePgMap(){
+  $("#pgmapbg").classList.remove("on");
+  PGM = null;
+  renderRight();
+  pgMapNext();
+}
+
+/* 스크립트 탭 ⇄ 단추 — 손으로 옮기기 */
+async function openPgMove(){
+  const d = DOCS.find(x => x.id === S.sel); if(!d) return;
+  const last = pgLast(d);
+  const cur  = Math.min(Math.max(1, S.page || 1), last);
+  const data = await pgData(d.id);
+  const hasCur = scHas(scriptsOf(d.id)[cur]);
+  const first = scriptPages(d.id)[0] || cur;
+  PGM = { mode:"move", id:d.id, data, last, cur, hasCur, how: hasCur ? "one" : "shift",
+          one: Math.min(last, cur + 1), from: hasCur ? cur : first, by: 1 };
+  renderPgMap();
+  $("#pgmapbg").classList.add("on");
+}
+
+/* 창 그리기 — 두 가지(자동 맞추기 · 손으로 옮기기)가 같은 창을 씁니다 */
+function renderPgMap(){
+  const d = DOCS.find(x => x.id === PGM.id);
+  if(!d){ closePgMap(); return; }
+  const present = new Set();
+  Object.values(PGM.data).forEach(s => s.forEach(k => present.add(k)));
+  const kindBox = (k, on) => present.has(k)
+    ? `<label class="pgmk"><input type="checkbox" data-pgkind="${k}" ${on ? "checked" : ""}> ${PGK[k]}</label>` : "";
+
+  if(PGM.mode === "auto"){
+    const nt = d.pageTexts || [];
+    $("#pgmtitle").textContent = "쪽 다시 맞추기";
+    $("#pgmwho").textContent = `${d.title} · ${PGM.oldN}쪽 → ${PGM.newN}쪽`;
+    $("#pgmskip").textContent = "그대로 두기";
+    $("#pgmok").textContent = "적용";
+    $("#pgmbody").innerHTML = `
+      <div class="pgmlead">원본의 쪽이 달라졌습니다. 이전 쪽 글자와 새 쪽 글자를 비교해 옮길 쪽을 찾았습니다.
+        쪽 번호를 고치거나 체크를 풀어 제자리에 둘 수 있습니다.</div>
+      <div class="pgmkinds">옮길 것 : ${kindBox("s", true)}${kindBox("p", true)}${kindBox("d", true)}</div>
+      <div class="pgmrows">${ PGM.rows.map((r, i) => {
+        const st = r.how === "match" ? `<span class="pgst ok">일치 ${Math.round(r.sim * 100)}%</span>`
+                 : r.how === "guess" ? `<span class="pgst guess" title="글자로 찾지 못해 다른 쪽들이 밀린 만큼 옮겼습니다">추정</span>`
+                 :                     `<span class="pgst bad">못 찾음</span>`;
+        return `<div class="pgmrow${r.on ? "" : " off"}" data-pgi="${i}">
+          <label class="pgck"><input type="checkbox" data-pgon ${r.on ? "checked" : ""}></label>
+          <div class="pgmain">
+            <div class="pgline"><b class="pgfrom">${r.from}p</b>
+              <span class="pgkinds">${[...PGM.data[r.from]].map(k => PGK[k]).join(" · ")}</span>
+              <span class="pgarr">→</span>
+              <input type="number" class="pgto" data-pgto min="1" max="${PGM.newN}" value="${r.to || ""}" placeholder="?">
+              <span class="pgtail">p</span>${st}</div>
+            <div class="pgsnip"><span class="k">이전</span>${esc(pgSnip(PGM.old[r.from - 1]))}</div>
+            <div class="pgsnip" data-pgnew><span class="k">새</span>${r.to ? esc(pgSnip(nt[r.to - 1])) : "—"}</div>
+          </div></div>`;
+      }).join("") }</div>`;
+  }else{
+    $("#pgmtitle").textContent = "스크립트 쪽 옮기기";
+    $("#pgmwho").textContent = `${d.title} · ${PGM.last}p`;
+    $("#pgmskip").textContent = "닫기";
+    $("#pgmok").textContent = "옮기기";
+    $("#pgmbody").innerHTML = `
+      <label class="pgopt${PGM.hasCur ? "" : " dis"}"><input type="radio" name="pgmhow" value="one"
+          ${PGM.how === "one" ? "checked" : ""} ${PGM.hasCur ? "" : "disabled"}>
+        <span>이 쪽만 — <b>${PGM.cur}p</b> 의 스크립트를
+          <input type="number" class="pgto" data-pgone min="1" max="${PGM.last}" value="${PGM.one}"> p 로</span></label>
+      <div class="tip pgtip">${PGM.hasCur ? "옮길 쪽에 이미 스크립트가 있으면 두 쪽을 서로 바꿉니다." : `${PGM.cur}p 에는 스크립트가 없습니다.`}</div>
+      <label class="pgopt"><input type="radio" name="pgmhow" value="shift" ${PGM.how === "shift" ? "checked" : ""}>
+        <span>한꺼번에 —
+          <input type="number" class="pgto" data-pgfrom min="1" max="${PGM.last}" value="${PGM.from}"> p 부터 끝까지
+          <input type="number" class="pgto" data-pgby value="${PGM.by}"> 쪽 밀기</span></label>
+      <div class="tip pgtip">앞에 쪽이 끼어들었으면 <b>+</b> (예: 1), 빠졌으면 <b>−</b> (예: −1).</div>
+      <div class="pgmkinds">함께 옮기기 : ${kindBox("p", false)}${kindBox("d", false)}${
+        present.has("p") || present.has("d") ? "" : `<span class="pgnone">(p별 AI 요약·펜 자국 없음)</span>`}</div>
+      <div class="pgmprev" id="pgmprev"></div>`;
+  }
+  pgRefresh();
+}
+
+/* 지금 고른 대로 옮길 목록(map)·종류(kinds)·문제(errs) */
+function pgCurrent(){
+  const kinds = PGM.mode === "auto" ? pgKindsOn() : ["s", ...pgKindsOn()];
+  const map = {};
+  if(PGM.mode === "auto"){
+    PGM.rows.forEach(r => { if(r.on && r.to && r.to !== r.from && kinds.some(k => PGM.data[r.from].has(k))) map[r.from] = r.to; });
+    return { map, kinds, errs: pgCheck(PGM.data, map, kinds, PGM.newN),
+             miss: PGM.rows.filter(r => r.on && !r.to).length };
+  }
+  if(PGM.how === "one"){
+    const t = PGM.one, c = PGM.cur;
+    if(t && t !== c){
+      map[c] = t;
+      /* 옮길 쪽에 같은 종류가 있으면 서로 바꿉니다 */
+      if(PGM.data[t] && kinds.some(k => PGM.data[t].has(k))) map[t] = c;
+    }
+  }else{
+    const by = PGM.by | 0;
+    if(by) Object.keys(PGM.data).map(Number).filter(p => p >= PGM.from && kinds.some(k => PGM.data[p].has(k)))
+             .forEach(p => { map[p] = p + by; });
+  }
+  return { map, kinds, errs: pgCheck(PGM.data, map, kinds, PGM.last), miss:0 };
+}
+function pgRefresh(){
+  const { map, errs, miss } = pgCurrent();
+  const n = Object.keys(map).length;
+  const left = $("#pgmleft");
+  left.classList.toggle("bad", !!errs.length);
+  left.textContent = errs.length ? errs[0]
+    : !n ? "옮길 쪽이 없습니다"
+    : `${n}쪽을 옮깁니다` + (miss ? ` · 번호가 빈 ${miss}쪽은 제자리에 둡니다` : "");
+  $("#pgmok").disabled = !!errs.length || !n;
+  if(PGM.mode === "move"){
+    const pairs = Object.keys(map).map(Number).sort((a, b) => a - b).map(f => `${f}→${map[f]}`);
+    $("#pgmprev").innerHTML = pairs.length
+      ? `<span class="k">옮겨질 쪽</span>${pairs.join(" · ")}` : "";
+  }
+}
+
+$("#pgmbody").addEventListener("input", e => {
+  if(!PGM) return;
+  const t = e.target;
+  if(PGM.mode === "auto"){
+    const row = t.closest("[data-pgi]");
+    if(row){
+      const r = PGM.rows[+row.dataset.pgi];
+      if(t.matches("[data-pgon]")){ r.on = t.checked; row.classList.toggle("off", !r.on); }
+      if(t.matches("[data-pgto]")){
+        const v = parseInt(t.value, 10);
+        r.to = v > 0 ? v : null;
+        const nt = (DOCS.find(x => x.id === PGM.id) || {}).pageTexts || [];
+        row.querySelector("[data-pgnew]").innerHTML = `<span class="k">새</span>${r.to ? esc(pgSnip(nt[r.to - 1])) : "—"}`;
+        const st = row.querySelector(".pgst");
+        if(st){ st.className = "pgst hand"; st.textContent = "직접"; st.removeAttribute("title"); }
+      }
+    }
+  }else{
+    if(t.name === "pgmhow") PGM.how = t.value;
+    if(t.matches("[data-pgone]")){ PGM.one = parseInt(t.value, 10) || 0; PGM.how = PGM.hasCur ? "one" : PGM.how; }
+    if(t.matches("[data-pgfrom]")){ PGM.from = parseInt(t.value, 10) || 1; PGM.how = "shift"; }
+    if(t.matches("[data-pgby]")){ PGM.by = parseInt(t.value, 10) || 0; PGM.how = "shift"; }
+    const r = $$("#pgmbody [name=pgmhow]").find(x => x.value === PGM.how); if(r) r.checked = true;
+  }
+  pgRefresh();
+});
+$("#pgmok").onclick = async () => {
+  if(!PGM) return;
+  const { map, kinds, errs } = pgCurrent();
+  if(errs.length || !Object.keys(map).length) return;
+  $("#pgmok").disabled = true;
+  const id = PGM.id, n = Object.keys(map).length;
+  await pgApply(id, map, kinds);
+  const go = PGM.mode === "move" && PGM.how === "one" && S.sel === id ? PGM.one : 0;
+  toast(`${n}쪽을 옮겼습니다`);
+  closePgMap();
+  if(go) scGo(go);
+};
+$("#pgmskip").onclick = closePgMap;
+$("#pgmx").onclick = closePgMap;
 
 /* =========================================================
    14) 설정 · 백업
