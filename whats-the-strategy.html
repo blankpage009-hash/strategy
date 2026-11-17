@@ -348,6 +348,10 @@ body:not(.m).left-closed #left .side-inner,body:not(.m).right-closed #right .sid
 /* 프로젝트 폴더 한 줄 — 연 폴더와 같은 모양, 자료는 그 아래 */
 .fold.pf{padding:7px 8px;font-size:12px;font-weight:800;}
 .fold.pf + .doc,.fold.pf ~ .doc{padding-left:30px;}
+/* 폴더 끌어 옮기기 — 놓을 자리를 빨간 선으로 */
+.fold.pf.pf-dragging{opacity:.4;}
+#projtree .pf-drop-top{box-shadow:inset 0 2px 0 var(--accent);}
+#projtree .pf-drop-bot{box-shadow:inset 0 -2px 0 var(--accent);}
 .fold{display:flex;align-items:center;gap:6px;border-radius:0;cursor:pointer;user-select:none;white-space:nowrap;}
 .fold:hover{background:var(--panel2);}
 .fold .caret{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
@@ -2035,6 +2039,13 @@ body.m #mgsearch{border:2px solid var(--areabar);}
 .frow:last-child{border-bottom:none;}
 .frow .fn{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .frow .fn small{display:block;color:var(--muted2);font-size:10.5px;}
+.frow .fn input[data-f=title]{display:block;width:100%;box-sizing:border-box;height:26px;padding:0 6px;
+  border:1px solid transparent;border-radius:0;background:none;color:inherit;font:inherit;font-size:12px;
+  text-overflow:ellipsis;}
+.frow .fn input[data-f=title]:hover{border-color:var(--line);}
+.frow .fn input[data-f=title]:focus{border-color:var(--text);outline:none;background:var(--bg, transparent);}
+.frow .fn input[data-f=title].need{border-color:var(--accent-line);background:var(--accent-soft);}
+.frow .fn small{padding-left:7px;}
 .frow select{height:28px;border:1px solid var(--line);border-radius:0;background:none;font-size:11.5px;padding:0 4px;}
 .frow select[data-f=cat]{width:126px;}
 .frow select[data-f=year]{width:78px;}
@@ -4158,7 +4169,11 @@ function mergeProjFolders(a, b, del){
   [a, b].forEach(list => (list || []).forEach(f => {
     if(!f || !f.id || gone.has(f.id)) return;
     const cur = byId.get(f.id);
-    if(!cur || (f.at || 0) >= (cur.at || 0)) byId.set(f.id, { id:f.id, name:String(f.name || ""), at:f.at || 0 });
+    if(!cur || (f.at || 0) >= (cur.at || 0)){
+      const o = { id:f.id, name:String(f.name || ""), at:f.at || 0 };
+      if(Number.isFinite(f.ord)) o.ord = f.ord;   /* 왼쪽 목록에서 끌어 옮긴 순서 */
+      byId.set(f.id, o);
+    }
   }));
   return Array.from(byId.values());
 }
@@ -4221,12 +4236,38 @@ const NOTE_MARK = `<span class="tag" title="회의록 있음"><svg width="12" he
   fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
   aria-hidden="true" focusable="false"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>`;
 
-/* 프로젝트 폴더 — 이름 가나다순. 목록에 없는데 자료가 가리키는 폴더도 빠뜨리지 않고 보여 줍니다(동기화 순서 어긋남 대비) */
+/* 프로젝트 폴더 — 왼쪽 목록에서 끌어 옮긴 순서(ord)대로, 순서가 없는 폴더는 그 뒤에 이름 가나다순.
+   목록에 없는데 자료가 가리키는 폴더도 빠뜨리지 않고 보여 줍니다(동기화 순서 어긋남 대비) */
 function projFolderList(){
-  const fs = (KV.projFolders || []).map(f => ({ id:f.id, name:f.name }));
+  const fs = (KV.projFolders || []).map(f => ({ id:f.id, name:f.name, ord:f.ord }));
   const known = new Set(fs.map(f => f.id));
   projectDocs().forEach(d => { if(!known.has(d.folder)){ known.add(d.folder); fs.push({ id:d.folder, name:"(이름 없는 폴더)" }); } });
-  return fs.sort((a,b) => a.name.localeCompare(b.name, "ko", { numeric:true }));
+  const has = f => Number.isFinite(f.ord);
+  return fs.sort((a,b) => (has(a) && has(b)) ? a.ord - b.ord
+                       : has(a) ? -1 : has(b) ? 1
+                       : a.name.localeCompare(b.name, "ko", { numeric:true }))
+           .map(f => ({ id:f.id, name:f.name }));
+}
+/* 폴더 dragId 를 targetId 앞(after=false) 또는 뒤(after=true)로 옮기고, 모든 폴더에 순서를 새로 매깁니다.
+   at 도 새로 찍어 동기화·백업 합치기(mergeProjFolders)에서 이 순서가 이깁니다 */
+function moveProjFolder(dragId, targetId, after){
+  if(!dragId || !targetId || dragId === targetId) return false;
+  const ids = projFolderList().map(f => f.id);
+  const from = ids.indexOf(dragId); if(from < 0) return false;
+  ids.splice(from, 1);
+  let to = ids.indexOf(targetId); if(to < 0) return false;
+  if(after) to++;
+  ids.splice(to, 0, dragId);
+  const now = Date.now();
+  const list = (KV.projFolders || []).map(f => Object.assign({}, f));
+  let changed = false;
+  list.forEach(f => {
+    const o = ids.indexOf(f.id); if(o < 0) return;
+    if(f.ord !== o){ f.ord = o; f.at = now; changed = true; }
+  });
+  if(!changed) return false;
+  KV.projFolders = list; saveKV("projFolders");
+  return true;
 }
 /* 프로젝트 자료 — 제목 내림차순(고친 이름 기준) */
 const projTitleDesc = (a,b) => String(b.title).localeCompare(String(a.title), "ko", { numeric:true });
@@ -4254,6 +4295,9 @@ function newProjFolder(){
   const same = (KV.projFolders || []).find(f => f.name === name);
   if(same){ toast(`“${name}” 폴더가 이미 있어 그 폴더를 씁니다`); return same.id; }
   const f = { id: uid(), name, at: Date.now() };
+  /* 순서를 정해 둔 폴더가 있으면 새 폴더는 맨 끝에 둡니다 */
+  const ords = (KV.projFolders || []).map(x => x.ord).filter(Number.isFinite);
+  if(ords.length) f.ord = Math.max(...ords) + 1;
   KV.projFolders = (KV.projFolders || []).concat([f]); saveKV("projFolders");
   return f.id;
 }
@@ -4360,7 +4404,7 @@ function renderProjTree(){
   folders.forEach(f => {
     const docs = projectDocs().filter(d => d.folder === f.id).sort(projTitleDesc);
     const open = S.open.has(projOpenKey(f.id));
-    html += `<div class="fold pf ${open?"":"shut"}" data-k="${esc(projOpenKey(f.id))}" data-pf="${esc(f.id)}">${caretSvg(12)}
+    html += `<div class="fold pf ${open?"":"shut"}" data-k="${esc(projOpenKey(f.id))}" data-pf="${esc(f.id)}"${mob ? "" : ` draggable="true"`}>${caretSvg(12)}
       <span class="nm">${esc(f.name)}</span><span class="cnt">${docs.length}</span></div>`;
     if(!open) return;
     docs.forEach(d => {
@@ -7015,6 +7059,66 @@ $("#projtree").addEventListener("touchstart", e => {
 $("#projtree").addEventListener("click", e => {
   if($("#catmenu").classList.contains("on") && e.target.closest(".fold.pf")) e.stopImmediatePropagation();
 }, true);
+
+/* ---- 프로젝트 폴더 끌어서 순서 바꾸기 (PC · 마우스) ----
+   폴더 줄을 잡아 다른 폴더 위·아래로 놓습니다. 폴더 줄의 위쪽 절반이면 그 폴더 앞, 아래쪽 절반이나
+   그 폴더 안 자료 위면 그 폴더 뒤로 갑니다. 놓을 자리는 빨간 선으로 보여 줍니다. */
+let pfDrag = null;          /* 끌고 있는 폴더 id */
+let pfDropAt = null;        /* { id, after } */
+function pfDropClear(){
+  $$("#projtree .pf-drop-top, #projtree .pf-drop-bot").forEach(el => el.classList.remove("pf-drop-top", "pf-drop-bot"));
+}
+/* 폴더 줄 + 그 아래 자료 줄들 중 마지막 요소 */
+function pfBlockLast(head){
+  let el = head, n = head.nextElementSibling;
+  while(n && n.classList.contains("doc")){ el = n; n = n.nextElementSibling; }
+  return el;
+}
+/* 마우스 아래 요소 → 놓을 자리 */
+function pfDropTarget(e){
+  let el = e.target.closest && e.target.closest("#projtree .fold.pf, #projtree .doc");
+  if(!el) return null;
+  if(el.classList.contains("doc")){
+    let h = el.previousElementSibling;
+    while(h && !h.classList.contains("pf")) h = h.previousElementSibling;
+    return h ? { head:h, after:true } : null;
+  }
+  const r = el.getBoundingClientRect();
+  return { head:el, after: e.clientY > r.top + r.height / 2 };
+}
+$("#projtree").addEventListener("dragstart", e => {
+  const row = e.target.closest && e.target.closest(".fold.pf[draggable]"); if(!row) return;
+  pfDrag = row.dataset.pf; pfDropAt = null;
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", row.querySelector(".nm").textContent); }catch(_){}
+  row.classList.add("pf-dragging");
+});
+$("#projtree").addEventListener("dragover", e => {
+  if(!pfDrag) return;
+  const t = pfDropTarget(e);
+  pfDropClear();
+  if(!t || t.head.dataset.pf === pfDrag){ pfDropAt = null; return; }
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  pfDropAt = { id:t.head.dataset.pf, after:t.after };
+  (t.after ? pfBlockLast(t.head) : t.head).classList.add(t.after ? "pf-drop-bot" : "pf-drop-top");
+});
+$("#projtree").addEventListener("dragleave", e => {
+  if(pfDrag && !$("#projtree").contains(e.relatedTarget)){ pfDropClear(); pfDropAt = null; }
+});
+$("#projtree").addEventListener("drop", e => {
+  if(!pfDrag) return;
+  e.preventDefault();
+  const at = pfDropAt, id = pfDrag;
+  pfDropClear(); pfDrag = null; pfDropAt = null;
+  if(at && moveProjFolder(id, at.id, at.after)){
+    renderTree(); if($("#managebg").classList.contains("on")) mgRender();
+  }
+});
+$("#projtree").addEventListener("dragend", () => {
+  pfDropClear(); pfDrag = null; pfDropAt = null;
+  $$("#projtree .pf-dragging").forEach(el => el.classList.remove("pf-dragging"));
+});
 
 /* 폴더 이름 바꾸기 — 자료는 폴더 id 를 가리키므로 이름만 고치면 됩니다 */
 function renameProjFolder(id){
@@ -12462,7 +12566,9 @@ function renderPending(){
   $("#filelist").innerHTML = pending.map((p,i) => `
     <div class="fitem" data-i="${i}">
       <div class="frow">
-        <div class="fn">${esc(p.title)}<small>${fmtSize(p.file.size)}</small></div>
+        <div class="fn"><input type="text" data-f="title" class="${p.title.trim()?"":"need"}" value="${esc(p.title)}"
+          title="올릴 이름 — 고쳐서 올릴 수 있습니다 (원래 파일: ${esc(p.file.name)})" aria-label="자료 이름"
+          spellcheck="false"><small>${fmtSize(p.file.size)}</small></div>
         ${proj ? `
         <select data-f="folder" class="${p.folder?"":"need"}"><option value="">폴더</option>${folderOptions(p.folder)}</select>` : `
         <select data-f="cat"   class="${p.cat?"":"need"}"><option value="">종류</option>${catOptions(p.cat)}</select>
@@ -12473,20 +12579,57 @@ function renderPending(){
       </div>
       ${relinkLine(p)}
     </div>`).join("");
+  pendingStatus();
+}
+/* 등록 시작 단추 · 안내 글 — 이름 칸을 고칠 때는 목록을 다시 그리지 않고 이것만 고칩니다 */
+function pendingStatus(){
+  const proj = upProj();
   const full = p => proj ? !!p.folder : (p.cat && p.year && p.month && p.week);
   const bad = pending.filter(p => !full(p)).length;
+  const noName = pending.filter(p => !p.title.trim()).length;
   const rl  = pending.filter(p => p.relinkId).length;
-  $("#upstart").disabled = !pending.length || bad > 0;
+  $("#upstart").disabled = !pending.length || bad > 0 || noName > 0;
   $("#bulkinfo").textContent = pending.length
-    ? (bad ? `${bad}개는 ${proj ? "폴더를 골라야" : "종류·연도·월·주차를 채워야"} 합니다`
-           : `${pending.length}개 준비됨${rl ? ` · ${rl}개는 기존 자료에 이어붙입니다` : ""}`)
+    ? (noName ? `${noName}개는 이름을 적어야 합니다`
+       : bad ? `${bad}개는 ${proj ? "폴더를 골라야" : "종류·연도·월·주차를 채워야"} 합니다`
+       : `${pending.length}개 준비됨${rl ? ` · ${rl}개는 기존 자료에 이어붙입니다` : ""}`)
     : "";
 }
+/* 이름을 고친 뒤 — 이어붙일 자료(같은 이름으로 찾음)만 다시 셈해 각 줄의 이어붙임 표시줄을 바꿉니다.
+   목록 전체를 다시 그리면 지금 누른 칸(다른 이름 칸·고르기 칸)이 사라져서 이렇게 따로 고칩니다 */
+function refreshRelinkLines(){
+  syncRelink();
+  $$("#filelist .fitem").forEach(item => {
+    const p = pending[+item.dataset.i]; if(!p) return;
+    const old = item.querySelector(".frelink");
+    const html = relinkLine(p);
+    if(old) old.remove();
+    if(html) item.insertAdjacentHTML("beforeend", html);
+  });
+  pendingStatus();
+}
+$("#filelist").addEventListener("input", e => {
+  if(e.target.dataset.f !== "title") return;
+  const item = e.target.closest(".fitem"); if(!item) return;
+  const p = pending[+item.dataset.i]; if(!p) return;
+  p.title = e.target.value;
+  e.target.classList.toggle("need", !p.title.trim());
+  pendingStatus();
+});
+$("#filelist").addEventListener("keydown", e => {
+  if(e.target.dataset.f === "title" && e.key === "Enter"){ e.preventDefault(); e.target.blur(); }
+});
 
 $("#filelist").addEventListener("change", e => {
   const item = e.target.closest(".fitem"); if(!item) return;
   const p = pending[+item.dataset.i]; if(!p) return;
   const f = e.target.dataset.f, v = e.target.value;
+  if(f === "title"){
+    p.title = v.trim(); e.target.value = p.title;
+    p.rlSet = false;            /* 이름이 바뀌면 이어붙일 자료를 다시 찾습니다 */
+    refreshRelinkLines();
+    return;
+  }
   if(f === "rlon"){
     p.rlSet = true;
     if(e.target.checked){ p.relinkId = p.rlAuto || p.rlPrev || null; claimRelink(p, p.relinkId); }
